@@ -1,0 +1,71 @@
+import React, { useState, useCallback, useEffect } from 'react';
+import LoginScreen from './components/LoginScreen';
+import Onboarding from './components/Onboarding';
+import Dashboard from './components/Dashboard';
+import type { OnboardingData } from './types';
+
+type AppState = 'login' | 'onboarding' | 'dashboard';
+
+const defaultOnboardingData: OnboardingData = {
+  skillLevel: null,
+  methodologies: [],
+  tools: [],
+  name: 'Valued User',
+};
+
+const App: React.FC = () => {
+  const [appState, setAppState] = useState<AppState>(() => {
+    return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
+  });
+  
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
+    const savedData = localStorage.getItem('pimbot_onboardingData');
+    return savedData ? JSON.parse(savedData) : defaultOnboardingData;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('pimbot_appState', appState);
+  }, [appState]);
+
+  useEffect(() => {
+    localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
+  }, [onboardingData]);
+
+  const handleLoginSuccess = useCallback((name: string) => {
+    setOnboardingData(prev => ({ ...prev, name }));
+    setAppState('onboarding');
+  }, []);
+
+  const handleOnboardingComplete = useCallback((data: OnboardingData) => {
+    setOnboardingData(data);
+    setAppState('dashboard');
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('pimbot_appState');
+    localStorage.removeItem('pimbot_onboardingData');
+    setOnboardingData(defaultOnboardingData);
+    setAppState('login');
+  }, []);
+
+  const renderContent = () => {
+    switch (appState) {
+      case 'login':
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+      case 'onboarding':
+        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialName={onboardingData.name} />;
+      case 'dashboard':
+        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
+      default:
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    }
+  };
+
+  return (
+    <div className="bg-slate-900 text-white min-h-screen">
+      {renderContent()}
+    </div>
+  );
+};
+
+export default App;
