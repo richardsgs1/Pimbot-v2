@@ -48,7 +48,6 @@ export default async function handler(
       },
     });
 
-    // FIX: Safely handle potentially undefined response text.
     const summary = (response.text ?? '').trim();
 
     return res.status(200).json({ summary });
