@@ -1,11 +1,12 @@
-import React, { useState, FormEvent, useRef, useEffect } from 'react';
-import type { OnboardingData, Project, Task } from '../types';
+import React, { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
+import type { OnboardingData, Project, SearchResults, SearchResultItem } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProjectList from './ProjectList';
 import ProjectDetails from './ProjectDetails';
 import Home from './Home';
 import Analytics from './Analytics';
+import SearchResultsOverlay from './SearchResultsOverlay';
 
 // Mock Data for Projects
 const mockProjects: Project[] = [
@@ -103,6 +104,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     return savedProjects ? JSON.parse(savedProjects) : mockProjects;
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +115,88 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     localStorage.setItem(`pimbot_projects_${userData.name}`, JSON.stringify(projects));
   }, [projects, userData.name]);
 
+  const searchResults = useMemo<SearchResults>(() => {
+    if (!searchTerm.trim()) {
+      return { projects: [], tasks: [], journal: [] };
+    }
+
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const results: SearchResults = { projects: [], tasks: [], journal: [] };
+
+    projects.forEach(project => {
+      // Search projects
+      if (project.name.toLowerCase().includes(lowerCaseSearchTerm) || project.description.toLowerCase().includes(lowerCaseSearchTerm)) {
+        results.projects.push({ type: 'project', data: project });
+      }
+      // Search tasks
+      project.tasks.forEach(task => {
+        if (task.name.toLowerCase().includes(lowerCaseSearchTerm)) {
+          results.tasks.push({ type: 'task', data: task, project: { id: project.id, name: project.name } });
+        }
+      });
+      // Search journal
+      project.journal.forEach(entry => {
+        if (entry.content.toLowerCase().includes(lowerCaseSearchTerm)) {
+          results.journal.push({ type: 'journal', data: entry, project: { id: project.id, name: project.name } });
+        }
+      });
+    });
+
+    return results;
+  }, [searchTerm, projects]);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setAiSearchSummary(null);
+      return;
+    }
+
+    const hasResults = searchResults.projects.length > 0 || searchResults.tasks.length > 0 || searchResults.journal.length > 0;
+    if (!hasResults) {
+      setAiSearchSummary(null);
+      return;
+    }
+
+    const handler = setTimeout(async () => {
+      setIsSummaryLoading(true);
+      setAiSearchSummary(null);
+      try {
+        const response = await fetch('/api/summarize-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            searchTerm,
+            resultCounts: {
+              projects: searchResults.projects.length,
+              tasks: searchResults.tasks.length,
+              journal: searchResults.journal.length
+            }
+          }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch summary.');
+        const data = await response.json();
+        setAiSearchSummary(data.summary);
+      } catch (error) {
+        console.error("Failed to get AI search summary:", error);
+        setAiSearchSummary("Could not generate summary.");
+      } finally {
+        setIsSummaryLoading(false);
+      }
+    }, 500); // Debounce API call
+
+    return () => clearTimeout(handler);
+  }, [searchResults, searchTerm]);
+
+  const handleSearchResultClick = (item: SearchResultItem) => {
+    if (item.type === 'project') {
+      setSelectedProjectId(item.data.id);
+    } else {
+      setSelectedProjectId(item.project.id);
+    }
+    setCurrentView('projectDetails');
+    setSearchTerm(''); // Clear search after selection
+  };
+  
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -374,12 +460,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     <div className="flex h-screen bg-slate-900 text-white">
       <aside className="w-64 bg-slate-800 p-6 flex-col justify-between border-r border-slate-700 hidden md:flex">
         <div>
-          <div className="flex items-center mb-10">
+          <div className="flex items-center mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4 2 2 0 000-4zm0 2a2 2 0 110 4 2 2 0 010-4zm0 0v2m0 8v-2m0 2H8m4 0h4m-4 0v2m0-14a2 2 0 100 4 2 2 0 000-4zM4 12a8 8 0 1116 0H4z" />
             </svg>
             <h1 className="text-2xl font-bold">PiMbOt AI</h1>
           </div>
+          
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            {searchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={aiSearchSummary} isSummaryLoading={isSummaryLoading} />}
+          </div>
+
           <button onClick={clearChat} className="w-full flex items-center justify-center p-3 mb-4 rounded-lg bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold transition-colors duration-200">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
