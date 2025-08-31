@@ -21,10 +21,19 @@ export enum ProjectStatus {
   Completed = 'Completed',
 }
 
+export enum Priority {
+  High = 'High',
+  Medium = 'Medium',
+  Low = 'Low',
+  None = 'None',
+}
+
 export interface Task {
   id: string;
   name: string;
   completed: boolean;
+  priority: Priority;
+  dueDate?: string; // YYYY-MM-DD format
 }
 
 export interface Project {

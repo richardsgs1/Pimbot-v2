@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useRef, useEffect } from 'react';
 import type { OnboardingData, Project, Task } from '../types';
-import { ProjectStatus } from '../types';
+import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProjectList from './ProjectList';
 import ProjectDetails from './ProjectDetails';
@@ -15,10 +15,10 @@ const mockProjects: Project[] = [
     dueDate: '2024-09-30',
     progress: 75,
     tasks: [
-      { id: 't1-1', name: 'Finalize ad copy', completed: true },
-      { id: 't1-2', name: 'Approve social media assets', completed: true },
-      { id: 't1-3', name: 'Launch PPC campaign', completed: false },
-      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false },
+      { id: 't1-1', name: 'Finalize ad copy', completed: true, priority: Priority.High, dueDate: '2024-07-15' },
+      { id: 't1-2', name: 'Approve social media assets', completed: true, priority: Priority.Medium, dueDate: '2024-07-20' },
+      { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01' },
+      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low },
     ],
   },
   {
@@ -29,11 +29,11 @@ const mockProjects: Project[] = [
     dueDate: '2024-08-15',
     progress: 40,
     tasks: [
-      { id: 't2-1', name: 'User research and personas', completed: true },
-      { id: 't2-2', name: 'Wireframing and mockups', completed: true },
-      { id: 't2-3', name: 'Frontend development', completed: false },
-      { id: 't2-4', name: 'Backend integration', completed: false },
-      { id: 't2-5', name: 'Content migration', completed: false },
+      { id: 't2-1', name: 'User research and personas', completed: true, priority: Priority.High, dueDate: '2024-05-30' },
+      { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15' },
+      { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25' },
+      { id: 't2-4', name: 'Backend integration', completed: false, priority: Priority.Medium, dueDate: '2024-07-30' },
+      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low },
     ],
   },
   {
@@ -44,10 +44,10 @@ const mockProjects: Project[] = [
     dueDate: '2024-06-01',
     progress: 100,
     tasks: [
-        { id: 't3-1', name: 'Develop dashboard UI', completed: true },
-        { id: 't3-2', name: 'Implement calendar API', completed: true },
-        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true },
-        { id: 't3-4', name: 'Deploy to app stores', completed: true },
+        { id: 't3-1', name: 'Develop dashboard UI', completed: true, priority: Priority.High, dueDate: '2024-05-10' },
+        { id: 't3-2', name: 'Implement calendar API', completed: true, priority: Priority.Medium, dueDate: '2024-05-20' },
+        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low },
+        { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None },
     ],
   },
 ];
@@ -233,6 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         ...task,
         id: `task-${Date.now()}-${index}`,
         completed: false,
+        priority: Priority.None, // Default priority
       }))
     };
     setProjects(prevProjects => [newProject, ...prevProjects]);
@@ -330,7 +331,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                                     handleSubmit(e as any);
                                 }
                                 }}
-                                className="w-full bg-slate-800 border border-slate-600 rounded-xl resize-none text-white p-4 pr-32 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition max-h-48"
+                                className="w-full bg-slate-800 border border-slate-600 rounded-xl resize-none text-white p-4 pr-32 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 max-h-48"
                                 placeholder="Ask PiMbOt AI anything..."
                                 rows={1}
                                 disabled={isStreaming}
