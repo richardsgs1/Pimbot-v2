@@ -44,4 +44,5 @@ export interface Project {
   dueDate: string;
   progress: number; // 0-100
   tasks: Task[];
+  aiHealthSummary?: string;
 }

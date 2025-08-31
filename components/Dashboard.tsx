@@ -4,6 +4,8 @@ import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProjectList from './ProjectList';
 import ProjectDetails from './ProjectDetails';
+import Home from './Home';
+import Analytics from './Analytics';
 
 // Mock Data for Projects
 const mockProjects: Project[] = [
@@ -63,7 +65,7 @@ interface ChatMessage {
   content: string;
 }
 
-type View = 'chat' | 'projectList' | 'projectDetails';
+type View = 'home' | 'chat' | 'projectList' | 'projectDetails' | 'analytics';
 
 const SidebarIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="mr-3">{children}</span>
@@ -92,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   });
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<View>('chat');
+  const [currentView, setCurrentView] = useState<View>('home');
   const [projects, setProjects] = useState<Project[]>(() => {
     const savedProjects = localStorage.getItem(`pimbot_projects_${userData.name}`);
     return savedProjects ? JSON.parse(savedProjects) : mockProjects;
@@ -253,6 +255,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     const selectedProject = projects.find(p => p.id === selectedProjectId);
 
     switch (currentView) {
+        case 'home':
+            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} />;
         case 'projectList':
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
@@ -262,6 +266,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             // Fallback to project list if no project is selected
             setCurrentView('projectList');
             return null;
+        case 'analytics':
+            return <Analytics projects={projects} onUpdateProject={handleUpdateProject} />;
         case 'chat':
         default:
             return (
@@ -375,6 +381,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           <nav>
             <ul>
               <li className="mb-2">
+                <button onClick={() => setCurrentView('home')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'home' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
+                  <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></SidebarIcon>
+                  Home
+                </button>
+              </li>
+              <li className="mb-2">
                 <button onClick={() => setCurrentView('chat')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'chat' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
                   <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg></SidebarIcon>
                   Chat
@@ -387,7 +399,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 </button>
               </li>
               <li className="mb-2">
-                <button className="w-full flex items-center p-3 rounded-lg hover:bg-slate-700 text-slate-400" disabled>
+                <button onClick={() => setCurrentView('analytics')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'analytics' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
                   <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg></SidebarIcon>
                   Analytics
                 </button>
