@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, FormEvent, useMemo } from 'react';
 import type { Project, Task, JournalEntry, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -233,8 +232,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ projectDescription: project.description, tasks: project.tasks.map(t => ({ name: t.name, completed: t.completed })) }),
             });
-            if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to get suggestions.'); }
-            const data = await response.json(); setSuggestions(data.suggestions || []);
+            const responseText = await response.text();
+            if (!response.ok) {
+                let errorMsg = 'Failed to get suggestions.';
+                try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+                throw new Error(errorMsg);
+            }
+            if (!responseText) { throw new Error("Received an empty response from the server."); }
+            const data = JSON.parse(responseText);
+            setSuggestions(data.suggestions || []);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.'; setSuggestionError(errorMessage);
         } finally {
@@ -262,11 +268,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ project }),
           });
+          const responseText = await response.text();
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch report.');
+            let errorMsg = 'Failed to fetch report.';
+            try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+            throw new Error(errorMsg);
           }
-          const data = await response.json();
+          if (!responseText) { throw new Error("Received an empty response from the server."); }
+          const data = JSON.parse(responseText);
           setReportContent(data.report);
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'An unknown error occurred.';

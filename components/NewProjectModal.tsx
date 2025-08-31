@@ -27,12 +27,27 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onProjectCre
         body: JSON.stringify({ prompt: description }),
       });
 
+      // Robust response handling
+      const responseText = await response.text();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate project.');
+        let errorMsg = 'Failed to generate project.';
+        try {
+          // Try to parse a structured error from the server
+          errorMsg = JSON.parse(responseText).error || errorMsg;
+        } catch (e) {
+          // Otherwise, use the raw text or status text
+          errorMsg = responseText || response.statusText;
+        }
+        throw new Error(errorMsg);
+      }
+      
+      if (!responseText) {
+        throw new Error("Received an empty response from the server. The request may have timed out.");
       }
 
-      const projectData = await response.json();
+      // Safely parse the JSON now that we know the text is not empty
+      const projectData = JSON.parse(responseText);
       onProjectCreated(projectData);
 
     } catch (err) {

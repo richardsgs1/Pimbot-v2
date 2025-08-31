@@ -50,11 +50,23 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projects }),
       });
+
+      const responseText = await response.text();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch briefing.');
+        let errorMsg = 'Failed to fetch briefing.';
+        try {
+          errorMsg = JSON.parse(responseText).error || errorMsg;
+        } catch (e) {
+          errorMsg = responseText || response.statusText;
+        }
+        throw new Error(errorMsg);
       }
-      const data = await response.json();
+
+      if (!responseText) {
+        throw new Error("Received an empty response from the server. The request may have timed out.");
+      }
+      
+      const data = JSON.parse(responseText);
       setBriefing(data.briefing);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
@@ -65,8 +77,14 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
   }, [projects]);
 
   useEffect(() => {
-    fetchBriefing();
-  }, [fetchBriefing]);
+    // Only fetch briefing if there are projects to analyze
+    if (projects && projects.length > 0) {
+      fetchBriefing();
+    } else {
+      setIsBriefingLoading(false);
+      setBriefing("No projects found. Create your first project to get started!");
+    }
+  }, [fetchBriefing, projects]);
 
   const projectCounts = useMemo(() => {
     return projects.reduce((acc, project) => {

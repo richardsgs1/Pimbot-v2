@@ -4,26 +4,18 @@ import type { Project } from '../types';
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.
 function safeExtractText(response: GenerateContentResponse): string {
-    // 1. Proactively check for a block reason. This is the most reliable way.
     if (response.promptFeedback?.blockReason) {
         console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
         return '';
     }
-
-    // 2. Try to access the .text property within a try-catch, as it can throw on certain responses.
     try {
         const text = response.text;
-        if (text) {
-            return text;
-        }
+        if (text) return text;
     } catch (e) {
         console.error("Error accessing response.text. The response might be blocked.", e);
     }
-
-    // 3. As a fallback, try to access the text through the full candidates path.
     try {
-        const fallbackText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-        return fallbackText ?? '';
+        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     } catch (e) {
         console.error("Error accessing fallback response text.", e);
         return '';
@@ -52,7 +44,7 @@ export default async function handler(
     }
 
     const systemInstruction = `You are PiMbOt AI, a proactive project management assistant.
-Your task is to generate a "Daily Briefing" in Markdown format based on all the user's project data.
+Your task is to generate a "Daily Briefing" in Markdown format based on a summary of the user's project data.
 The briefing should be concise, helpful, and prioritize what the user needs to focus on today.
 
 Structure the report as follows:
@@ -64,8 +56,23 @@ Structure the report as follows:
 
 Keep the tone professional yet encouraging. If a section has no items, explicitly state something positive like "No overdue tasks. Great job keeping up!". Do not make up information if a section is empty.`;
 
-    const projectDataString = JSON.stringify(projects, null, 2);
-    const prompt = `Here is the user's project data in JSON format. Generate their daily briefing based on it. Today's date is ${new Date().toLocaleDateString('en-CA')}.\n\n${projectDataString}`;
+    // --- OPTIMIZATION: Create a concise summary instead of sending the whole DB ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    
+    const relevantData = {
+        today: todayStr,
+        projects: projects.map(p => ({
+            name: p.name,
+            status: p.status,
+            overdueTasks: p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < today).map(t => t.name),
+            dueTodayTasks: p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate).toLocaleDateString('en-CA') === todayStr).map(t => ({name: t.name, priority: t.priority})),
+        })),
+        recentCompletions: projects.flatMap(p => p.tasks.filter(t => t.completed && t.dueDate && new Date(t.dueDate) > new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)).map(t => t.name)).slice(0, 3) // Last 3 days, max 3 items
+    };
+    
+    const prompt = `Generate a daily briefing based on this summarized project data:\n${JSON.stringify(relevantData, null, 2)}`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",

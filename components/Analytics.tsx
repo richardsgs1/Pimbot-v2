@@ -249,12 +249,18 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject }) => {
             body: JSON.stringify({ project }),
         });
 
+        const responseText = await response.text();
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to generate summary.');
+            let errorMsg = 'Failed to generate summary.';
+            try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+            throw new Error(errorMsg);
+        }
+
+        if (!responseText) {
+          throw new Error("Received an empty response from the server. The request may have timed out.");
         }
         
-        const data = await response.json();
+        const data = JSON.parse(responseText);
         const updatedProject = { ...project, aiHealthSummary: data.summary };
         onUpdateProject(updatedProject);
 
