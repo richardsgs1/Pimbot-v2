@@ -1,11 +1,20 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 
 interface ResultCounts {
   projects: number;
   tasks: number;
   journal: number;
+}
+
+// Helper function to safely get text from a Gemini response
+function safeGetText(response: GenerateContentResponse): string {
+    try {
+        return response.text ?? '';
+    } catch (e) {
+        console.error("Error accessing response.text. The response might be blocked.", e);
+        return ''; // Return empty string if accessor throws
+    }
 }
 
 export default async function handler(
@@ -48,7 +57,12 @@ export default async function handler(
       },
     });
 
-    const summary = (response.text ?? '').trim();
+    const summary = safeGetText(response).trim();
+
+    if (!summary) {
+      // Don't throw an error here, just return an empty summary as it's not critical.
+      return res.status(200).json({ summary: '' });
+    }
 
     return res.status(200).json({ summary });
 

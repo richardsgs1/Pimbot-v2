@@ -1,9 +1,19 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
+
+// Helper function to safely get text from a Gemini response
+function safeGetText(response: GenerateContentResponse): string {
+    try {
+        return response.text ?? '';
+    } catch (e) {
+        console.error("Error accessing response.text. The response might be blocked.", e);
+        return ''; // Return empty string if accessor throws
+    }
+}
+
 
 // A robust function to clean and parse JSON from the model's text response.
-function cleanAndParseJson(rawText: string | undefined | null): any {
+function cleanAndParseJson(rawText: string): any {
   if (!rawText) {
     return {};
   }
@@ -91,8 +101,17 @@ export default async function handler(
       },
     });
     
-    // FIX: Use the robust cleaning and parsing function.
-    const projectData = cleanAndParseJson(textResponse.text);
+    const rawText = safeGetText(textResponse);
+    if (!rawText) {
+        throw new Error('The AI model returned an empty response, which may be due to content safety filters.');
+    }
+    
+    const projectData = cleanAndParseJson(rawText);
+
+    if (!projectData || Object.keys(projectData).length === 0 || !projectData.name) {
+        console.error('Parsed project data is empty or invalid:', projectData);
+        throw new Error('The AI model returned a response in an unexpected format.');
+    }
 
     // Step 2: Generate a cover image for the project
     let coverImageUrl: string | undefined = undefined;

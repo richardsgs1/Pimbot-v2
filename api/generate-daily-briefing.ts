@@ -1,6 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import type { Project } from '../types';
+
+// Helper function to safely get text from a Gemini response
+function safeGetText(response: GenerateContentResponse): string {
+    try {
+        return response.text ?? '';
+    } catch (e) {
+        console.error("Error accessing response.text. The response might be blocked.", e);
+        return ''; // Return empty string if accessor throws
+    }
+}
 
 export default async function handler(
   req: VercelRequest,
@@ -47,7 +57,10 @@ Keep the tone professional yet encouraging. If a section has no items, explicitl
       },
     });
 
-    const briefing = (response.text ?? 'Could not generate briefing at this time.').trim();
+    const briefing = safeGetText(response).trim();
+    if (!briefing) {
+        throw new Error('The AI model returned an empty briefing, which may be due to content safety filters.');
+    }
 
     return res.status(200).json({ briefing });
 

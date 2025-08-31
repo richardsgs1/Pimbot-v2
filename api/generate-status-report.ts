@@ -1,6 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 import type { Project, Task } from '../types';
+
+// Helper function to safely get text from a Gemini response
+function safeGetText(response: GenerateContentResponse): string {
+    try {
+        return response.text ?? '';
+    } catch (e) {
+        console.error("Error accessing response.text. The response might be blocked.", e);
+        return ''; // Return empty string if accessor throws
+    }
+}
 
 // Helper to format a date string
 const formatDate = (dateString?: string): string => {
@@ -70,7 +80,11 @@ ${incompleteTasks.length > 0 ? incompleteTasks.map(t => `- ${t.name} (Priority: 
       },
     });
 
-    const report = (response.text ?? 'Could not generate report.').trim();
+    const report = safeGetText(response).trim();
+
+    if (!report) {
+      throw new Error('The AI model returned an empty report, which may be due to content safety filters.');
+    }
 
     return res.status(200).json({ report });
 

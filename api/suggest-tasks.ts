@@ -1,14 +1,23 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
 
 interface SimpleTask {
     name: string;
     completed: boolean;
 }
 
+// Helper function to safely get text from a Gemini response
+function safeGetText(response: GenerateContentResponse): string {
+    try {
+        return response.text ?? '';
+    } catch (e) {
+        console.error("Error accessing response.text. The response might be blocked.", e);
+        return ''; // Return empty string if accessor throws
+    }
+}
+
 // A robust function to clean and parse JSON from the model's text response.
-function cleanAndParseJson(rawText: string | undefined | null): any {
+function cleanAndParseJson(rawText: string): any {
   if (!rawText) {
     return {};
   }
@@ -90,8 +99,16 @@ Based on this context, generate 3 short, actionable, and relevant tasks that the
       },
     });
 
-    // FIX: Use the robust cleaning and parsing function.
-    const suggestions = cleanAndParseJson(response.text);
+    const rawText = safeGetText(response);
+    if (!rawText) {
+      throw new Error('The AI model returned an empty response, which may be due to content safety filters.');
+    }
+    
+    const suggestions = cleanAndParseJson(rawText);
+
+    if (!suggestions || !suggestions.suggestions) {
+        throw new Error('The AI model returned a response in an unexpected format.');
+    }
 
     return res.status(200).json(suggestions);
 

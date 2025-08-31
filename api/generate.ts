@@ -1,4 +1,3 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import type { OnboardingData } from '../types';
@@ -55,8 +54,14 @@ Your tone should be supportive, clear, and professional. Tailor the complexity o
     res.setHeader('Connection', 'keep-alive');
 
     for await (const chunk of stream) {
-      if (chunk.text) {
-        res.write(chunk.text);
+      try {
+        if (chunk.text) {
+          res.write(chunk.text);
+        }
+      } catch (e) {
+        console.warn('A chunk was likely blocked during streaming.', e);
+        // We can't send an error response here as headers are already sent.
+        // We just stop writing to prevent a crash.
       }
     }
 
