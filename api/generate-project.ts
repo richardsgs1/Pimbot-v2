@@ -1,3 +1,4 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -18,9 +19,12 @@ export default async function handler(
 
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured.' });
+      // This error is caught by the outer catch block, but it's good practice
+      // to have a specific message. We'll throw an error to be consistent.
+      throw new Error('API key not configured.');
     }
     
+    // Initialize the AI client INSIDE the try block, after the key is validated.
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are a project management assistant. Based on the user's prompt, create a structured project plan.
@@ -66,7 +70,8 @@ export default async function handler(
     return res.status(200).json(projectData);
 
   } catch (error) {
-    console.error('Error calling Gemini API for project generation:', error);
-    return res.status(500).json({ error: 'Failed to generate project from the AI model.' });
+    console.error('Error in generate-project handler:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate project from the AI model.';
+    return res.status(500).json({ error: errorMessage });
   }
 }

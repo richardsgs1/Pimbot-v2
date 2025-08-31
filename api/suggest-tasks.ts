@@ -23,7 +23,7 @@ export default async function handler(
 
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured.' });
+      throw new Error('API key not configured.');
     }
     
     const ai = new GoogleGenAI({ apiKey });
@@ -66,6 +66,7 @@ Based on this context, generate 3 short, actionable, and relevant tasks that the
 
   } catch (error) {
     console.error('Error calling Gemini API for task suggestions:', error);
-    return res.status(500).json({ error: 'Failed to generate task suggestions.' });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate task suggestions.';
+    return res.status(500).json({ error: errorMessage });
   }
 }
