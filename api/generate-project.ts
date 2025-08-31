@@ -61,7 +61,8 @@ export default async function handler(
       },
     });
     
-    const projectData = JSON.parse((textResponse.text ?? '{}').trim());
+    // FIX: Use || instead of ?? to handle empty strings as well as null/undefined.
+    const projectData = JSON.parse((textResponse.text || '{}').trim());
 
     // Step 2: Generate a cover image for the project
     let coverImageUrl: string | undefined = undefined;
