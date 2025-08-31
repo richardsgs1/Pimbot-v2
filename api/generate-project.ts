@@ -2,6 +2,36 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
+// A robust function to clean and parse JSON from the model's text response.
+function cleanAndParseJson(rawText: string | undefined | null): any {
+  if (!rawText) {
+    return {};
+  }
+  // Trim whitespace
+  let cleanedText = rawText.trim();
+
+  // Remove markdown code fences (```json ... ``` or ``` ... ```)
+  const jsonRegex = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
+  const match = cleanedText.match(jsonRegex);
+  if (match && match[1]) {
+    cleanedText = match[1];
+  }
+
+  // If after all that, the string is empty, return an empty object.
+  if (!cleanedText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(cleanedText);
+  } catch (e) {
+    console.error("Failed to parse JSON after cleaning:", cleanedText);
+    // Return empty object on parsing failure to prevent client-side crashes
+    return {}; 
+  }
+}
+
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -61,13 +91,13 @@ export default async function handler(
       },
     });
     
-    // FIX: Use || instead of ?? to handle empty strings as well as null/undefined.
-    const projectData = JSON.parse((textResponse.text || '{}').trim());
+    // FIX: Use the robust cleaning and parsing function.
+    const projectData = cleanAndParseJson(textResponse.text);
 
     // Step 2: Generate a cover image for the project
     let coverImageUrl: string | undefined = undefined;
     try {
-        const imagePrompt = `A professional, abstract, digital art piece representing a project about '${projectData.name}'. Minimalist, clean, tech theme, with a color palette of cyan, blue, and dark slate.`;
+        const imagePrompt = `A professional, abstract, digital art piece representing a project about '${projectData.name || 'a new initiative'}'. Minimalist, clean, tech theme, with a color palette of cyan, blue, and dark slate.`;
         const imageResponse = await ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: imagePrompt,
