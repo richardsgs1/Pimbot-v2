@@ -17,7 +17,7 @@ const statusColors: { [key in ProjectStatus]: { bg: string, text: string, dot: s
 };
 
 const ProjectCard: React.FC<{ project: Project; onSelect: () => void }> = ({ project, onSelect }) => {
-  const { name, status, dueDate, progress } = project;
+  const { name, status, dueDate, progress, coverImageUrl } = project;
   const colors = statusColors[status];
   
   const formattedDate = new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', {
@@ -25,26 +25,37 @@ const ProjectCard: React.FC<{ project: Project; onSelect: () => void }> = ({ pro
     month: 'long',
     day: 'numeric',
   });
+  
+  const cardStyle = {
+    backgroundImage: coverImageUrl ? `url(${coverImageUrl})` : 'none',
+  };
 
   return (
-    <div onClick={onSelect} className="bg-slate-800 border border-slate-700 rounded-xl p-6 flex flex-col justify-between hover:border-cyan-500 hover:bg-slate-700/50 cursor-pointer transition-all duration-200">
-      <div>
-        <div className="flex justify-between items-start">
-            <h3 className="text-lg font-bold text-white mb-2">{name}</h3>
-            <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
-                <span className={`w-2 h-2 mr-2 rounded-full ${colors.dot}`}></span>
-                {status}
-            </div>
+    <div 
+      onClick={onSelect} 
+      style={cardStyle}
+      className={`relative group border border-slate-700 rounded-xl flex flex-col justify-between overflow-hidden bg-cover bg-center transition-all duration-300 hover:border-cyan-500 transform hover:-translate-y-1 cursor-pointer shadow-lg ${!coverImageUrl ? 'bg-gradient-to-br from-slate-800 to-slate-900' : ''}`}
+    >
+      <div className="absolute inset-0 bg-slate-900/70 group-hover:bg-slate-900/60 transition-colors duration-300"></div>
+      <div className="relative p-6 flex flex-col justify-between h-full">
+        <div>
+          <div className="flex justify-between items-start">
+              <h3 className="text-lg font-bold text-white mb-2">{name}</h3>
+              <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} flex-shrink-0`}>
+                  <span className={`w-2 h-2 mr-2 rounded-full ${colors.dot}`}></span>
+                  {status}
+              </div>
+          </div>
+          <p className="text-sm text-slate-400">Due: {formattedDate}</p>
         </div>
-        <p className="text-sm text-slate-400">Due: {formattedDate}</p>
-      </div>
-      <div className="mt-6">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-xs font-medium text-slate-400">Progress</span>
-          <span className="text-xs font-medium text-white">{progress}%</span>
-        </div>
-        <div className="w-full bg-slate-700 rounded-full h-2">
-          <div className="bg-cyan-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs font-medium text-slate-400">Progress</span>
+            <span className="text-xs font-medium text-white">{progress}%</span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-2">
+            <div className="bg-cyan-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+          </div>
         </div>
       </div>
     </div>

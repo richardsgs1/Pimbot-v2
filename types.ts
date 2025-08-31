@@ -61,6 +61,7 @@ export interface Project {
   tasks: Task[];
   aiHealthSummary?: string;
   journal: JournalEntry[];
+  coverImageUrl?: string; // Base64 data URL for the project cover
 }
 
 // Types for Global Search

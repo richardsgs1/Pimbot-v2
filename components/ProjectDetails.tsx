@@ -241,6 +241,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       setNewJournalNote('');
     };
     
+    const bannerStyle = {
+      backgroundImage: project.coverImageUrl ? `url(${project.coverImageUrl})` : 'none',
+    };
+
     return (
       <>
         <div className="flex flex-col h-full">
@@ -252,20 +256,29 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             </header>
             <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-7xl mx-auto">
-                    {/* Project Header */}
-                    <div className={`bg-slate-800 border ${colors.border} rounded-xl p-6 mb-6`}>
-                        <div className="flex justify-between items-start">
-                            <h1 className="text-3xl font-bold text-white">{project.name}</h1>
-                             <div className={`flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
-                                <span className={`w-2 h-2 mr-2 rounded-full ${colors.dot}`}></span>{project.status}
-                            </div>
+                    {/* Project Header Banner */}
+                    <div 
+                      style={bannerStyle} 
+                      className={`relative flex flex-col justify-end h-56 mb-6 rounded-2xl overflow-hidden bg-cover bg-center ${!project.coverImageUrl ? 'bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700' : ''}`}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"></div>
+                      <div className="relative p-6">
+                          <div className="flex justify-between items-end">
+                              <div>
+                                  <h1 className="text-4xl font-bold text-white shadow-lg">{project.name}</h1>
+                                  <p className="text-slate-300 mt-1 shadow-md">Due: {formattedDate}</p>
+                              </div>
+                               <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
+                                  <span className={`w-2.5 h-2.5 mr-2 rounded-full ${colors.dot}`}></span>{project.status}
+                              </div>
+                          </div>
+                          <div className="mt-4">
+                            <div className="flex justify-between items-center mb-1"><span className="text-sm font-medium text-slate-300">Progress</span><span className="text-sm font-medium text-white">{project.progress}%</span></div>
+                            <div className="w-full bg-slate-700/50 rounded-full h-2.5"><div className="bg-cyan-400 h-2.5 rounded-full" style={{ width: `${project.progress}%` }}></div></div>
                         </div>
-                        <p className="text-slate-400 mt-2">Due: {formattedDate}</p>
-                        <div className="mt-6">
-                            <div className="flex justify-between items-center mb-1"><span className="text-sm font-medium text-slate-400">Progress</span><span className="text-sm font-medium text-white">{project.progress}%</span></div>
-                            <div className="w-full bg-slate-700 rounded-full h-2.5"><div className="bg-cyan-500 h-2.5 rounded-full" style={{ width: `${project.progress}%` }}></div></div>
-                        </div>
+                      </div>
                     </div>
+
                     {/* Project Body */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2">

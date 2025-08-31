@@ -23,6 +23,7 @@ export default async function handler(
       return res.status(400).json({ error: 'A project description prompt is required.' });
     }
 
+    // Step 1: Generate the project plan (text-based)
     const systemInstruction = `You are a project management assistant. Based on the user's prompt, create a structured project plan.
 - The project name should be a concise title.
 - The description should be a one or two-sentence summary.
@@ -50,7 +51,7 @@ export default async function handler(
       required: ['name', 'description', 'dueDate', 'tasks'],
     };
 
-    const response = await ai.models.generateContent({
+    const textResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -60,10 +61,34 @@ export default async function handler(
       },
     });
     
-    // FIX: Safely handle potentially undefined response text before parsing.
-    const projectData = JSON.parse((response.text ?? '{}').trim());
+    const projectData = JSON.parse((textResponse.text ?? '{}').trim());
 
-    return res.status(200).json(projectData);
+    // Step 2: Generate a cover image for the project
+    let coverImageUrl: string | undefined = undefined;
+    try {
+        const imagePrompt = `A professional, abstract, digital art piece representing a project about '${projectData.name}'. Minimalist, clean, tech theme, with a color palette of cyan, blue, and dark slate.`;
+        const imageResponse = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: imagePrompt,
+            config: {
+              numberOfImages: 1,
+              outputMimeType: 'image/png',
+              aspectRatio: '16:9',
+            },
+        });
+        
+        if (imageResponse.generatedImages && imageResponse.generatedImages.length > 0) {
+            const base64ImageBytes: string = imageResponse.generatedImages[0].image.imageBytes;
+            coverImageUrl = `data:image/png;base64,${base64ImageBytes}`;
+        }
+    } catch (imageError) {
+        console.warn('Could not generate project cover image:', imageError);
+        // If image generation fails, we still proceed without it.
+    }
+    
+    const finalProjectData = { ...projectData, coverImageUrl };
+
+    return res.status(200).json(finalProjectData);
 
   } catch (error) {
     console.error('Error in generate-project handler:', error);
