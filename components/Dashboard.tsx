@@ -238,6 +238,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     setProjects(prevProjects => [newProject, ...prevProjects]);
   };
 
+  const handleUpdateProject = (updatedProject: Project) => {
+    setProjects(prevProjects => 
+      prevProjects.map(p => (p.id === updatedProject.id ? updatedProject : p))
+    );
+    // Also update the selected project if it's the one being viewed
+    if (selectedProjectId === updatedProject.id) {
+      // This is implicitly handled by the state update, but good to be aware of
+    }
+  };
+
   const renderMainContent = () => {
     const selectedProject = projects.find(p => p.id === selectedProjectId);
 
@@ -246,7 +256,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
             if (selectedProject) {
-                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} />;
+                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} />;
             }
             // Fallback to project list if no project is selected
             setCurrentView('projectList');
