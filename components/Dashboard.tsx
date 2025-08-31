@@ -364,14 +364,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
     switch (currentView) {
         case 'home':
-            // FIX: Removed unused 'team' prop from Home component.
-            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} />;
+            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} team={team} />;
         case 'projectList':
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
             if (selectedProject) {
-                // FIX: Removed unused 'team' prop from ProjectDetails component.
-                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} />;
+                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} team={team} />;
             }
             // Fallback to project list if no project is selected
             setCurrentView('projectList');

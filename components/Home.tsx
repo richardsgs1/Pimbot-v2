@@ -1,11 +1,13 @@
+
 import React, { useMemo } from 'react';
-import type { Project, Task, OnboardingData } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, Task, OnboardingData, TeamMember } from '../types';
+import { ProjectStatus, Priority } from '../types';
 
 interface HomeProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   userData: OnboardingData;
+  team: TeamMember[];
 }
 
 const statusColors: { [key in ProjectStatus]: { text: string, dot: string } } = {
@@ -14,6 +16,14 @@ const statusColors: { [key in ProjectStatus]: { text: string, dot: string } } = 
   [ProjectStatus.OffTrack]: { text: 'text-red-400', dot: 'bg-red-400' },
   [ProjectStatus.Completed]: { text: 'text-blue-400', dot: 'bg-blue-400' },
 };
+
+const priorityIcons: { [key in Priority]: React.ReactNode } = {
+    [Priority.High]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
+    [Priority.Medium]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
+    [Priority.Low]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+    [Priority.None]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>,
+};
+
 
 const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-slate-800 p-4 rounded-xl flex items-center">
@@ -27,7 +37,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }
     </div>
 );
 
-const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
+const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData, team }) => {
 
   const projectCounts = useMemo(() => {
     return projects.reduce((acc, project) => {
@@ -39,22 +49,25 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
   const atRiskProjects = useMemo(() => {
     return projects.filter(p => p.status === ProjectStatus.AtRisk || p.status === ProjectStatus.OffTrack);
   }, [projects]);
-
-  const upcomingTasks = useMemo(() => {
-    const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-
-    return projects.flatMap(project =>
+  
+  const myTasks = useMemo(() => {
+    const priorityOrder = { [Priority.High]: 1, [Priority.Medium]: 2, [Priority.Low]: 3, [Priority.None]: 4 };
+    
+    return projects.flatMap(project => 
       project.tasks
-        .filter(task => {
-          if (!task.dueDate || task.completed) return false;
-          const dueDate = new Date(task.dueDate + 'T00:00:00');
-          return dueDate >= today && dueDate <= nextWeek;
-        })
+        .filter(task => task.assigneeId === userData.id && !task.completed)
         .map(task => ({ ...task, projectName: project.name, projectId: project.id }))
-    ).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-  }, [projects]);
+    ).sort((a, b) => {
+      // Sort by due date first (tasks with no due date go to the bottom)
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      if (dateA !== dateB) return dateA - dateB;
+      // Then sort by priority
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+
+  }, [projects, userData.id]);
+
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -97,11 +110,38 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
 
           {/* Widgets Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* My Tasks Widget */}
+            <div className="bg-slate-800 rounded-xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">My Tasks</h2>
+                {myTasks.length > 0 ? (
+                    <ul className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        {myTasks.map(task => (
+                            <li key={task.id} onClick={() => onSelectProject(task.projectId)} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                                <div className="flex items-center">
+                                    <span className="mr-3" title={`Priority: ${task.priority}`}>{priorityIcons[task.priority]}</span>
+                                    <div>
+                                        <p className="font-semibold text-white">{task.name}</p>
+                                        <p className="text-xs text-slate-400">{task.projectName}</p>
+                                    </div>
+                                </div>
+                                {task.dueDate && (
+                                     <p className={`text-xs font-medium ${new Date(task.dueDate) < new Date() ? 'text-red-400' : 'text-cyan-400'}`}>
+                                        {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                     </p>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-slate-400 text-center py-8">You have no pending tasks. Great job!</p>
+                )}
+            </div>
+            
             {/* Projects at Risk Widget */}
             <div className="bg-slate-800 rounded-xl p-6">
               <h2 className="text-xl font-bold text-white mb-4">Projects Requiring Attention</h2>
               {atRiskProjects.length > 0 ? (
-                <ul className="space-y-3">
+                <ul className="space-y-3 max-h-96 overflow-y-auto pr-2">
                   {atRiskProjects.map(project => (
                     <li key={project.id} onClick={() => onSelectProject(project.id)} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
                       <div>
@@ -117,26 +157,6 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
                 </ul>
               ) : (
                 <p className="text-slate-400 text-center py-8">Great job! No projects are currently at risk.</p>
-              )}
-            </div>
-
-            {/* Upcoming Deadlines Widget */}
-            <div className="bg-slate-800 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Upcoming Deadlines (Next 7 Days)</h2>
-               {upcomingTasks.length > 0 ? (
-                <ul className="space-y-3">
-                  {upcomingTasks.map(task => (
-                    <li key={task.id} onClick={() => onSelectProject(task.projectId)} className="p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
-                      <p className="font-semibold text-white">{task.name}</p>
-                      <div className="flex items-center justify-between text-xs mt-1">
-                        <p className="text-slate-400">{task.projectName}</p>
-                        <p className="font-medium text-cyan-400">{new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-slate-400 text-center py-8">Nothing due in the next 7 days. Time to plan ahead!</p>
               )}
             </div>
           </div>

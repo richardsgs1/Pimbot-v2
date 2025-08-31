@@ -1,11 +1,13 @@
+
 import React, { useState, useRef, useEffect, FormEvent, useMemo } from 'react';
-import type { Project, Task, JournalEntry } from '../types';
+import type { Project, Task, JournalEntry, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 
 interface ProjectDetailsProps {
   project: Project;
   onBack: () => void;
   onUpdateProject: (updatedProject: Project) => void;
+  team: TeamMember[];
 }
 
 const statusColors: { [key in ProjectStatus]: { bg: string, text: string, dot: string, border: string } } = {
@@ -21,6 +23,16 @@ const priorityColors: { [key in Priority]: { border: string } } = {
     [Priority.Low]: { border: 'border-blue-500' },
     [Priority.None]: { border: 'border-slate-600' },
 };
+
+const Avatar: React.FC<{ member?: TeamMember }> = ({ member }) => {
+    if (!member) return <div className="w-6 h-6 rounded-full bg-slate-600 border-2 border-slate-800" title="Unassigned"></div>;
+    return (
+        <div className={`w-6 h-6 rounded-full ${member.avatarColor} flex items-center justify-center text-xs font-bold text-white border-2 border-slate-800`} title={member.name}>
+            {member.name.charAt(0).toUpperCase()}
+        </div>
+    );
+};
+
 
 // --- Icon Components ---
 const CalendarIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> );
@@ -39,22 +51,20 @@ const addJournalEntry = (currentProject: Project, content: string): Project => {
 };
 
 // --- Main Component ---
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team }) => {
     const colors = statusColors[project.status];
     
-    // Editing State
-    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-    const [editingTaskName, setEditingTaskName] = useState('');
-    const [editingTaskPriority, setEditingTaskPriority] = useState<Priority>(Priority.None);
-    const [editingTaskDueDate, setEditingTaskDueDate] = useState('');
-    const [editingTaskDependsOn, setEditingTaskDependsOn] = useState<string>('');
-    const editInputRef = useRef<HTMLInputElement>(null);
+    // Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+    const [completionModalState, setCompletionModalState] = useState<{ isOpen: boolean; taskId: string | null; note: string }>({ isOpen: false, taskId: null, note: '' });
 
     // New Task State
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>(Priority.None);
     const [newTaskDependency, setNewTaskDependency] = useState('');
+    const [newTaskAssignee, setNewTaskAssignee] = useState('');
     
     // Drag & Drop State
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -67,17 +77,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
     // Journal State
     const [newJournalNote, setNewJournalNote] = useState('');
-    
-    // Completion Modal State
-    const [completionModalState, setCompletionModalState] = useState<{ isOpen: boolean; taskId: string | null; note: string }>({ isOpen: false, taskId: null, note: '' });
 
     const tasksById = useMemo(() => project.tasks.reduce((acc, task) => { acc[task.id] = task; return acc; }, {} as Record<string, Task>), [project.tasks]);
-
-    useEffect(() => {
-        if (editingTaskId && editInputRef.current) {
-            editInputRef.current.focus();
-        }
-    }, [editingTaskId]);
+    const teamById = useMemo(() => team.reduce((acc, member) => { acc[member.id] = member; return acc; }, {} as Record<string, TeamMember>), [team]);
 
     const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
@@ -112,10 +114,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         if (!task) return;
 
         if (!task.completed) {
-            // If marking as complete, show the completion note modal
             setCompletionModalState({ isOpen: true, taskId, note: '' });
         } else {
-            // If marking as incomplete, just update the state directly
             const newTasks = project.tasks.map(t => t.id === taskId ? { ...t, completed: false } : t);
             const { progress, status } = recalculateProjectState(newTasks, project.status);
             const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `Task "${task.name}" marked as incomplete.`);
@@ -136,50 +136,36 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         const journalContent = `Task "${task.name}" completed.${note.trim() ? ` Note: ${note.trim()}` : ''}`;
         const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, journalContent);
         onUpdateProject(updatedProject);
-        setCompletionModalState({ isOpen: false, taskId: null, note: '' }); // Close modal
+        setCompletionModalState({ isOpen: false, taskId: null, note: '' });
     };
 
-    const handleStartEditing = (task: Task) => {
-        setEditingTaskId(task.id);
-        setEditingTaskName(task.name);
-        setEditingTaskPriority(task.priority);
-        setEditingTaskDueDate(task.dueDate || '');
-        setEditingTaskDependsOn(task.dependsOn || '');
+    const handleOpenEditModal = (task: Task) => {
+        setTaskToEdit(task);
+        setIsEditModalOpen(true);
     };
 
-    const handleSaveEdit = () => {
-        if (!editingTaskId) return;
-        const originalTask = tasksById[editingTaskId];
-        if (!originalTask) { setEditingTaskId(null); return; }
+    const handleSaveTask = (updatedTask: Task) => {
+        const originalTask = tasksById[updatedTask.id];
+        if (!originalTask) return;
 
-        const newName = editingTaskName.trim();
-        const newPriority = editingTaskPriority;
-        const newDueDate = editingTaskDueDate || undefined;
-        const newDependsOn = editingTaskDependsOn || undefined;
+        const newTasks = project.tasks.map(task => task.id === updatedTask.id ? updatedTask : task);
+        
+        const changes: string[] = [];
+        if (originalTask.name !== updatedTask.name) changes.push(`name changed to "${updatedTask.name}"`);
+        if (originalTask.priority !== updatedTask.priority) changes.push(`priority set to "${updatedTask.priority}"`);
+        if (originalTask.dueDate !== updatedTask.dueDate) changes.push(`due date changed to ${updatedTask.dueDate || 'none'}`);
+        if (originalTask.dependsOn !== updatedTask.dependsOn) changes.push(updatedTask.dependsOn ? `dependency set to "${getDependencyName(updatedTask.dependsOn)}"` : `dependency removed`);
+        if (originalTask.assigneeId !== updatedTask.assigneeId) changes.push(updatedTask.assigneeId ? `assigned to "${teamById[updatedTask.assigneeId]?.name}"` : `unassigned`);
 
-        const nameChanged = newName && originalTask.name !== newName;
-        const priorityChanged = originalTask.priority !== newPriority;
-        const dueDateChanged = originalTask.dueDate !== newDueDate;
-        const dependencyChanged = originalTask.dependsOn !== newDependsOn;
-
-        if (!nameChanged && !priorityChanged && !dueDateChanged && !dependencyChanged) {
-            setEditingTaskId(null); return;
+        let updatedProject = { ...project, tasks: newTasks };
+        if (changes.length > 0) {
+          updatedProject = addJournalEntry(updatedProject, `For task "${originalTask.name}", ${changes.join(', ')}.`);
         }
-
-        const newTasks = project.tasks.map(task =>
-            task.id === editingTaskId ? { ...task, name: newName, priority: newPriority, dueDate: newDueDate, dependsOn: newDependsOn } : task
-        );
         
-        const journalContent: string[] = [];
-        if (nameChanged) journalContent.push(`name changed to "${newName}"`);
-        if (priorityChanged) journalContent.push(`priority set to "${newPriority}"`);
-        if (dueDateChanged) journalContent.push(`due date changed to ${newDueDate ? newDueDate : 'none'}`);
-        if (dependencyChanged) journalContent.push(newDependsOn ? `dependency set to "${getDependencyName(newDependsOn)}"` : `dependency removed`);
-        
-        const updatedProjectWithJournal = addJournalEntry({ ...project, tasks: newTasks }, `For task "${originalTask.name}", ${journalContent.join(', ')}.`);
-        const { progress, status } = recalculateProjectState(newTasks, updatedProjectWithJournal.status);
-        onUpdateProject({ ...updatedProjectWithJournal, progress, status });
-        setEditingTaskId(null);
+        const { progress, status } = recalculateProjectState(newTasks, updatedProject.status);
+        onUpdateProject({ ...updatedProject, progress, status });
+        setIsEditModalOpen(false);
+        setTaskToEdit(null);
     };
 
     const handleDeleteTask = (taskIdToDelete: string) => {
@@ -218,7 +204,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         
         const newTask: Task = {
             id: `task-${Date.now()}-${Math.random()}`, name: taskName, completed: false,
-            priority: newTaskPriority, dueDate: newTaskDueDate || undefined, dependsOn: newTaskDependency || undefined,
+            priority: newTaskPriority, dueDate: newTaskDueDate || undefined, dependsOn: newTaskDependency || undefined, assigneeId: newTaskAssignee || undefined
         };
 
         const newTasks = [...project.tasks, newTask];
@@ -226,7 +212,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `New task "${taskName}" was added.`);
         onUpdateProject(updatedProject);
         
-        setNewTaskName(''); setNewTaskDueDate(''); setNewTaskPriority(Priority.None); setNewTaskDependency('');
+        setNewTaskName(''); setNewTaskDueDate(''); setNewTaskPriority(Priority.None); setNewTaskDependency(''); setNewTaskAssignee('');
         setSuggestions([]); suggestionsFetched.current = false;
     };
 
@@ -311,39 +297,27 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                         const isBlocked = isTaskBlocked(task.id); const dependencyName = getDependencyName(task.dependsOn); const checkboxTitle = isBlocked ? `Blocked by: "${dependencyName}"` : 'Mark task complete';
                                         return (
                                         <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, task.id)} onDragEnd={() => setDraggedTaskId(null)}
+                                            onDoubleClick={() => handleOpenEditModal(task)}
                                             className={`group relative p-3 rounded-lg transition-all ${task.completed ? 'bg-slate-700/50' : 'bg-slate-900/50'} ${draggedTaskId === task.id ? 'opacity-50' : 'opacity-100'} border-l-4 ${priorityColors[task.priority].border} hover:bg-slate-700/50`}>
                                             <div className="flex items-start">
                                                 <div title={checkboxTitle} className="flex-shrink-0 mt-0.5">
                                                     <input type="checkbox" checked={task.completed} onChange={() => handleToggleTask(task.id)} disabled={isBlocked} className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"/>
                                                 </div>
-                                                {editingTaskId === task.id ? (
-                                                    <div className="flex-grow ml-3 space-y-2">
-                                                        <input ref={editInputRef} type="text" value={editingTaskName} onChange={(e) => setEditingTaskName(e.target.value)} onBlur={handleSaveEdit} onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditingTaskId(null); }} className="w-full bg-slate-600 text-white p-1 rounded" />
-                                                        <div className="flex gap-2 text-xs">
-                                                            <select value={editingTaskPriority} onChange={(e) => setEditingTaskPriority(e.target.value as Priority)} className="w-full bg-slate-600 text-slate-300 p-1 rounded"><option value={Priority.High}>High</option><option value={Priority.Medium}>Medium</option><option value={Priority.Low}>Low</option><option value={Priority.None}>None</option></select>
-                                                            <input type="date" value={editingTaskDueDate} onChange={(e) => setEditingTaskDueDate(e.target.value)} className="w-full bg-slate-600 text-slate-300 p-1 rounded" />
-                                                        </div>
-                                                        <select value={editingTaskDependsOn} onChange={(e) => setEditingTaskDependsOn(e.target.value)} className="w-full bg-slate-600 text-slate-300 text-xs p-1 rounded">
-                                                            <option value="">No dependency</option>
-                                                            {project.tasks.filter(t => t.id !== task.id).map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
-                                                        </select>
+                                                <div className="ml-3 flex-grow cursor-pointer" onClick={() => handleOpenEditModal(task)}>
+                                                    <div className="flex items-center">
+                                                      <span className={`${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{task.name}</span>
+                                                      {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}
                                                     </div>
-                                                ) : (
-                                                    <div className="ml-3 flex-grow">
-                                                        <div className="flex items-center">
-                                                          <span className={`cursor-pointer ${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`} onClick={() => handleStartEditing(task)}>{task.name}</span>
-                                                          {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}
+                                                    {task.dueDate && (
+                                                        <div className={`flex items-center text-xs mt-1 ${isTaskOverdue(task) ? 'text-red-400' : 'text-slate-400'}`}>
+                                                            <CalendarIcon />{new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                         </div>
-                                                        {task.dueDate && (
-                                                            <div className={`flex items-center text-xs mt-1 ${isTaskOverdue(task) ? 'text-red-400' : 'text-slate-400'}`}>
-                                                                <CalendarIcon />{new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
+                                                <div className="ml-auto pl-2 flex-shrink-0"><Avatar member={teamById[task.assigneeId || '']} /></div>
                                             </div>
                                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleStartEditing(task)} className="p-1 text-slate-400 hover:text-white" title="Edit task"><EditIcon /></button>
+                                                <button onClick={() => handleOpenEditModal(task)} className="p-1 text-slate-400 hover:text-white" title="Edit task"><EditIcon /></button>
                                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-slate-400 hover:text-red-400" title="Delete task"><DeleteIcon /></button>
                                             </div>
                                         </div>
@@ -362,6 +336,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                 <option value="">No dependency</option>
                                                 {project.tasks.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
                                             </select>
+                                            <select value={newTaskAssignee} onChange={(e) => setNewTaskAssignee(e.target.value)} className="col-span-2 w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                                <option value="">Unassigned</option>
+                                                {team.map(member => (<option key={member.id} value={member.id}>{member.name}</option>))}
+                                            </select>
                                         </div>
                                         <button type="submit" className="w-full mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add Task</button>
                                     </form>
@@ -377,7 +355,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             </div>
         </div>
 
-        {/* Completion Note Modal */}
+        {isEditModalOpen && taskToEdit && (
+            <EditTaskModal 
+                task={taskToEdit}
+                projectTasks={project.tasks}
+                team={team}
+                onClose={() => setIsEditModalOpen(false)}
+                onSave={handleSaveTask}
+            />
+        )}
+        
         {completionModalState.isOpen && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" aria-modal="true" role="dialog">
                 <form onSubmit={handleCompleteTaskWithNote} className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md relative p-8">
@@ -400,5 +387,74 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       </>
     );
 };
+
+// --- Edit Task Modal Component ---
+interface EditTaskModalProps {
+    task: Task;
+    projectTasks: Task[];
+    team: TeamMember[];
+    onClose: () => void;
+    onSave: (updatedTask: Task) => void;
+}
+
+const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, projectTasks, team, onClose, onSave }) => {
+    const [name, setName] = useState(task.name);
+    const [priority, setPriority] = useState(task.priority);
+    const [dueDate, setDueDate] = useState(task.dueDate || '');
+    const [dependsOn, setDependsOn] = useState(task.dependsOn || '');
+    const [assigneeId, setAssigneeId] = useState(task.assigneeId || '');
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        onSave({ ...task, name: name.trim(), priority, dueDate: dueDate || undefined, dependsOn: dependsOn || undefined, assigneeId: assigneeId || undefined });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" aria-modal="true" role="dialog">
+            <form onSubmit={handleSubmit} className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg relative p-8">
+                <h2 className="text-2xl font-bold text-white mb-6">Edit Task</h2>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Task Name</label>
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
+                           <select value={priority} onChange={e => setPriority(e.target.value as Priority)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
+                           </select>
+                        </div>
+                        <div>
+                           <label className="block text-sm font-medium text-slate-300 mb-2">Due Date</label>
+                           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                        </div>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Assignee</label>
+                        <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <option value="">Unassigned</option>
+                            {team.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Depends On</label>
+                        <select value={dependsOn} onChange={e => setDependsOn(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <option value="">No dependency</option>
+                            {projectTasks.filter(t => t.id !== task.id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex justify-end gap-3">
+                    <button type="button" onClick={onClose} className="font-semibold py-2 px-6 rounded-lg transition duration-300 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
 
 export default ProjectDetails;
