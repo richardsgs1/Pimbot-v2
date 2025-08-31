@@ -60,11 +60,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const colors = statusColors[project.status];
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editingTaskName, setEditingTaskName] = useState('');
+    const [editingTaskPriority, setEditingTaskPriority] = useState<Priority>(Priority.None);
     const [editingTaskDependsOn, setEditingTaskDependsOn] = useState<string>('');
-
+    
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskPriority, setNewTaskPriority] = useState<Priority>(Priority.None);
     const [newTaskDependency, setNewTaskDependency] = useState('');
 
     const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -138,7 +140,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     }
 
     const handleToggleTask = (taskId: string) => {
-        if (isTaskBlocked(taskId)) return; // Should be prevented by UI, but good to have
+        if (isTaskBlocked(taskId)) return;
         const task = project.tasks.find(t => t.id === taskId);
         if (!task) return;
 
@@ -156,6 +158,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const handleStartEditing = (task: Task) => {
         setEditingTaskId(task.id);
         setEditingTaskName(task.name);
+        setEditingTaskPriority(task.priority);
         setEditingTaskDependsOn(task.dependsOn || '');
     };
 
@@ -163,6 +166,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         if (!editingTaskId) return;
         const originalTask = tasksById[editingTaskId];
         const newName = editingTaskName.trim();
+        const newPriority = editingTaskPriority;
         const newDependsOn = editingTaskDependsOn || undefined;
 
         if (!originalTask) {
@@ -171,31 +175,30 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         }
         
         const nameChanged = newName && originalTask.name !== newName;
+        const priorityChanged = originalTask.priority !== newPriority;
         const dependencyChanged = originalTask.dependsOn !== newDependsOn;
 
-        if (!nameChanged && !dependencyChanged) {
+        if (!nameChanged && !priorityChanged && !dependencyChanged) {
             setEditingTaskId(null);
             return;
         }
 
         const newTasks = project.tasks.map(task =>
-            task.id === editingTaskId ? { ...task, name: newName, dependsOn: newDependsOn } : task
+            task.id === editingTaskId ? { ...task, name: newName, priority: newPriority, dependsOn: newDependsOn } : task
         );
         
-        let journalContent = '';
-        if (nameChanged) {
-            journalContent = `Task name changed from "${originalTask.name}" to "${newName}".`;
-        }
+        let journalContent = [];
+        if (nameChanged) journalContent.push(`name changed to "${newName}"`);
+        if (priorityChanged) journalContent.push(`priority set to "${newPriority}"`);
         if (dependencyChanged) {
-            const oldDepName = getDependencyName(originalTask.dependsOn);
             const newDepName = getDependencyName(newDependsOn);
-            const depChangeMessage = newDepName 
-                ? `dependency set to "${newDepName}".` 
-                : `dependency removed (was "${oldDepName}").`;
-            journalContent += `${journalContent ? ' ' : `For task "${newName}", `}${depChangeMessage}`;
+            journalContent.push(newDepName ? `dependency set to "${newDepName}"` : `dependency removed`);
         }
-
-        const updatedProject = addJournalEntry({ ...project, tasks: newTasks }, journalContent);
+        
+        const updatedProject = addJournalEntry(
+            { ...project, tasks: newTasks }, 
+            `For task "${originalTask.name}", ${journalContent.join(', ')}.`
+        );
         onUpdateProject(updatedProject);
         setEditingTaskId(null);
     };
@@ -204,7 +207,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         const taskToDelete = project.tasks.find(t => t.id === taskIdToDelete);
         if (!taskToDelete) return;
 
-        // Before filtering, update tasks that depend on the one being deleted
         let updatedTasks = project.tasks.map(task => {
             if (task.dependsOn === taskIdToDelete) {
                 return { ...task, dependsOn: undefined };
@@ -259,7 +261,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             id: `task-${Date.now()}`,
             name: taskName,
             completed: false,
-            priority: Priority.None,
+            priority: newTaskPriority,
             dueDate: newTaskDueDate || undefined,
             dependsOn: newTaskDependency || undefined,
         };
@@ -274,6 +276,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         
         setNewTaskName('');
         setNewTaskDueDate('');
+        setNewTaskPriority(Priority.None);
         setNewTaskDependency('');
         setSuggestions([]);
         suggestionsFetched.current = false;
@@ -420,7 +423,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                     />
                                                 </div>
                                                 {editingTaskId === task.id ? (
-                                                    <div className="flex-grow ml-3">
+                                                    <div className="flex-grow ml-3 space-y-2">
                                                         <input
                                                             ref={editInputRef}
                                                             type="text"
@@ -434,9 +437,18 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                             className="w-full bg-slate-600 text-white p-1 rounded"
                                                         />
                                                         <select
+                                                            value={editingTaskPriority}
+                                                            onChange={(e) => setEditingTaskPriority(e.target.value as Priority)}
+                                                            className="w-full bg-slate-600 text-slate-300 text-xs p-1 rounded"
+                                                        >
+                                                            {Object.values(Priority).map(p => (
+                                                                <option key={p} value={p}>{p}</option>
+                                                            ))}
+                                                        </select>
+                                                        <select
                                                             value={editingTaskDependsOn}
                                                             onChange={(e) => setEditingTaskDependsOn(e.target.value)}
-                                                            className="w-full mt-2 bg-slate-600 text-slate-300 text-xs p-1 rounded"
+                                                            className="w-full bg-slate-600 text-slate-300 text-xs p-1 rounded"
                                                         >
                                                             <option value="">No dependency</option>
                                                             {project.tasks.filter(t => t.id !== task.id).map(t => (
@@ -487,24 +499,33 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                             className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
                                             placeholder="+ Add new task"
                                         />
-                                        <div className="flex flex-col sm:flex-row items-center mt-2 gap-2">
+                                        <div className="flex flex-col sm:flex-row flex-wrap items-center mt-2 gap-2">
                                             <input
                                                 type="date"
                                                 value={newTaskDueDate}
                                                 onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                                className="w-full sm:w-auto bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                                className="flex-grow bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                                             />
+                                            <select
+                                                value={newTaskPriority}
+                                                onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
+                                                className="flex-grow bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                            >
+                                                {Object.values(Priority).map(p => (
+                                                    <option key={p} value={p}>{p}</option>
+                                                ))}
+                                            </select>
                                             <select
                                                 value={newTaskDependency}
                                                 onChange={(e) => setNewTaskDependency(e.target.value)}
-                                                className="w-full sm:w-auto bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                                className="w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                                             >
                                                 <option value="">No dependency</option>
                                                 {project.tasks.map(t => (
                                                     <option key={t.id} value={t.id}>{t.name}</option>
                                                 ))}
                                             </select>
-                                            <button type="submit" className="w-full sm:w-auto text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add Task</button>
+                                            <button type="submit" className="w-full sm:w-auto text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add</button>
                                         </div>
                                     </form>
                                      {isSuggesting && <p className="text-slate-400 text-sm mt-2">Getting AI suggestions...</p>}
