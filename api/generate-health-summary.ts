@@ -1,3 +1,4 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import type { Project } from '../types';
@@ -11,18 +12,17 @@ export default async function handler(
   }
 
   try {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error('API key not configured.');
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { project } = req.body as { project: Project };
 
     if (!project) {
       return res.status(400).json({ error: 'Project data is required.' });
     }
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured.' });
-    }
-    
-    const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are an expert project manager providing a health check summary.
 Analyze the provided project JSON data.
@@ -49,12 +49,14 @@ Provide a concise, 2-3 sentence summary of the project's health.
       },
     });
 
-    const summary = response.text;
+    // FIX: Added .trim() to remove any potential leading/trailing whitespace from the response.
+    const summary = response.text.trim();
 
     return res.status(200).json({ summary });
 
   } catch (error) {
     console.error('Error calling Gemini API for health summary:', error);
-    return res.status(500).json({ error: 'Failed to generate project health summary.' });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate project health summary.';
+    return res.status(500).json({ error: errorMessage });
   }
 }

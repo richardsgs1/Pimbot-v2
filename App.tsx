@@ -4,7 +4,14 @@ import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import type { OnboardingData } from './types';
-import { v4 as uuidv4 } from 'uuid'; // We'll use a library for unique IDs
+
+// Simple UUID v4 generator moved to the top of the file
+const uuidv4 = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 // A helper to get or create a unique user ID
 const getUserId = (): string => {
@@ -20,6 +27,8 @@ const getUserId = (): string => {
 const App: React.FC = () => {
   // Use a function for lazy initialization to ensure getUserId is called only once.
   const [userId] = useState(getUserId);
+
+  type AppState = 'login' | 'onboarding' | 'dashboard';
 
   const [appState, setAppState] = useState<AppState>(() => {
     return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
@@ -76,8 +85,6 @@ const App: React.FC = () => {
     });
   }, [userId]);
 
-  type AppState = 'login' | 'onboarding' | 'dashboard';
-
   const renderContent = () => {
     switch (appState) {
       case 'login':
@@ -97,14 +104,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-// Simple UUID v4 generator since we can't import libraries
-const uuidv4 = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
 
 export default App;

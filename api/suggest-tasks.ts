@@ -1,3 +1,4 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -15,18 +16,17 @@ export default async function handler(
   }
 
   try {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error('API key not configured.');
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { projectDescription, tasks } = req.body as { projectDescription: string; tasks: SimpleTask[] };
 
     if (!projectDescription) {
       return res.status(400).json({ error: 'Project description is required.' });
     }
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error('API key not configured.');
-    }
-    
-    const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are an expert project management assistant. Your goal is to suggest the next logical tasks for a project.
 Analyze the project description and the list of existing tasks (including their completion status).
@@ -60,7 +60,8 @@ Based on this context, generate 3 short, actionable, and relevant tasks that the
       },
     });
 
-    const suggestions = JSON.parse(response.text);
+    // FIX: Added .trim() to handle potential whitespace in the AI's JSON response.
+    const suggestions = JSON.parse(response.text.trim());
 
     return res.status(200).json(suggestions);
 

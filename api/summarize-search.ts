@@ -1,3 +1,4 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 
@@ -16,18 +17,17 @@ export default async function handler(
   }
 
   try {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error('API key not configured.');
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { searchTerm, resultCounts } = req.body as { searchTerm: string; resultCounts: ResultCounts };
 
     if (!searchTerm || !resultCounts) {
       return res.status(400).json({ error: 'Search term and result counts are required.' });
     }
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured.' });
-    }
-    
-    const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are a helpful assistant. Your task is to summarize search results in a single, concise, and natural-sounding sentence.
 - Mention the search term.
@@ -48,12 +48,14 @@ export default async function handler(
       },
     });
 
-    const summary = response.text;
+    // FIX: Added .trim() to remove any potential leading/trailing whitespace from the response.
+    const summary = response.text.trim();
 
     return res.status(200).json({ summary });
 
   } catch (error) {
     console.error('Error calling Gemini API for search summary:', error);
-    return res.status(500).json({ error: 'Failed to generate search summary.' });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate search summary.';
+    return res.status(500).json({ error: errorMessage });
   }
 }

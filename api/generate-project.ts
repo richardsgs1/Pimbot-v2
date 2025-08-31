@@ -11,21 +11,17 @@ export default async function handler(
   }
 
   try {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error('API key not configured.');
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { prompt } = req.body as { prompt: string };
 
     if (!prompt) {
       return res.status(400).json({ error: 'A project description prompt is required.' });
     }
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      // This error is caught by the outer catch block, but it's good practice
-      // to have a specific message. We'll throw an error to be consistent.
-      throw new Error('API key not configured.');
-    }
-    
-    // Initialize the AI client INSIDE the try block, after the key is validated.
-    const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are a project management assistant. Based on the user's prompt, create a structured project plan.
 - The project name should be a concise title.
@@ -64,8 +60,8 @@ export default async function handler(
       },
     });
     
-    // The response.text will be a JSON string that conforms to the schema
-    const projectData = JSON.parse(response.text);
+    // FIX: Added .trim() to handle potential whitespace in the AI's JSON response.
+    const projectData = JSON.parse(response.text.trim());
 
     return res.status(200).json(projectData);
 
