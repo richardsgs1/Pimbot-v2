@@ -19,9 +19,11 @@ const mockProjects: Project[] = [
     tasks: [
       { id: 't1-1', name: 'Finalize ad copy', completed: true, priority: Priority.High, dueDate: '2024-07-15' },
       { id: 't1-2', name: 'Approve social media assets', completed: true, priority: Priority.Medium, dueDate: '2024-07-20' },
-      { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01' },
-      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low },
+      { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01', dependsOn: 't1-2' },
+      // FIX: Replaced stray single quote with a comma to fix syntax error.
+      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low, dependsOn: 't1-3' },
     ],
+    journal: [],
   },
   {
     id: 'proj-2',
@@ -32,11 +34,13 @@ const mockProjects: Project[] = [
     progress: 40,
     tasks: [
       { id: 't2-1', name: 'User research and personas', completed: true, priority: Priority.High, dueDate: '2024-05-30' },
-      { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15' },
-      { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25' },
-      { id: 't2-4', name: 'Backend integration', completed: false, priority: Priority.Medium, dueDate: '2024-07-30' },
-      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low },
+      { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15', dependsOn: 't2-1' },
+      { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25', dependsOn: 't2-2' },
+      { id: 't2-4', name: 'Backend integration', completed: false, priority: Priority.Medium, dueDate: '2024-07-30', dependsOn: 't2-2' },
+      // FIX: Replaced stray single quote with a comma to fix syntax error.
+      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low, dependsOn: 't2-3' },
     ],
+    journal: [],
   },
   {
     id: 'proj-3',
@@ -48,9 +52,12 @@ const mockProjects: Project[] = [
     tasks: [
         { id: 't3-1', name: 'Develop dashboard UI', completed: true, priority: Priority.High, dueDate: '2024-05-10' },
         { id: 't3-2', name: 'Implement calendar API', completed: true, priority: Priority.Medium, dueDate: '2024-05-20' },
-        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low },
-        { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None },
+        // FIX: Replaced stray single quote with a comma to fix syntax error.
+        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low, dependsOn: 't3-2' },
+        // FIX: Replaced stray single quote with a comma to fix syntax error.
+        { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None, dependsOn: 't3-3' },
     ],
+    journal: [],
   },
 ];
 
@@ -225,12 +232,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     setCurrentView('projectDetails');
   };
   
-  const handleCreateProject = (projectData: Omit<Project, 'id' | 'status' | 'progress'>) => {
+  const handleCreateProject = (projectData: Omit<Project, 'id' | 'status' | 'progress' | 'journal'>) => {
     const newProject: Project = {
       ...projectData,
       id: `proj-${Date.now()}`,
       status: ProjectStatus.OnTrack, // Default status
       progress: 0, // Default progress
+      journal: [{
+        id: `j-${Date.now()}`,
+        date: new Date().toISOString(),
+        content: `Project "${projectData.name}" was created.`
+      }],
       tasks: projectData.tasks.map((task, index) => ({
         ...task,
         id: `task-${Date.now()}-${index}`,

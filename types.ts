@@ -34,6 +34,13 @@ export interface Task {
   completed: boolean;
   priority: Priority;
   dueDate?: string; // YYYY-MM-DD format
+  dependsOn?: string; // ID of the task it depends on
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string; // ISO 8601 format
+  content: string;
 }
 
 export interface Project {
@@ -45,4 +52,5 @@ export interface Project {
   progress: number; // 0-100
   tasks: Task[];
   aiHealthSummary?: string;
+  journal: JournalEntry[];
 }

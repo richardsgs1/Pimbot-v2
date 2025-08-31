@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, FormEvent } from 'react';
-import type { Project, Task } from '../types';
+import React, { useState, useRef, useEffect, FormEvent, useMemo } from 'react';
+import type { Project, Task, JournalEntry } from '../types';
 import { ProjectStatus, Priority } from '../types';
 
 interface ProjectDetailsProps {
@@ -36,19 +36,52 @@ const DeleteIcon: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
 );
 
+// FIX: Replaced the `title` prop on the SVG with a `<title>` element for accessibility and to fix the TypeScript error.
+const DependencyIcon: React.FC<{ title: string }> = ({ title }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-500 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <title>{title}</title>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+);
+
+const addJournalEntry = (currentProject: Project, content: string): Project => {
+  const newEntry: JournalEntry = {
+    id: `j-${Date.now()}`,
+    date: new Date().toISOString(),
+    content,
+  };
+  return {
+    ...currentProject,
+    journal: [newEntry, ...(currentProject.journal || [])],
+  };
+};
+
 
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject }) => {
     const colors = statusColors[project.status];
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editingTaskName, setEditingTaskName] = useState('');
+    const [editingTaskDependsOn, setEditingTaskDependsOn] = useState<string>('');
+
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskDependency, setNewTaskDependency] = useState('');
+
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestionError, setSuggestionError] = useState<string | null>(null);
+    const [newJournalNote, setNewJournalNote] = useState('');
+
     const editInputRef = useRef<HTMLInputElement>(null);
     const suggestionsFetched = useRef(false);
+    
+    const tasksById = useMemo(() => 
+      project.tasks.reduce((acc, task) => {
+        acc[task.id] = task;
+        return acc;
+      }, {} as Record<string, Task>), 
+    [project.tasks]);
 
     useEffect(() => {
         if (editingTaskId && editInputRef.current) {
@@ -56,7 +89,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         }
     }, [editingTaskId]);
 
-    const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleDateString('en-US', {
+    const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -65,6 +98,19 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const isTaskOverdue = (task: Task) => {
         return task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
     }
+    
+    const isTaskBlocked = (taskId: string): boolean => {
+        const task = tasksById[taskId];
+        if (!task || !task.dependsOn) return false;
+        const dependency = tasksById[task.dependsOn];
+        return dependency ? !dependency.completed : false;
+    };
+    
+    const getDependencyName = (taskId?: string): string => {
+        if (!taskId) return '';
+        const dependency = tasksById[taskId];
+        return dependency ? dependency.name : '';
+    };
 
     const recalculateProjectState = (tasks: Task[], currentStatus: ProjectStatus) => {
         const totalTasks = tasks.length;
@@ -93,34 +139,87 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     }
 
     const handleToggleTask = (taskId: string) => {
-        const newTasks = project.tasks.map(task =>
-            task.id === taskId ? { ...task, completed: !task.completed } : task
+        if (isTaskBlocked(taskId)) return; // Should be prevented by UI, but good to have
+        const task = project.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const newTasks = project.tasks.map(t =>
+            t.id === taskId ? { ...t, completed: !t.completed } : t
         );
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        onUpdateProject({ ...project, tasks: newTasks, progress, status });
+        const updatedProject = addJournalEntry(
+            { ...project, tasks: newTasks, progress, status },
+            `Task "${task.name}" marked as ${!task.completed ? 'complete' : 'incomplete'}.`
+        );
+        onUpdateProject(updatedProject);
     };
 
     const handleStartEditing = (task: Task) => {
         setEditingTaskId(task.id);
         setEditingTaskName(task.name);
+        setEditingTaskDependsOn(task.dependsOn || '');
     };
 
     const handleSaveEdit = () => {
         if (!editingTaskId) return;
+        const originalTask = tasksById[editingTaskId];
+        const newName = editingTaskName.trim();
+        const newDependsOn = editingTaskDependsOn || undefined;
+
+        if (!originalTask) {
+             setEditingTaskId(null);
+             return;
+        }
+        
+        const nameChanged = newName && originalTask.name !== newName;
+        const dependencyChanged = originalTask.dependsOn !== newDependsOn;
+
+        if (!nameChanged && !dependencyChanged) {
+            setEditingTaskId(null);
+            return;
+        }
+
         const newTasks = project.tasks.map(task =>
-            task.id === editingTaskId ? { 
-                ...task, 
-                name: editingTaskName.trim() || task.name,
-            } : task
+            task.id === editingTaskId ? { ...task, name: newName, dependsOn: newDependsOn } : task
         );
-        onUpdateProject({ ...project, tasks: newTasks });
+        
+        let journalContent = '';
+        if (nameChanged) {
+            journalContent = `Task name changed from "${originalTask.name}" to "${newName}".`;
+        }
+        if (dependencyChanged) {
+            const oldDepName = getDependencyName(originalTask.dependsOn);
+            const newDepName = getDependencyName(newDependsOn);
+            const depChangeMessage = newDepName 
+                ? `dependency set to "${newDepName}".` 
+                : `dependency removed (was "${oldDepName}").`;
+            journalContent += `${journalContent ? ' ' : `For task "${newName}", `}${depChangeMessage}`;
+        }
+
+        const updatedProject = addJournalEntry({ ...project, tasks: newTasks }, journalContent);
+        onUpdateProject(updatedProject);
         setEditingTaskId(null);
     };
 
     const handleDeleteTask = (taskIdToDelete: string) => {
-        const newTasks = project.tasks.filter(task => task.id !== taskIdToDelete);
+        const taskToDelete = project.tasks.find(t => t.id === taskIdToDelete);
+        if (!taskToDelete) return;
+
+        // Before filtering, update tasks that depend on the one being deleted
+        let updatedTasks = project.tasks.map(task => {
+            if (task.dependsOn === taskIdToDelete) {
+                return { ...task, dependsOn: undefined };
+            }
+            return task;
+        });
+        
+        const newTasks = updatedTasks.filter(task => task.id !== taskIdToDelete);
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        onUpdateProject({ ...project, tasks: newTasks, progress, status });
+        const updatedProject = addJournalEntry(
+            { ...project, tasks: newTasks, progress, status },
+            `Task "${taskToDelete.name}" was deleted.`
+        );
+        onUpdateProject(updatedProject);
     };
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -141,32 +240,42 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
         const tasks = [...project.tasks];
         const draggedIndex = tasks.findIndex(t => t.id === draggedId);
-        let targetIndex = tasks.findIndex(t => t.id === targetTaskId);
-
         const [draggedItem] = tasks.splice(draggedIndex, 1);
+        const targetIndex = tasks.findIndex(t => t.id === targetTaskId);
         tasks.splice(targetIndex, 0, draggedItem);
-
-        onUpdateProject({ ...project, tasks });
+        
+        const updatedProject = addJournalEntry(
+            { ...project, tasks },
+            `Task "${draggedItem.name}" was reordered.`
+        );
+        onUpdateProject(updatedProject);
     };
 
     const handleAddTask = (e: FormEvent) => {
         e.preventDefault();
-        if (!newTaskName.trim()) return;
+        const taskName = newTaskName.trim();
+        if (!taskName) return;
         
         const newTask: Task = {
             id: `task-${Date.now()}`,
-            name: newTaskName.trim(),
+            name: taskName,
             completed: false,
             priority: Priority.None,
             dueDate: newTaskDueDate || undefined,
+            dependsOn: newTaskDependency || undefined,
         };
 
         const newTasks = [...project.tasks, newTask];
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        onUpdateProject({ ...project, tasks: newTasks, progress, status });
+        const updatedProject = addJournalEntry(
+            { ...project, tasks: newTasks, progress, status },
+            `New task "${taskName}" was added.`
+        );
+        onUpdateProject(updatedProject);
         
         setNewTaskName('');
         setNewTaskDueDate('');
+        setNewTaskDependency('');
         setSuggestions([]);
         suggestionsFetched.current = false;
     };
@@ -201,6 +310,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             setIsSuggesting(false);
         }
     };
+
+    const handleAddJournalNote = (e: FormEvent) => {
+      e.preventDefault();
+      const note = newJournalNote.trim();
+      if (!note) return;
+      const updatedProject = addJournalEntry(project, note);
+      onUpdateProject(updatedProject);
+      setNewJournalNote('');
+    };
     
     return (
         <div className="flex flex-col h-full">
@@ -213,7 +331,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                 </button>
             </header>
             <div className="flex-1 overflow-y-auto p-6">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     {/* Project Header */}
                     <div className={`bg-slate-800 border ${colors.border} rounded-xl p-6 mb-6`}>
                         <div className="flex justify-between items-start">
@@ -239,16 +357,46 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                     {/* Project Body */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2">
-                             <div className="bg-slate-800 rounded-xl p-6">
+                             <div className="bg-slate-800 rounded-xl p-6 mb-6">
                                 <h2 className="text-xl font-bold text-white mb-4">Description</h2>
                                 <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
                             </div>
+                             <div className="bg-slate-800 rounded-xl p-6">
+                                <h2 className="text-xl font-bold text-white mb-4">Project Journal</h2>
+                                <form onSubmit={handleAddJournalNote} className="mb-4">
+                                  <textarea
+                                    value={newJournalNote}
+                                    onChange={(e) => setNewJournalNote(e.target.value)}
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+                                    placeholder="Add a new note or update..."
+                                    rows={2}
+                                  />
+                                  <button type="submit" className="mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1 px-3 rounded-md transition disabled:opacity-50" disabled={!newJournalNote.trim()}>
+                                    Add Note
+                                  </button>
+                                </form>
+                                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                  {(project.journal || []).map(entry => (
+                                    <div key={entry.id} className="text-sm border-l-2 border-slate-700 pl-3">
+                                      <p className="text-slate-300">{entry.content}</p>
+                                      <p className="text-xs text-slate-500 mt-1">
+                                        {new Date(entry.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                            </div>
                         </div>
-                        <div>
+                        <div className="lg:col-span-1">
                              <div className="bg-slate-800 rounded-xl p-6">
                                 <h2 className="text-xl font-bold text-white mb-4">Tasks</h2>
                                 <div className="space-y-2">
-                                    {project.tasks.map(task => (
+                                    {project.tasks.map(task => {
+                                        const isBlocked = isTaskBlocked(task.id);
+                                        const dependencyName = getDependencyName(task.dependsOn);
+                                        const checkboxTitle = isBlocked ? `Blocked by: "${dependencyName}"` : 'Mark task complete';
+                                        
+                                        return (
                                         <div 
                                             key={task.id}
                                             draggable
@@ -263,12 +411,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                 hover:bg-slate-700/50`}
                                         >
                                             <div className="flex items-start">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={task.completed}
-                                                    onChange={() => handleToggleTask(task.id)}
-                                                    className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 cursor-pointer flex-shrink-0 mt-0.5"
-                                                />
+                                                <div title={checkboxTitle} className="flex-shrink-0 mt-0.5">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={task.completed}
+                                                        onChange={() => handleToggleTask(task.id)}
+                                                        disabled={isBlocked}
+                                                        className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                    />
+                                                </div>
                                                 {editingTaskId === task.id ? (
                                                     <div className="flex-grow ml-3">
                                                         <input
@@ -283,15 +434,28 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                             }}
                                                             className="w-full bg-slate-600 text-white p-1 rounded"
                                                         />
+                                                        <select
+                                                            value={editingTaskDependsOn}
+                                                            onChange={(e) => setEditingTaskDependsOn(e.target.value)}
+                                                            className="w-full mt-2 bg-slate-600 text-slate-300 text-xs p-1 rounded"
+                                                        >
+                                                            <option value="">No dependency</option>
+                                                            {project.tasks.filter(t => t.id !== task.id).map(t => (
+                                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 ) : (
                                                     <div className="ml-3 flex-grow">
-                                                        <span 
-                                                            className={`cursor-pointer ${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}
-                                                            onClick={() => handleStartEditing(task)}
-                                                        >
-                                                            {task.name}
-                                                        </span>
+                                                        <div className="flex items-center">
+                                                            <span 
+                                                                className={`cursor-pointer ${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}
+                                                                onClick={() => handleStartEditing(task)}
+                                                            >
+                                                                {task.name}
+                                                            </span>
+                                                            {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}
+                                                        </div>
                                                         {task.dueDate && (
                                                             <div className={`flex items-center text-xs mt-1 ${isTaskOverdue(task) ? 'text-red-400' : 'text-slate-400'}`}>
                                                                 <CalendarIcon />
@@ -311,7 +475,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                 </button>
                                             </div>
                                         </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-slate-700/50">
                                     <form onSubmit={handleAddTask}>
@@ -323,14 +488,24 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                             className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
                                             placeholder="+ Add new task"
                                         />
-                                        <div className="flex items-center mt-2 gap-2">
+                                        <div className="flex flex-col sm:flex-row items-center mt-2 gap-2">
                                             <input
                                                 type="date"
                                                 value={newTaskDueDate}
                                                 onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                                className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                                className="w-full sm:w-auto bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                                             />
-                                            <button type="submit" className="text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1 px-3 rounded-md transition">Add Task</button>
+                                            <select
+                                                value={newTaskDependency}
+                                                onChange={(e) => setNewTaskDependency(e.target.value)}
+                                                className="w-full sm:w-auto bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                            >
+                                                <option value="">No dependency</option>
+                                                {project.tasks.map(t => (
+                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                ))}
+                                            </select>
+                                            <button type="submit" className="w-full sm:w-auto text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add Task</button>
                                         </div>
                                     </form>
                                      {isSuggesting && <p className="text-slate-400 text-sm mt-2">Getting AI suggestions...</p>}
