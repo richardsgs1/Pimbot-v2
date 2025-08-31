@@ -10,6 +10,7 @@ export interface OnboardingData {
   methodologies: string[];
   tools: string[];
   name: string;
+  id: string; // User's unique ID
 }
 
 // New types for Projects
@@ -27,6 +28,12 @@ export enum Priority {
   None = 'None',
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  avatarColor: string;
+}
+
 export interface Task {
   id: string;
   name: string;
@@ -34,6 +41,7 @@ export interface Task {
   priority: Priority;
   dueDate?: string; // YYYY-MM-DD format
   dependsOn?: string; // ID of the task it depends on
+  assigneeId?: string; // ID of the TeamMember
 }
 
 export interface JournalEntry {

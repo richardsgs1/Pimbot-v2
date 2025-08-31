@@ -5,7 +5,8 @@ import { SkillLevel } from '../types';
 
 interface OnboardingProps {
   onOnboardingComplete: (data: OnboardingData) => void;
-  initialName: string;
+  // FIX: Changed prop from initialName to initialData to receive the full user object.
+  initialData: OnboardingData;
 }
 
 const steps = [
@@ -20,14 +21,10 @@ const methodologies = ["Waterfall", "Agile", "Scrum", "Scaled Agile (SAFe)", "De
 const tools = ["Jira", "Confluence", "Mural", "Monday.com", "MS Project", "Google Suite"];
 
 
-const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialName }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialData }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [data, setData] = useState<OnboardingData>({
-    skillLevel: null,
-    methodologies: [],
-    tools: [],
-    name: initialName,
-  });
+  // FIX: Initialized state with the full initialData object to ensure the 'id' is present.
+  const [data, setData] = useState<OnboardingData>(initialData);
 
   const handleNext = () => {
     if (currentStep < steps.length) {

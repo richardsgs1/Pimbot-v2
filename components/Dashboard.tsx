@@ -1,5 +1,6 @@
+
 import React, { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
-import type { OnboardingData, Project, SearchResults, SearchResultItem } from '../types';
+import type { OnboardingData, Project, SearchResults, SearchResultItem, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProjectList from './ProjectList';
@@ -7,6 +8,14 @@ import ProjectDetails from './ProjectDetails';
 import Home from './Home';
 import Analytics from './Analytics';
 import SearchResultsOverlay from './SearchResultsOverlay';
+
+// Mock Data for Team
+const mockTeam: TeamMember[] = [
+    { id: 'user-1', name: 'Valued User', avatarColor: 'bg-cyan-500' }, // Current user
+    { id: 'user-2', name: 'Alex Green', avatarColor: 'bg-green-500' },
+    { id: 'user-3', name: 'Samantha Blue', avatarColor: 'bg-blue-500' },
+    { id: 'user-4', name: 'Leo Yellow', avatarColor: 'bg-yellow-500' },
+];
 
 // Mock Data for Projects
 const mockProjects: Project[] = [
@@ -18,10 +27,10 @@ const mockProjects: Project[] = [
     dueDate: '2024-09-30',
     progress: 75,
     tasks: [
-      { id: 't1-1', name: 'Finalize ad copy', completed: true, priority: Priority.High, dueDate: '2024-07-15' },
-      { id: 't1-2', name: 'Approve social media assets', completed: true, priority: Priority.Medium, dueDate: '2024-07-20' },
-      { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01', dependsOn: 't1-2' },
-      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low, dependsOn: 't1-3' },
+      { id: 't1-1', name: 'Finalize ad copy', completed: true, priority: Priority.High, dueDate: '2024-07-15', assigneeId: 'user-2' },
+      { id: 't1-2', name: 'Approve social media assets', completed: true, priority: Priority.Medium, dueDate: '2024-07-20', assigneeId: 'user-3' },
+      { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01', dependsOn: 't1-2', assigneeId: 'user-1' },
+      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low, dependsOn: 't1-3', assigneeId: 'user-4' },
     ],
     journal: [],
   },
@@ -33,11 +42,11 @@ const mockProjects: Project[] = [
     dueDate: '2024-08-15',
     progress: 40,
     tasks: [
-      { id: 't2-1', name: 'User research and personas', completed: true, priority: Priority.High, dueDate: '2024-05-30' },
-      { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15', dependsOn: 't2-1' },
-      { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25', dependsOn: 't2-2' },
+      { id: 't2-1', name: 'User research and personas', completed: true, priority: Priority.High, dueDate: '2024-05-30', assigneeId: 'user-3' },
+      { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15', dependsOn: 't2-1', assigneeId: 'user-2' },
+      { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25', dependsOn: 't2-2', assigneeId: 'user-1' },
       { id: 't2-4', name: 'Backend integration', completed: false, priority: Priority.Medium, dueDate: '2024-07-30', dependsOn: 't2-2' },
-      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low, dependsOn: 't2-3' },
+      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low, dependsOn: 't2-3', assigneeId: 'user-4' },
     ],
     journal: [],
   },
@@ -49,9 +58,9 @@ const mockProjects: Project[] = [
     dueDate: '2024-06-01',
     progress: 100,
     tasks: [
-        { id: 't3-1', name: 'Develop dashboard UI', completed: true, priority: Priority.High, dueDate: '2024-05-10' },
-        { id: 't3-2', name: 'Implement calendar API', completed: true, priority: Priority.Medium, dueDate: '2024-05-20' },
-        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low, dependsOn: 't3-2' },
+        { id: 't3-1', name: 'Develop dashboard UI', completed: true, priority: Priority.High, dueDate: '2024-05-10', assigneeId: 'user-1' },
+        { id: 't3-2', name: 'Implement calendar API', completed: true, priority: Priority.Medium, dueDate: '2024-05-20', assigneeId: 'user-2' },
+        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low, dependsOn: 't3-2', assigneeId: 'user-3' },
         { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None, dependsOn: 't3-3' },
     ],
     journal: [],
@@ -107,6 +116,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  
+  // Update the mock team to ensure the current user's name is correct
+  const team = useMemo(() => mockTeam.map(member => 
+    member.id === userData.id ? { ...member, name: userData.name } : member
+  ), [userData.id, userData.name]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -350,11 +364,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
     switch (currentView) {
         case 'home':
+            // FIX: Removed unused 'team' prop from Home component.
             return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} />;
         case 'projectList':
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
             if (selectedProject) {
+                // FIX: Removed unused 'team' prop from ProjectDetails component.
                 return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} />;
             }
             // Fallback to project list if no project is selected
@@ -541,4 +557,3 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   );
 };
 export default Dashboard;
-// FIX: Removed extraneous text from the end of the file that was causing multiple compilation errors.

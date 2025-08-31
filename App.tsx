@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';
@@ -6,11 +7,13 @@ import type { OnboardingData } from './types';
 
 type AppState = 'login' | 'onboarding' | 'dashboard';
 
+// FIX: Added missing 'id' property to satisfy the OnboardingData interface.
 const defaultOnboardingData: OnboardingData = {
   skillLevel: null,
   methodologies: [],
   tools: [],
   name: 'Valued User',
+  id: 'user-1',
 };
 
 const App: React.FC = () => {
@@ -53,7 +56,8 @@ const App: React.FC = () => {
       case 'login':
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
       case 'onboarding':
-        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialName={onboardingData.name} />;
+        // FIX: Passed the entire onboardingData object to preserve the user's ID and other data.
+        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
       case 'dashboard':
         return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
       default:
