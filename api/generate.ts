@@ -15,18 +15,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
-
-  if (!prompt || !userData) {
-    return res.status(400).json({ error: 'Prompt and userData are required' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
-  }
-
   try {
+    const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
+
+    if (!prompt || !userData) {
+      return res.status(400).json({ error: 'Prompt and userData are required' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     const methodologies = userData.methodologies.length > 0 ? userData.methodologies.join(', ') : 'various methodologies';
@@ -36,9 +36,6 @@ Your user is a project manager with an experience level of "${userData.skillLeve
 They are familiar with ${methodologies} and use tools like ${tools}.
 Your tone should be supportive, clear, and professional. Tailor the complexity of your answers to their experience level. Provide actionable advice, clear explanations, and use markdown formatting for clarity (e.g., lists, bolding, code blocks).`;
     
-    // Fix: Use generateContentStream for stateless chat with history.
-    // The chat API is stateful and not suitable for a stateless serverless function,
-    // as it would create a new chat session on every request, losing context.
     const contents = history.map(msg => ({
       role: msg.role,
       parts: [{ text: msg.content }]

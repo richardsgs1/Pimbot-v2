@@ -15,18 +15,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { searchTerm, resultCounts } = req.body as { searchTerm: string; resultCounts: ResultCounts };
-
-  if (!searchTerm || !resultCounts) {
-    return res.status(400).json({ error: 'Search term and result counts are required.' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured.' });
-  }
-
   try {
+    const { searchTerm, resultCounts } = req.body as { searchTerm: string; resultCounts: ResultCounts };
+
+    if (!searchTerm || !resultCounts) {
+      return res.status(400).json({ error: 'Search term and result counts are required.' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured.' });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are a helpful assistant. Your task is to summarize search results in a single, concise, and natural-sounding sentence.

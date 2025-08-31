@@ -10,18 +10,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { project } = req.body as { project: Project };
-
-  if (!project) {
-    return res.status(400).json({ error: 'Project data is required.' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured.' });
-  }
-
   try {
+    const { project } = req.body as { project: Project };
+
+    if (!project) {
+      return res.status(400).json({ error: 'Project data is required.' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured.' });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are an expert project manager providing a health check summary.

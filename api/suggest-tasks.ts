@@ -14,18 +14,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { projectDescription, tasks } = req.body as { projectDescription: string; tasks: SimpleTask[] };
-
-  if (!projectDescription) {
-    return res.status(400).json({ error: 'Project description is required.' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured.' });
-  }
-
   try {
+    const { projectDescription, tasks } = req.body as { projectDescription: string; tasks: SimpleTask[] };
+
+    if (!projectDescription) {
+      return res.status(400).json({ error: 'Project description is required.' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured.' });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are an expert project management assistant. Your goal is to suggest the next logical tasks for a project.

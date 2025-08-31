@@ -9,18 +9,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { prompt } = req.body as { prompt: string };
-
-  if (!prompt) {
-    return res.status(400).json({ error: 'A project description prompt is required.' });
-  }
-
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured.' });
-  }
-
   try {
+    const { prompt } = req.body as { prompt: string };
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'A project description prompt is required.' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured.' });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `You are a project management assistant. Based on the user's prompt, create a structured project plan.
