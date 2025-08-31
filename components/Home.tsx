@@ -1,12 +1,14 @@
 
 import React, { useMemo } from 'react';
-import type { Project, Task, OnboardingData, TeamMember } from '../types';
+// FIX: Import TeamMember to be used in HomeProps.
+import type { Project, OnboardingData, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 
 interface HomeProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   userData: OnboardingData;
+  // FIX: Add team prop to align with props passed from Dashboard.
   team: TeamMember[];
 }
 
@@ -37,6 +39,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }
     </div>
 );
 
+// FIX: Destructure the `team` prop, although it is not used in this component.
 const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData, team }) => {
 
   const projectCounts = useMemo(() => {

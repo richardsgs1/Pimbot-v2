@@ -49,8 +49,8 @@ Provide a concise, 2-3 sentence summary of the project's health.
       },
     });
 
-    // FIX: Added .trim() to remove any potential leading/trailing whitespace from the response.
-    const summary = response.text.trim();
+    // FIX: Safely handle potentially undefined response text.
+    const summary = (response.text ?? '').trim();
 
     return res.status(200).json({ summary });
 

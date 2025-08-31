@@ -60,8 +60,8 @@ export default async function handler(
       },
     });
     
-    // FIX: Added .trim() to handle potential whitespace in the AI's JSON response.
-    const projectData = JSON.parse(response.text.trim());
+    // FIX: Safely handle potentially undefined response text before parsing.
+    const projectData = JSON.parse((response.text ?? '{}').trim());
 
     return res.status(200).json(projectData);
 

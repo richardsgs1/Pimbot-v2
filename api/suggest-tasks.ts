@@ -60,8 +60,8 @@ Based on this context, generate 3 short, actionable, and relevant tasks that the
       },
     });
 
-    // FIX: Added .trim() to handle potential whitespace in the AI's JSON response.
-    const suggestions = JSON.parse(response.text.trim());
+    // FIX: Safely handle potentially undefined response text before parsing.
+    const suggestions = JSON.parse((response.text ?? '{}').trim());
 
     return res.status(200).json(suggestions);
 

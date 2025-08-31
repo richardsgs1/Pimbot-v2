@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, FormEvent, useMemo } from 'react';
+import React, { useState, useRef, FormEvent, useMemo } from 'react';
 import type { Project, Task, JournalEntry, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 
