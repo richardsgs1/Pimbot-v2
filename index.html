@@ -9,14 +9,88 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <style>
       body {
         font-family: 'Inter', sans-serif;
       }
+      /* Styles for Markdown content */
+      .prose {
+        color: #d1d5db; /* text-gray-300 */
+      }
+      .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+        color: #ffffff;
+      }
+      .prose a {
+        color: #22d3ee; /* cyan-400 */
+      }
+      .prose strong {
+        color: #f1f5f9; /* slate-100 */
+      }
+      .prose blockquote {
+        border-left-color: #475569; /* slate-600 */
+        color: #94a3b8; /* slate-400 */
+      }
+      .prose code {
+        color: #e5e7eb; /* gray-200 */
+        background-color: #374151; /* gray-700 */
+        padding: .2em .4em;
+        margin: 0;
+        font-size: 85%;
+        border-radius: 6px;
+      }
+      .prose pre {
+        background-color: #1e293b; /* slate-800 */
+        border: 1px solid #334155; /* slate-700 */
+        border-radius: 0.5rem;
+        padding: 1rem;
+        position: relative;
+      }
+      .prose pre code {
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        color: inherit;
+        border-radius: 0;
+      }
+      .copy-button {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background-color: #475569; /* slate-600 */
+        color: #cbd5e1; /* slate-300 */
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .prose pre:hover .copy-button {
+        opacity: 1;
+      }
+      .copy-button:hover {
+        background-color: #64748b; /* slate-500 */
+      }
     </style>
-  </head>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
+    "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.3.17",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
+  }
+}
+</script>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   </body>
 </html>
