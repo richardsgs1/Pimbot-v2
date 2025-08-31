@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { Project, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
+import DailyBriefing from './DailyBriefing';
 
 interface HomeProps {
   projects: Project[];
@@ -36,6 +37,36 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }
 );
 
 const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [isBriefingLoading, setIsBriefingLoading] = useState(true);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
+
+  const fetchBriefing = useCallback(async () => {
+    setIsBriefingLoading(true);
+    setBriefingError(null);
+    try {
+      const response = await fetch('/api/generate-daily-briefing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch briefing.');
+      }
+      const data = await response.json();
+      setBriefing(data.briefing);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setBriefingError(msg);
+    } finally {
+      setIsBriefingLoading(false);
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    fetchBriefing();
+  }, [fetchBriefing]);
 
   const projectCounts = useMemo(() => {
     return projects.reduce((acc, project) => {
@@ -82,6 +113,16 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
       </header>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto">
+          {/* Daily Briefing */}
+           <div className="mb-6">
+            <DailyBriefing
+              briefing={briefing}
+              isLoading={isBriefingLoading}
+              error={briefingError}
+              onRefresh={fetchBriefing}
+            />
+          </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <StatCard 
