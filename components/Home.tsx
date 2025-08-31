@@ -1,15 +1,11 @@
-
 import React, { useMemo } from 'react';
-// FIX: Import TeamMember to be used in HomeProps.
-import type { Project, OnboardingData, TeamMember } from '../types';
+import type { Project, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
 
 interface HomeProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   userData: OnboardingData;
-  // FIX: Add team prop to align with props passed from Dashboard.
-  team: TeamMember[];
 }
 
 const statusColors: { [key in ProjectStatus]: { text: string, dot: string } } = {
@@ -39,8 +35,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }
     </div>
 );
 
-// FIX: Destructure the `team` prop, although it is not used in this component.
-const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData, team }) => {
+const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
 
   const projectCounts = useMemo(() => {
     return projects.reduce((acc, project) => {
@@ -128,7 +123,7 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData, team }
                                     </div>
                                 </div>
                                 {task.dueDate && (
-                                     <p className={`text-xs font-medium ${new Date(task.dueDate) < new Date() ? 'text-red-400' : 'text-cyan-400'}`}>
+                                     <p className={`text-xs font-medium ${new Date(task.dueDate) < new Date() ? 'text-red-400' : 'text-slate-400'}`}>
                                         {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                      </p>
                                 )}

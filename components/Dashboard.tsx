@@ -1,4 +1,3 @@
-
 import React, { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
 import type { OnboardingData, Project, SearchResults, SearchResultItem, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -118,9 +117,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   
   // Update the mock team to ensure the current user's name is correct
-  const team = useMemo(() => mockTeam.map(member => 
-    member.id === userData.id ? { ...member, name: userData.name } : member
-  ), [userData.id, userData.name]);
+  const team = useMemo(() => {
+    const updatedTeam = mockTeam.map(member => 
+      member.id === 'user-1' ? { ...member, name: userData.name, id: userData.id } : member
+    );
+    // Ensure the current user is in the team if they aren't 'user-1'
+    if (!updatedTeam.find(m => m.id === userData.id)) {
+        updatedTeam.push({ id: userData.id, name: userData.name, avatarColor: 'bg-cyan-500' });
+    }
+    return updatedTeam;
+  }, [userData.id, userData.name]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -364,7 +370,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
     switch (currentView) {
         case 'home':
-            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} team={team} />;
+            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} />;
         case 'projectList':
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
