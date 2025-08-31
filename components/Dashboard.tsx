@@ -541,4 +541,5 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   );
 };
 
+// FIX: Removed extraneous text from the end of the file that was causing multiple compilation errors.
 export default Dashboard;

@@ -1,4 +1,3 @@
-
 export enum SkillLevel {
   NOVICE = 'Novice',
   INTERMEDIATE = 'Intermediate',
@@ -53,4 +52,16 @@ export interface Project {
   tasks: Task[];
   aiHealthSummary?: string;
   journal: JournalEntry[];
+}
+
+// Types for Global Search
+export type SearchResultItem = 
+  | { type: 'project'; data: Project }
+  | { type: 'task'; data: Task; project: { id: string; name: string } }
+  | { type: 'journal'; data: JournalEntry; project: { id: string; name: string } };
+
+export interface SearchResults {
+  projects: SearchResultItem[];
+  tasks: SearchResultItem[];
+  journal: SearchResultItem[];
 }
