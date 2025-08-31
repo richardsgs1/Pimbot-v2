@@ -1,42 +1,52 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
 
-// Helper function to safely get text from a Gemini response
-function safeGetText(response: GenerateContentResponse): string {
+// A highly robust function to extract text from a Gemini response, handling multiple failure modes.
+function safeExtractText(response: GenerateContentResponse): string {
+    // 1. Proactively check for a block reason. This is the most reliable way.
+    if (response.promptFeedback?.blockReason) {
+        console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
+        return '';
+    }
+
+    // 2. Try to access the .text property within a try-catch, as it can throw on certain responses.
     try {
-        return response.text ?? '';
+        const text = response.text;
+        if (text) {
+            return text;
+        }
     } catch (e) {
         console.error("Error accessing response.text. The response might be blocked.", e);
-        return ''; // Return empty string if accessor throws
+    }
+
+    // 3. As a fallback, try to access the text through the full candidates path.
+    try {
+        const fallbackText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+        return fallbackText ?? '';
+    } catch (e) {
+        console.error("Error accessing fallback response text.", e);
+        return '';
     }
 }
-
 
 // A robust function to clean and parse JSON from the model's text response.
 function cleanAndParseJson(rawText: string): any {
   if (!rawText) {
     return {};
   }
-  // Trim whitespace
   let cleanedText = rawText.trim();
-
-  // Remove markdown code fences (```json ... ``` or ``` ... ```)
   const jsonRegex = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
   const match = cleanedText.match(jsonRegex);
   if (match && match[1]) {
     cleanedText = match[1];
   }
-
-  // If after all that, the string is empty, return an empty object.
   if (!cleanedText) {
     return {};
   }
-
   try {
     return JSON.parse(cleanedText);
   } catch (e) {
     console.error("Failed to parse JSON after cleaning:", cleanedText);
-    // Return empty object on parsing failure to prevent client-side crashes
     return {}; 
   }
 }
@@ -101,16 +111,16 @@ export default async function handler(
       },
     });
     
-    const rawText = safeGetText(textResponse);
+    const rawText = safeExtractText(textResponse);
     if (!rawText) {
-        throw new Error('The AI model returned an empty response, which may be due to content safety filters.');
+        throw new Error('The AI model returned an empty or blocked response. This may be due to content safety filters or an issue with the prompt.');
     }
     
     const projectData = cleanAndParseJson(rawText);
 
     if (!projectData || Object.keys(projectData).length === 0 || !projectData.name) {
         console.error('Parsed project data is empty or invalid:', projectData);
-        throw new Error('The AI model returned a response in an unexpected format.');
+        throw new Error('The AI model returned a response in an unexpected format. Please try rephrasing your prompt.');
     }
 
     // Step 2: Generate a cover image for the project
@@ -133,7 +143,6 @@ export default async function handler(
         }
     } catch (imageError) {
         console.warn('Could not generate project cover image:', imageError);
-        // If image generation fails, we still proceed without it.
     }
     
     const finalProjectData = { ...projectData, coverImageUrl };

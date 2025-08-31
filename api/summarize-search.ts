@@ -7,13 +7,31 @@ interface ResultCounts {
   journal: number;
 }
 
-// Helper function to safely get text from a Gemini response
-function safeGetText(response: GenerateContentResponse): string {
+// A highly robust function to extract text from a Gemini response, handling multiple failure modes.
+function safeExtractText(response: GenerateContentResponse): string {
+    // 1. Proactively check for a block reason. This is the most reliable way.
+    if (response.promptFeedback?.blockReason) {
+        console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
+        return '';
+    }
+
+    // 2. Try to access the .text property within a try-catch, as it can throw on certain responses.
     try {
-        return response.text ?? '';
+        const text = response.text;
+        if (text) {
+            return text;
+        }
     } catch (e) {
         console.error("Error accessing response.text. The response might be blocked.", e);
-        return ''; // Return empty string if accessor throws
+    }
+
+    // 3. As a fallback, try to access the text through the full candidates path.
+    try {
+        const fallbackText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+        return fallbackText ?? '';
+    } catch (e) {
+        console.error("Error accessing fallback response text.", e);
+        return '';
     }
 }
 
@@ -57,10 +75,10 @@ export default async function handler(
       },
     });
 
-    const summary = safeGetText(response).trim();
+    const summary = safeExtractText(response).trim();
 
     if (!summary) {
-      // Don't throw an error here, just return an empty summary as it's not critical.
+      // It's not critical if the summary fails, so just return an empty one.
       return res.status(200).json({ summary: '' });
     }
 

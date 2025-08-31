@@ -55,13 +55,19 @@ Your tone should be supportive, clear, and professional. Tailor the complexity o
 
     for await (const chunk of stream) {
       try {
-        if (chunk.text) {
-          res.write(chunk.text);
+        // Proactively check for a block reason in each chunk to avoid errors.
+        if (chunk.promptFeedback?.blockReason) {
+          console.warn(`A streaming chunk was blocked: ${chunk.promptFeedback.blockReason}`);
+          continue; // Skip this blocked chunk and continue with the stream.
+        }
+        
+        const text = chunk.text;
+        if (text) {
+          res.write(text);
         }
       } catch (e) {
+        // This catch is a fallback in case accessing chunk.text itself throws.
         console.warn('A chunk was likely blocked during streaming.', e);
-        // We can't send an error response here as headers are already sent.
-        // We just stop writing to prevent a crash.
       }
     }
 
