@@ -77,8 +77,8 @@ export default async function handler(
             },
         });
         
-        if (imageResponse.generatedImages && imageResponse.generatedImages.length > 0) {
-            const base64ImageBytes: string = imageResponse.generatedImages[0].image.imageBytes;
+        const base64ImageBytes = imageResponse.generatedImages?.[0]?.image?.imageBytes;
+        if (base64ImageBytes) {
             coverImageUrl = `data:image/png;base64,${base64ImageBytes}`;
         }
     } catch (imageError) {
