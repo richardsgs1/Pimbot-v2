@@ -7,6 +7,7 @@ import TaskBreakdownModal from './TaskBreakdownModal';
 import RiskAnalysisModal from './RiskAnalysisModal';
 import CommunicationDraftModal from './CommunicationDraftModal';
 import ProjectJournalSummaryModal from './ProjectJournalSummaryModal';
+import TimelineView from './TimelineView';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -68,6 +69,9 @@ const addJournalEntry = (currentProject: Project, content: string, type: Journal
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team, userData }) => {
     const colors = statusColors[project.status];
     
+    // View State
+    const [activeTab, setActiveTab] = useState<'tasks' | 'timeline'>('tasks');
+
     // Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -112,6 +116,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [isRiskLoading, setIsRiskLoading] = useState(false);
     const [riskError, setRiskError] = useState<string | null>(null);
 
+    // Timeline State
+    const [isScheduling, setIsScheduling] = useState(false);
+    const [scheduleError, setScheduleError] = useState<string | null>(null);
 
     const tasksById = useMemo(() => project.tasks.reduce((acc, task) => { acc[task.id] = task; return acc; }, {} as Record<string, Task>), [project.tasks]);
     const teamById = useMemo(() => team.reduce((acc, member) => { acc[member.id] = member; return acc; }, {} as Record<string, TeamMember>), [team]);
@@ -119,6 +126,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const summarizableEntries = useMemo(() => 
       (project.journal || []).filter(entry => entry.type === 'system' && !entry.isArchived), 
     [project.journal]);
+    
+    const hasSchedule = useMemo(() => project.tasks.some(t => t.startDate && typeof t.duration === 'number'), [project.tasks]);
 
 
     const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -407,10 +416,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     };
 
     const handleConfirmSummary = (finalSummary: string) => {
-      // 1. Add the new AI summary entry
       let updatedProject = addJournalEntry(project, finalSummary, 'ai-summary');
-
-      // 2. Archive the original system entries
       const summarizableIds = new Set(summarizableEntries.map(e => e.id));
       const updatedJournal = updatedProject.journal.map(entry => 
         summarizableIds.has(entry.id) ? { ...entry, isArchived: true } : entry
@@ -419,6 +425,43 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       
       onUpdateProject(updatedProject);
       setIsSummaryModalOpen(false);
+    };
+
+    const handleGenerateSchedule = async () => {
+        setIsScheduling(true);
+        setScheduleError(null);
+        try {
+            const response = await fetch('/api/generate-schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tasks: project.tasks, projectDueDate: project.dueDate }),
+            });
+            const responseText = await response.text();
+            if (!response.ok) {
+                let errorMsg = 'Failed to generate schedule.';
+                try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+                throw new Error(errorMsg);
+            }
+            if (!responseText) { throw new Error("Received an empty response from the server."); }
+            const data = JSON.parse(responseText);
+            const scheduledTasks: { id: string, startDate: string, duration: number }[] = data.scheduledTasks;
+            
+            const taskScheduleMap = new Map(scheduledTasks.map(t => [t.id, { startDate: t.startDate, duration: t.duration }]));
+            
+            const updatedTasks = project.tasks.map(task => {
+                const schedule = taskScheduleMap.get(task.id);
+                return schedule ? { ...task, ...schedule } : task;
+            });
+            
+            const updatedProject = addJournalEntry({ ...project, tasks: updatedTasks }, "AI has generated a project schedule.", 'system');
+            onUpdateProject(updatedProject);
+
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
+            setScheduleError(msg);
+        } finally {
+            setIsScheduling(false);
+        }
     };
 
 
@@ -436,6 +479,142 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         default: return <SystemLogIcon />;
       }
     };
+
+    const renderContent = () => {
+        if (activeTab === 'timeline') {
+            return (
+                <div className="lg:col-span-3">
+                    {hasSchedule ? (
+                        <TimelineView tasks={project.tasks} projectDueDate={project.dueDate} />
+                    ) : (
+                        <div className="text-center bg-slate-800 rounded-xl p-12">
+                            <h3 className="text-xl font-bold text-white">Project Timeline</h3>
+                            <p className="text-slate-400 mt-2 mb-6">Visualize your project's schedule as a Gantt chart. The AI can estimate task durations and create a logical timeline for you.</p>
+                            <button
+                                onClick={handleGenerateSchedule}
+                                disabled={isScheduling}
+                                className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition duration-300 flex items-center mx-auto disabled:opacity-50"
+                            >
+                                {isScheduling ? (
+                                    <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Scheduling...
+                                    </>
+                                ) : (
+                                    'Generate Schedule with AI'
+                                )}
+                            </button>
+                            {scheduleError && <p className="text-red-400 mt-4">{scheduleError}</p>}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                     <div className="bg-slate-800 rounded-xl p-6 mb-6">
+                        <h2 className="text-xl font-bold text-white mb-4">Description</h2>
+                        <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+                    </div>
+                     <div className="bg-slate-800 rounded-xl p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h2 className="text-xl font-bold text-white">Project Journal</h2>
+                          {summarizableEntries.length > 2 && (
+                            <button onClick={handleGenerateJournalSummary} className="flex items-center text-sm bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold py-1 px-3 rounded-md transition" title="Summarize recent activity with AI">
+                              <MagicWandIcon />
+                              <span className="ml-2">Summarize Activity</span>
+                            </button>
+                          )}
+                        </div>
+                        <form onSubmit={handleAddJournalNote} className="mb-4">
+                          <textarea value={newJournalNote} onChange={(e) => setNewJournalNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="Add a new note or update..." rows={2}/>
+                          <button type="submit" className="mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1 px-3 rounded-md transition disabled:opacity-50" disabled={!newJournalNote.trim()}>Add Note</button>
+                        </form>
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                          {(project.journal || []).filter(entry => !entry.isArchived).map(entry => (
+                            <div key={entry.id} className={`flex items-start text-sm border-l-2 pl-3 ${entry.type === 'ai-summary' ? 'border-cyan-500 bg-cyan-900/20 p-3 rounded-r-md' : 'border-slate-700'}`}>
+                              {getJournalEntryIcon(entry)}
+                              <div>
+                                <p className="text-slate-300 whitespace-pre-wrap">{entry.content}</p>
+                                <p className="text-xs text-slate-500 mt-1">{new Date(entry.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="lg:col-span-1">
+                     <div className="bg-slate-800 rounded-xl p-6">
+                        <h2 className="text-xl font-bold text-white mb-4">Tasks</h2>
+                        <div className="space-y-2">
+                            {project.tasks.map(task => {
+                                const isBlocked = isTaskBlocked(task.id); const dependencyName = getDependencyName(task.dependsOn); const checkboxTitle = isBlocked ? `Blocked by: "${dependencyName}"` : 'Mark task complete';
+                                return (
+                                <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, task.id)} onDragEnd={() => setDraggedTaskId(null)}
+                                    onDoubleClick={() => handleOpenEditModal(task)}
+                                    className={`group relative p-3 rounded-lg transition-all ${task.completed ? 'bg-slate-700/50' : 'bg-slate-900/50'} ${draggedTaskId === task.id ? 'opacity-50' : 'opacity-100'} border-l-4 ${priorityColors[task.priority].border} hover:bg-slate-700/50`}>
+                                    <div className="flex items-start">
+                                        <div title={checkboxTitle} className="flex-shrink-0 mt-0.5">
+                                            <input type="checkbox" checked={task.completed} onChange={() => handleToggleTask(task.id)} disabled={isBlocked} className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"/>
+                                        </div>
+                                        <div className="ml-3 flex-grow cursor-pointer" onClick={() => handleOpenEditModal(task)}>
+                                            <div className="flex items-center">
+                                              <span className={`${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{task.name}</span>
+                                              {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}
+                                            </div>
+                                            {task.dueDate && (
+                                                <div className={`flex items-center text-xs mt-1 ${isTaskOverdue(task) ? 'text-red-400' : 'text-slate-400'}`}>
+                                                    <CalendarIcon />{new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="ml-auto pl-2 flex-shrink-0"><Avatar member={teamById[task.assigneeId || '']} /></div>
+                                    </div>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleOpenCommModal(task)} className="p-1 text-slate-400 hover:text-cyan-400" title="Draft Communication"><CommunicateIcon /></button>
+                                        <button onClick={() => handleOpenEditModal(task)} className="p-1 text-slate-400 hover:text-white" title="Edit task"><EditIcon /></button>
+                                        <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-slate-400 hover:text-red-400" title="Delete task"><DeleteIcon /></button>
+                                    </div>
+                                </div>
+                                )
+                            })}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-700/50">
+                            <form onSubmit={handleAddTask}>
+                                <div className="relative">
+                                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onFocus={fetchSuggestions} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="+ Add new task"/>
+                                    <button type="button" onClick={() => setIsBreakdownModalOpen(true)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-cyan-400 transition" title="Deconstruct Task with AI">
+                                        <MagicWandIcon />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <input type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                                    <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Priority)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        {Object.values(Priority).map(p => (<option key={p} value={p}>{p}</option>))}
+                                    </select>
+                                    <select value={newTaskDependency} onChange={(e) => setNewTaskDependency(e.target.value)} className="col-span-2 w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        <option value="">No dependency</option>
+                                        {project.tasks.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
+                                    </select>
+                                    <select value={newTaskAssignee} onChange={(e) => setNewTaskAssignee(e.target.value)} className="col-span-2 w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                                        <option value="">Unassigned</option>
+                                        {team.map(member => (<option key={member.id} value={member.id}>{member.name}</option>))}
+                                    </select>
+                                </div>
+                                <button type="submit" className="w-full mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add Task</button>
+                            </form>
+                            {isSuggesting && <p className="text-slate-400 text-sm mt-2">Getting AI suggestions...</p>} {suggestionError && <p className="text-red-400 text-sm mt-2">{suggestionError}</p>}
+                            {suggestions.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2"><p className="text-xs text-slate-400 w-full">Suggestions:</p>{suggestions.map((s, i) => (<button key={i} onClick={() => setNewTaskName(s)} className="bg-slate-600/50 hover:bg-slate-600 text-cyan-300 text-xs px-2 py-1 rounded-full transition">{s}</button>))}</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
       <>
@@ -486,108 +665,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                       </div>
                     </div>
 
-                    {/* Project Body */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                             <div className="bg-slate-800 rounded-xl p-6 mb-6">
-                                <h2 className="text-xl font-bold text-white mb-4">Description</h2>
-                                <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
-                            </div>
-                             <div className="bg-slate-800 rounded-xl p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h2 className="text-xl font-bold text-white">Project Journal</h2>
-                                  {summarizableEntries.length > 2 && (
-                                    <button onClick={handleGenerateJournalSummary} className="flex items-center text-sm bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold py-1 px-3 rounded-md transition" title="Summarize recent activity with AI">
-                                      <MagicWandIcon />
-                                      <span className="ml-2">Summarize Activity</span>
-                                    </button>
-                                  )}
-                                </div>
-                                <form onSubmit={handleAddJournalNote} className="mb-4">
-                                  <textarea value={newJournalNote} onChange={(e) => setNewJournalNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="Add a new note or update..." rows={2}/>
-                                  <button type="submit" className="mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1 px-3 rounded-md transition disabled:opacity-50" disabled={!newJournalNote.trim()}>Add Note</button>
-                                </form>
-                                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                                  {(project.journal || []).filter(entry => !entry.isArchived).map(entry => (
-                                    <div key={entry.id} className={`flex items-start text-sm border-l-2 pl-3 ${entry.type === 'ai-summary' ? 'border-cyan-500 bg-cyan-900/20 p-3 rounded-r-md' : 'border-slate-700'}`}>
-                                      {getJournalEntryIcon(entry)}
-                                      <div>
-                                        <p className="text-slate-300 whitespace-pre-wrap">{entry.content}</p>
-                                        <p className="text-xs text-slate-500 mt-1">{new Date(entry.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="lg:col-span-1">
-                             <div className="bg-slate-800 rounded-xl p-6">
-                                <h2 className="text-xl font-bold text-white mb-4">Tasks</h2>
-                                <div className="space-y-2">
-                                    {project.tasks.map(task => {
-                                        const isBlocked = isTaskBlocked(task.id); const dependencyName = getDependencyName(task.dependsOn); const checkboxTitle = isBlocked ? `Blocked by: "${dependencyName}"` : 'Mark task complete';
-                                        return (
-                                        <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, task.id)} onDragEnd={() => setDraggedTaskId(null)}
-                                            onDoubleClick={() => handleOpenEditModal(task)}
-                                            className={`group relative p-3 rounded-lg transition-all ${task.completed ? 'bg-slate-700/50' : 'bg-slate-900/50'} ${draggedTaskId === task.id ? 'opacity-50' : 'opacity-100'} border-l-4 ${priorityColors[task.priority].border} hover:bg-slate-700/50`}>
-                                            <div className="flex items-start">
-                                                <div title={checkboxTitle} className="flex-shrink-0 mt-0.5">
-                                                    <input type="checkbox" checked={task.completed} onChange={() => handleToggleTask(task.id)} disabled={isBlocked} className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"/>
-                                                </div>
-                                                <div className="ml-3 flex-grow cursor-pointer" onClick={() => handleOpenEditModal(task)}>
-                                                    <div className="flex items-center">
-                                                      <span className={`${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{task.name}</span>
-                                                      {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}
-                                                    </div>
-                                                    {task.dueDate && (
-                                                        <div className={`flex items-center text-xs mt-1 ${isTaskOverdue(task) ? 'text-red-400' : 'text-slate-400'}`}>
-                                                            <CalendarIcon />{new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="ml-auto pl-2 flex-shrink-0"><Avatar member={teamById[task.assigneeId || '']} /></div>
-                                            </div>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleOpenCommModal(task)} className="p-1 text-slate-400 hover:text-cyan-400" title="Draft Communication"><CommunicateIcon /></button>
-                                                <button onClick={() => handleOpenEditModal(task)} className="p-1 text-slate-400 hover:text-white" title="Edit task"><EditIcon /></button>
-                                                <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-slate-400 hover:text-red-400" title="Delete task"><DeleteIcon /></button>
-                                            </div>
-                                        </div>
-                                        )
-                                    })}
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-slate-700/50">
-                                    <form onSubmit={handleAddTask}>
-                                        <div className="relative">
-                                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onFocus={fetchSuggestions} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="+ Add new task"/>
-                                            <button type="button" onClick={() => setIsBreakdownModalOpen(true)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-cyan-400 transition" title="Deconstruct Task with AI">
-                                                <MagicWandIcon />
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <input type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-                                            <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Priority)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                                {Object.values(Priority).map(p => (<option key={p} value={p}>{p}</option>))}
-                                            </select>
-                                            <select value={newTaskDependency} onChange={(e) => setNewTaskDependency(e.target.value)} className="col-span-2 w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                                <option value="">No dependency</option>
-                                                {project.tasks.map(t => (<option key={t.id} value={t.id}>{t.name}</option>))}
-                                            </select>
-                                            <select value={newTaskAssignee} onChange={(e) => setNewTaskAssignee(e.target.value)} className="col-span-2 w-full bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                                                <option value="">Unassigned</option>
-                                                {team.map(member => (<option key={member.id} value={member.id}>{member.name}</option>))}
-                                            </select>
-                                        </div>
-                                        <button type="submit" className="w-full mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1.5 px-3 rounded-md transition">Add Task</button>
-                                    </form>
-                                    {isSuggesting && <p className="text-slate-400 text-sm mt-2">Getting AI suggestions...</p>} {suggestionError && <p className="text-red-400 text-sm mt-2">{suggestionError}</p>}
-                                    {suggestions.length > 0 && (
-                                        <div className="mt-2 flex flex-wrap gap-2"><p className="text-xs text-slate-400 w-full">Suggestions:</p>{suggestions.map((s, i) => (<button key={i} onClick={() => setNewTaskName(s)} className="bg-slate-600/50 hover:bg-slate-600 text-cyan-300 text-xs px-2 py-1 rounded-full transition">{s}</button>))}</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                    {/* Tabs */}
+                     <div className="mb-6 border-b border-slate-700">
+                        <nav className="flex space-x-4" aria-label="Tabs">
+                            <button onClick={() => setActiveTab('tasks')} className={`px-3 py-2 font-medium text-sm rounded-t-lg ${activeTab === 'tasks' ? 'border-b-2 border-cyan-400 text-white' : 'text-slate-400 hover:text-white'}`}>Tasks & Journal</button>
+                            <button onClick={() => setActiveTab('timeline')} className={`px-3 py-2 font-medium text-sm rounded-t-lg ${activeTab === 'timeline' ? 'border-b-2 border-cyan-400 text-white' : 'text-slate-400 hover:text-white'}`}>Timeline</button>
+                        </nav>
                     </div>
+
+                    {/* Project Body */}
+                    {renderContent()}
                 </div>
             </div>
         </div>

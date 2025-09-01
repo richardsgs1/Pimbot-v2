@@ -43,6 +43,8 @@ export interface Task {
   dueDate?: string; // YYYY-MM-DD format
   dependsOn?: string; // ID of the task it depends on
   assigneeId?: string; // ID of the TeamMember
+  startDate?: string; // YYYY-MM-DD format for timeline
+  duration?: number; // in days for timeline
 }
 
 export interface JournalEntry {
