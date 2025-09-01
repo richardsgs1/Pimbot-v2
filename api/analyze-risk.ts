@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 // FIX: Use a value import for @google/genai types as per coding guidelines, instead of `import type`.
 import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
-import type { Project } from '../types';
+import type { Project, Task } from '../types';
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.
 function safeExtractText(response: GenerateContentResponse): string {
@@ -23,6 +23,8 @@ function safeExtractText(response: GenerateContentResponse): string {
     }
 }
 
+const isTaskOverdue = (task: Task) => task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
+
 export default async function handler(
   req: VercelRequest & { ai: GoogleGenAI },
   res: VercelResponse
@@ -32,51 +34,51 @@ export default async function handler(
   }
 
   try {
-    // NEW: Get the shared AI client from the request object
     const ai = req.ai;
-
     const { project } = req.body as { project: Project };
 
     if (!project) {
       return res.status(400).json({ error: 'Project data is required.' });
     }
 
-    const systemInstruction = `You are an expert project manager providing a health check summary.
-Analyze the provided project JSON data.
-Provide a concise, 2-3 sentence summary of the project's health.
-- Start with an overall assessment (e.g., "On track," "Shows signs of risk," "Slightly behind schedule").
-- Mention one key risk or area that needs attention, especially related to overdue tasks or high-priority incomplete tasks.
-- Mention one positive point or recent accomplishment if applicable.
-- Your tone should be neutral, professional, and actionable. Do not use markdown.`;
+    const systemInstruction = `You are an expert project risk analyst. Your task is to generate a concise and actionable risk analysis report in Markdown format based on the provided project data.
+
+The report must include:
+- **## Identified Risks:** A bulleted list of the top 2-3 risks based on the data (e.g., overdue tasks, task dependencies, high workload on one person).
+- **## Mitigation Strategies:** For each identified risk, provide a corresponding, concrete, and actionable mitigation strategy in a bulleted list.
+
+Your tone should be clear, professional, and solution-oriented.`;
 
     const projectDataString = `
-      Project Name: ${project.name}
-      Status: ${project.status}
-      Progress: ${project.progress}%
-      Due Date: ${project.dueDate}
-      Tasks:
-      ${project.tasks.map(t => `- ${t.name} (Status: ${t.completed ? 'Completed' : 'Incomplete'}, Priority: ${t.priority}, Due: ${t.dueDate || 'N/A'})`).join('\n')}
-    `;
+# Project for Risk Analysis: "${project.name}"
+
+- **Current Status:** ${project.status}
+- **Progress:** ${project.progress}%
+- **Due Date:** ${project.dueDate}
+
+## Tasks
+${project.tasks.map(t => `- ${t.name} (Status: ${t.completed ? 'Completed' : 'Incomplete'}, Priority: ${t.priority}, Due: ${t.dueDate || 'N/A'}${isTaskOverdue(t) ? ', **OVERDUE**' : ''})`).join('\n')}
+`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Analyze this project data and provide a health summary:\n${projectDataString}`,
+      contents: `Generate a risk analysis and mitigation plan for the following project:\n${projectDataString}`,
       config: {
         systemInstruction,
       },
     });
 
-    const summary = safeExtractText(response).trim();
+    const analysis = safeExtractText(response).trim();
 
-    if (!summary) {
-      throw new Error('The AI model returned an empty or blocked response. This may be due to content safety filters.');
+    if (!analysis) {
+      throw new Error('The AI model returned an empty or blocked response.');
     }
 
-    return res.status(200).json({ summary });
+    return res.status(200).json({ analysis });
 
   } catch (error) {
-    console.error('Error calling Gemini API for health summary:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate project health summary.';
+    console.error('Error in analyze-risk handler:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate risk analysis.';
     return res.status(500).json({ error: errorMessage });
   }
 }

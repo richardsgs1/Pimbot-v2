@@ -1,115 +1,97 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'node:path';
+// FIX: Import `process` to provide correct types for `process.cwd()` and resolve TypeScript errors.
+import process from 'node:process';
+import dotenv from 'dotenv';
+import type { ViteDevServer, Connect } from 'vite';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-// Fix: Corrected import path from '@google/ai' to '@google/genai'
-import { Type, GenerateContentResponse, GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 
-// A highly robust function to extract text from a Gemini response, handling multiple failure modes.
-function safeExtractText(response: GenerateContentResponse): string {
-    if (response.promptFeedback?.blockReason) {
-        console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
-        return '';
-    }
-    try {
-        const text = response.text;
-        if (text) return text;
-    } catch (e) {
-        console.error("Error accessing response.text. The response might be blocked.", e);
-    }
-    try {
-        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    } catch (e) {
-        console.error("Error accessing fallback response text.", e);
-        return '';
-    }
+// --- DEFINITIVE FIX ---
+// Explicitly load environment variables from the .env file at the very start.
+// We provide an absolute path to remove any ambiguity about the file's location.
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// --- NEW ARCHITECTURE ---
+// Initialize the AI client ONCE.
+// This is the single source of truth for the AI connection.
+if (!process.env.API_KEY) {
+  throw new Error("API_KEY is not defined in your .env file. Please create one and add your API key.");
 }
-
-// A robust function to clean and parse JSON from the model's text response.
-function cleanAndParseJson(rawText: string): any {
-  if (!rawText) return {};
-  let cleanedText = rawText.trim();
-  const jsonRegex = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
-  const match = cleanedText.match(jsonRegex);
-  if (match && match[1]) {
-    cleanedText = match[1];
-  }
-  if (!cleanedText) return {};
-  try {
-    return JSON.parse(cleanedText);
-  } catch (e) {
-    console.error("Failed to parse JSON after cleaning:", cleanedText);
-    return {}; 
-  }
-}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
-export default async function handler(
-  req: VercelRequest & { ai: GoogleGenAI },
-  res: VercelResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  try {
-    const ai = req.ai;
-
-    const { objective, projectContext } = req.body as { objective: string; projectContext: { name: string; description: string } };
-
-    if (!objective || !projectContext) {
-      return res.status(400).json({ error: 'Objective and project context are required.' });
-    }
-
-    const systemInstruction = `You are an expert project manager. Your goal is to break down a high-level user objective into a list of smaller, concrete, and actionable sub-tasks.
-Consider the overall context of the project. The tasks should be logical next steps.
-Generate between 3 and 7 tasks. Task names should be clear, concise, and start with an action verb (e.g., "Design", "Develop", "Research").`;
-
-    const userPrompt = `Project Name: "${projectContext.name}"
-Project Description: "${projectContext.description}"
-
-High-Level Objective: "${objective}"
-
-Please break this objective down into actionable sub-tasks.`;
-
-    const breakdownSchema = {
-      type: Type.OBJECT,
-      properties: {
-        tasks: {
-          type: Type.ARRAY,
-          description: "A list of actionable sub-task names.",
-          items: {
-            type: Type.STRING,
-            description: "A concise, actionable task name."
-          }
-        }
-      },
-      required: ['tasks']
-    };
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: userPrompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: breakdownSchema,
-      },
+// Helper to parse the request body.
+async function parseBody(req: Connect.IncomingMessage): Promise<any> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('error', reject);
+    req.on('end', () => {
+      if (!body) return resolve({});
+      try {
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(new Error('Invalid JSON body'));
+      }
     });
-
-    const rawText = safeExtractText(response);
-    if (!rawText) {
-      throw new Error('The AI model returned an empty or blocked response. This may be due to content safety filters.');
-    }
-    
-    const breakdown = cleanAndParseJson(rawText);
-
-    if (!breakdown || !breakdown.tasks) {
-        throw new Error('The AI model returned a response in an unexpected format.');
-    }
-
-    return res.status(200).json(breakdown);
-
-  } catch (error) {
-    console.error('Error in breakdown-task handler:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to break down the task.';
-    return res.status(500).json({ error: errorMessage });
-  }
+  });
 }
+
+// Vite plugin to handle /api/* routes
+const apiPlugin = {
+  name: 'vercel-api-middleware',
+  configureServer(server: ViteDevServer) {
+    server.middlewares.use(async (req, res, next) => {
+      if (!req.url || !req.url.startsWith('/api/')) {
+        return next();
+      }
+
+      const apiRoute = req.url.substring(4);
+      const filePath = path.join(process.cwd(), 'api', `${apiRoute}.ts`);
+
+      try {
+        const module = await server.ssrLoadModule(filePath);
+        const handler = module.default;
+
+        if (typeof handler !== 'function') {
+          res.statusCode = 500;
+          return res.end(`Handler not found in ${filePath}`);
+        }
+
+        const vercelReq = req as VercelRequest & { ai: GoogleGenAI };
+        vercelReq.body = await parseBody(req);
+        
+        // --- NEW: Inject the shared AI client into the request ---
+        vercelReq.ai = ai;
+        
+        const vercelRes = res as VercelResponse;
+        
+        // Add compatibility methods to Vite's response object
+        const originalEnd = res.end.bind(res);
+        vercelRes.status = (statusCode: number) => {
+          res.statusCode = statusCode;
+          return vercelRes;
+        };
+        vercelRes.json = (data: any) => {
+          res.setHeader('Content-Type', 'application/json');
+          originalEnd(JSON.stringify(data));
+          return vercelRes;
+        };
+
+        await handler(vercelReq, vercelRes);
+
+      } catch (error) {
+        console.error(`API Error for ${req.url}:`, error);
+        res.statusCode = 500;
+        res.end(error instanceof Error ? error.message : 'Internal Server Error');
+      }
+    });
+  },
+};
+
+
+export default defineConfig({
+  plugins: [react(), apiPlugin],
+});

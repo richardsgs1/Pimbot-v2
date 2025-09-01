@@ -1,36 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+// FIX: Use a value import for @google/genai types as per coding guidelines, instead of `import type`.
+import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
 import type { Project, Task } from '../types';
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.
 function safeExtractText(response: GenerateContentResponse): string {
-    // 1. Proactively check for a block reason. This is the most reliable way.
     if (response.promptFeedback?.blockReason) {
         console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
         return '';
     }
-
-    // 2. Try to access the .text property within a try-catch, as it can throw on certain responses.
     try {
         const text = response.text;
-        if (text) {
-            return text;
-        }
+        if (text) return text;
     } catch (e) {
         console.error("Error accessing response.text. The response might be blocked.", e);
     }
-
-    // 3. As a fallback, try to access the text through the full candidates path.
     try {
-        const fallbackText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-        return fallbackText ?? '';
+        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     } catch (e) {
         console.error("Error accessing fallback response text.", e);
         return '';
     }
 }
 
-// Helper to format a date string
 const formatDate = (dateString?: string): string => {
   if (!dateString) return 'N/A';
   return new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', {
@@ -43,7 +35,7 @@ const formatDate = (dateString?: string): string => {
 const isTaskOverdue = (task: Task) => task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
 
 export default async function handler(
-  req: VercelRequest,
+  req: VercelRequest & { ai: GoogleGenAI },
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
@@ -51,12 +43,9 @@ export default async function handler(
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error('API key not configured.');
-    }
-    const ai = new GoogleGenAI({ apiKey });
-
+    // NEW: Get the shared AI client from the request object
+    const ai = req.ai;
+    
     const { project } = req.body as { project: Project };
 
     if (!project) {

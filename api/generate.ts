@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
 import type { OnboardingData } from '../types';
+// FIX: Use a value import for GoogleGenAI as per coding guidelines, instead of `import type`.
+import { GoogleGenAI } from '@google/genai';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -8,7 +9,7 @@ interface ChatMessage {
 }
 
 export default async function handler(
-  req: VercelRequest,
+  req: VercelRequest & { ai: GoogleGenAI },
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
@@ -16,11 +17,8 @@ export default async function handler(
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error('API key not configured.');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // NEW: Get the shared AI client from the request object
+    const ai = req.ai;
 
     const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
 
@@ -55,10 +53,9 @@ Your tone should be supportive, clear, and professional. Tailor the complexity o
 
     for await (const chunk of stream) {
       try {
-        // Proactively check for a block reason in each chunk to avoid errors.
         if (chunk.promptFeedback?.blockReason) {
           console.warn(`A streaming chunk was blocked: ${chunk.promptFeedback.blockReason}`);
-          continue; // Skip this blocked chunk and continue with the stream.
+          continue;
         }
         
         const text = chunk.text;
@@ -66,7 +63,6 @@ Your tone should be supportive, clear, and professional. Tailor the complexity o
           res.write(text);
         }
       } catch (e) {
-        // This catch is a fallback in case accessing chunk.text itself throws.
         console.warn('A chunk was likely blocked during streaming.', e);
       }
     }

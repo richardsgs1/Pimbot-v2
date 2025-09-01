@@ -3,6 +3,7 @@ import type { Project, Task, JournalEntry, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import TaskBreakdownModal from './TaskBreakdownModal';
+import RiskAnalysisModal from './RiskAnalysisModal';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -41,6 +42,8 @@ const EditIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" class
 const DeleteIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> );
 const DependencyIcon: React.FC<{ title: string }> = ({ title }) => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-500 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><title>{title}</title><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> );
 const MagicWandIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
+const ShieldExclamationIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-1.6-6.634-4.382-8.434zM12 12a1 1 0 100 2 1 1 0 000-2zm0 3a1 1 0 100 2 1 1 0 000-2z" /></svg> );
+
 
 // --- Helper Function ---
 const addJournalEntry = (currentProject: Project, content: string): Project => {
@@ -61,6 +64,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
     const [completionModalState, setCompletionModalState] = useState<{ isOpen: boolean; taskId: string | null; note: string }>({ isOpen: false, taskId: null, note: '' });
     const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
+    const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
 
     // New Task State
     const [newTaskName, setNewTaskName] = useState('');
@@ -87,6 +91,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [isReportLoading, setIsReportLoading] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
     const [copyButtonText, setCopyButtonText] = useState('Copy Report');
+    
+    // Risk Analysis State
+    const [riskAnalysis, setRiskAnalysis] = useState<string | null>(null);
+    const [isRiskLoading, setIsRiskLoading] = useState(false);
+    const [riskError, setRiskError] = useState<string | null>(null);
 
 
     const tasksById = useMemo(() => project.tasks.reduce((acc, task) => { acc[task.id] = task; return acc; }, {} as Record<string, Task>), [project.tasks]);
@@ -313,9 +322,40 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         }
     };
 
+    const handleAnalyzeRisks = async () => {
+        setIsRiskModalOpen(true);
+        setIsRiskLoading(true);
+        setRiskAnalysis(null);
+        setRiskError(null);
+        try {
+            const response = await fetch('/api/analyze-risk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project }),
+            });
+            const responseText = await response.text();
+            if (!response.ok) {
+                let errorMsg = 'Failed to analyze risks.';
+                try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch(e) { errorMsg = responseText || response.statusText; }
+                throw new Error(errorMsg);
+            }
+            if (!responseText) { throw new Error("Received an empty response from the server."); }
+            const data = JSON.parse(responseText);
+            setRiskAnalysis(data.analysis);
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
+            setRiskError(msg);
+        } finally {
+            setIsRiskLoading(false);
+        }
+    };
+
+
     const bannerStyle = {
       backgroundImage: project.coverImageUrl ? `url(${project.coverImageUrl})` : 'none',
     };
+
+    const showRiskAnalysisButton = project.status === ProjectStatus.AtRisk || project.status === ProjectStatus.OffTrack;
 
     return (
       <>
@@ -347,9 +387,17 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                   <h1 className="text-4xl font-bold text-white shadow-lg">{project.name}</h1>
                                   <p className="text-slate-300 mt-1 shadow-md">Due: {formattedDate}</p>
                               </div>
-                               <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
-                                  <span className={`w-2.5 h-2.5 mr-2 rounded-full ${colors.dot}`}></span>{project.status}
-                              </div>
+                               <div className="flex items-center">
+                                  {showRiskAnalysisButton && (
+                                      <button onClick={handleAnalyzeRisks} className="flex items-center bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 font-semibold py-2 px-4 rounded-full transition-colors duration-200 mr-4 text-sm">
+                                          <ShieldExclamationIcon />
+                                          Analyze Risks
+                                      </button>
+                                  )}
+                                  <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
+                                      <span className={`w-2.5 h-2.5 mr-2 rounded-full ${colors.dot}`}></span>{project.status}
+                                  </div>
+                               </div>
                           </div>
                           <div className="mt-4">
                             <div className="flex justify-between items-center mb-1"><span className="text-sm font-medium text-slate-300">Progress</span><span className="text-sm font-medium text-white">{project.progress}%</span></div>
@@ -452,6 +500,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             </div>
         </div>
         
+        {isRiskModalOpen && (
+            <RiskAnalysisModal
+                onClose={() => setIsRiskModalOpen(false)}
+                analysis={riskAnalysis}
+                isLoading={isRiskLoading}
+                error={riskError}
+            />
+        )}
+
         {isBreakdownModalOpen && (
           <TaskBreakdownModal
             onClose={() => setIsBreakdownModalOpen(false)}

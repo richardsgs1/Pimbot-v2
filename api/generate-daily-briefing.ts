@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+// FIX: Use a value import for @google/genai types as per coding guidelines, instead of `import type`.
+import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
 import type { Project } from '../types';
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.
@@ -23,7 +24,7 @@ function safeExtractText(response: GenerateContentResponse): string {
 }
 
 export default async function handler(
-  req: VercelRequest,
+  req: VercelRequest & { ai: GoogleGenAI },
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
@@ -31,11 +32,8 @@ export default async function handler(
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error('API key not configured.');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // NEW: Get the shared AI client from the request object
+    const ai = req.ai;
 
     const { projects } = req.body as { projects: Project[] };
 
@@ -56,7 +54,6 @@ Structure the report as follows:
 
 Keep the tone professional yet encouraging. If a section has no items, explicitly state something positive like "No overdue tasks. Great job keeping up!". Do not make up information if a section is empty.`;
 
-    // --- OPTIMIZATION: Create a concise summary instead of sending the whole DB ---
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = new Date().toLocaleDateString('en-CA');
@@ -69,7 +66,7 @@ Keep the tone professional yet encouraging. If a section has no items, explicitl
             overdueTasks: p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < today).map(t => t.name),
             dueTodayTasks: p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate).toLocaleDateString('en-CA') === todayStr).map(t => ({name: t.name, priority: t.priority})),
         })),
-        recentCompletions: projects.flatMap(p => p.tasks.filter(t => t.completed && t.dueDate && new Date(t.dueDate) > new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)).map(t => t.name)).slice(0, 3) // Last 3 days, max 3 items
+        recentCompletions: projects.flatMap(p => p.tasks.filter(t => t.completed && t.dueDate && new Date(t.dueDate) > new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)).map(t => t.name)).slice(0, 3)
     };
     
     const prompt = `Generate a daily briefing based on this summarized project data:\n${JSON.stringify(relevantData, null, 2)}`;
