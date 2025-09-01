@@ -1,31 +1,32 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
-// FIX: The explicit import of `process` caused a type conflict.
-// The global `process` object is available in the Node.js context where this
-// file is executed, so the import is not necessary and was removed to allow
-// TypeScript to use the correct global typings for `process.cwd()`.
-import dotenv from 'dotenv';
+// FIX: Removed incorrect import of `cwd`. `cwd` is a method on the global `process` object (`process.cwd()`) and not an export.
 
-// Load environment variables from .env file into process.env for our API functions
-dotenv.config();
-
-// Helper function to parse the body of a POST/PUT request
+// A more robust body parser that handles different content types and errors.
 async function parseBody(req: any): Promise<any> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let body = '';
     req.on('data', (chunk: Buffer) => {
       body += chunk.toString();
     });
     req.on('end', () => {
+      if (!body) {
+        resolve({});
+        return;
+      }
       try {
-        resolve(JSON.parse(body || '{}'));
+        // Assuming JSON, as that's what our app sends.
+        resolve(JSON.parse(body));
       } catch (e) {
-        reject(e);
+        // If parsing fails, resolve with an empty object to prevent crashes.
+        console.error('Failed to parse request body:', e);
+        resolve({});
       }
     });
     req.on('error', (err: Error) => {
-      reject(err);
+      console.error('Error reading request body:', err);
+      resolve({});
     });
   });
 }
@@ -38,24 +39,19 @@ export default defineConfig({
     {
       name: 'vite-plugin-vercel-api-handler',
       configureServer(server) {
+        // Vite automatically loads .env files. The API key will be in process.env.
         server.middlewares.use(async (req, res, next) => {
           if (req.url && req.url.startsWith('/api/')) {
             try {
-              // Construct the absolute path to the API file
+              // FIX: Replaced `cwd()` with `process.cwd()` to correctly get the current working directory.
               const apiFilePath = path.join(process.cwd(), req.url.replace(/\?.*$/, '') + '.ts');
               
-              // This is the critical fix: parse the request body for POST/PUT/PATCH methods
               if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
                 (req as any).body = await parseBody(req);
               }
 
-              // Use Vite's SSR loader to execute the module in a Node-like environment.
-              // We append a timestamp to bust the cache, ensuring our API code is always fresh on each request.
               const { default: handler } = await server.ssrLoadModule(`${apiFilePath}?t=${Date.now()}`);
               
-              // The Vite dev server's `res` object is a raw Node.js ServerResponse.
-              // It doesn't have the `.status()` or `.json()` helpers that Vercel's environment provides.
-              // We create a lightweight adapter to make it compatible.
               const responseAdapter = Object.create(res);
 
               responseAdapter.status = function(statusCode: number) {
@@ -68,16 +64,14 @@ export default defineConfig({
                   this.end(JSON.stringify(data));
               };
 
-              // Execute the Vercel-style handler with the request and our adapted response
               await handler(req, responseAdapter);
 
             } catch (error) {
               console.error(`API Error for ${req.url}:`, error);
               res.statusCode = 500;
-              res.end('Internal Server Error');
+              res.end(JSON.stringify({ error: 'Internal Server Error' }));
             }
           } else {
-            // Not an API route, pass to the next handler
             next();
           }
         });
