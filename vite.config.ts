@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-// Fix: Import `process` to get correct Node.js typings for `process.cwd()` and `process.env`.
-import process from 'node:process';
+// Fix: By importing `cwd` and `env` directly, we avoid type conflicts with the global `process` object.
+import { cwd, env } from 'node:process';
 import dotenv from 'dotenv';
 import type { ViteDevServer, Connect } from 'vite';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -10,16 +10,17 @@ import { GoogleGenAI } from '@google/genai';
 
 // --- DEFINITIVE FIX ---
 // Explicitly load environment variables from the .env file at the very start.
-// This makes the API_KEY available to the server environment.
-dotenv.config();
+// We provide an absolute path to remove any ambiguity about the file's location.
+// Fix: Use `cwd()` from `node:process` to resolve typing errors with the global `process` object.
+dotenv.config({ path: path.resolve(cwd(), '.env') });
 
 // --- NEW ARCHITECTURE ---
 // Initialize the AI client ONCE.
 // This is the single source of truth for the AI connection.
-if (!process.env.API_KEY) {
+if (!env.API_KEY) {
   throw new Error("API_KEY is not defined in your .env file. Please create one and add your API key.");
 }
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: env.API_KEY });
 
 
 // Helper to parse the request body.
@@ -49,7 +50,8 @@ const apiPlugin = {
       }
 
       const apiRoute = req.url.substring(4);
-      const filePath = path.join(process.cwd(), 'api', `${apiRoute}.ts`);
+      // Fix: Use `cwd()` from `node:process` to resolve typing errors with the global `process` object.
+      const filePath = path.join(cwd(), 'api', `${apiRoute}.ts`);
 
       try {
         const module = await server.ssrLoadModule(filePath);
