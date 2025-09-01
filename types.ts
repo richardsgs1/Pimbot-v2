@@ -49,6 +49,8 @@ export interface JournalEntry {
   id: string;
   date: string; // ISO 8601 format
   content: string;
+  type: 'user' | 'system' | 'ai-summary';
+  isArchived?: boolean;
 }
 
 export interface Project {

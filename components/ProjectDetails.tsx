@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, FormEvent, useMemo } from 'react';
 import type { Project, Task, JournalEntry, TeamMember, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -5,6 +6,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import TaskBreakdownModal from './TaskBreakdownModal';
 import RiskAnalysisModal from './RiskAnalysisModal';
 import CommunicationDraftModal from './CommunicationDraftModal';
+import ProjectJournalSummaryModal from './ProjectJournalSummaryModal';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -46,14 +48,18 @@ const DependencyIcon: React.FC<{ title: string }> = ({ title }) => ( <svg xmlns=
 const MagicWandIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
 const ShieldExclamationIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-1.6-6.634-4.382-8.434zM12 12a1 1 0 100 2 1 1 0 000-2zm0 3a1 1 0 100 2 1 1 0 000-2z" /></svg> );
 const CommunicateIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg> );
-
+const UserNoteIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> );
+const SystemLogIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> );
+const AISummaryIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-cyan-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
 
 // --- Helper Function ---
-const addJournalEntry = (currentProject: Project, content: string): Project => {
+const addJournalEntry = (currentProject: Project, content: string, type: JournalEntry['type']): Project => {
   const newEntry: JournalEntry = {
     id: `j-${Date.now()}-${Math.random()}`,
     date: new Date().toISOString(),
     content,
+    type,
+    isArchived: false,
   };
   return { ...currentProject, journal: [newEntry, ...(currentProject.journal || [])] };
 };
@@ -70,6 +76,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
     const [isCommModalOpen, setIsCommModalOpen] = useState(false);
     const [taskForComm, setTaskForComm] = useState<Task | null>(null);
+    const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
     // New Task State
     const [newTaskName, setNewTaskName] = useState('');
@@ -89,6 +96,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
     // Journal State
     const [newJournalNote, setNewJournalNote] = useState('');
+    const [summaryContent, setSummaryContent] = useState('');
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
     
     // Status Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -105,6 +115,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
     const tasksById = useMemo(() => project.tasks.reduce((acc, task) => { acc[task.id] = task; return acc; }, {} as Record<string, Task>), [project.tasks]);
     const teamById = useMemo(() => team.reduce((acc, member) => { acc[member.id] = member; return acc; }, {} as Record<string, TeamMember>), [team]);
+    
+    const summarizableEntries = useMemo(() => 
+      (project.journal || []).filter(entry => entry.type === 'system' && !entry.isArchived), 
+    [project.journal]);
+
 
     const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
@@ -143,7 +158,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         } else {
             const newTasks = project.tasks.map(t => t.id === taskId ? { ...t, completed: false } : t);
             const { progress, status } = recalculateProjectState(newTasks, project.status);
-            const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `Task "${task.name}" marked as incomplete.`);
+            const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `Task "${task.name}" marked as incomplete.`, 'system');
             onUpdateProject(updatedProject);
         }
     };
@@ -158,8 +173,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
         const newTasks = project.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t);
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        const journalContent = `Task "${task.name}" completed.${note.trim() ? ` Note: ${note.trim()}` : ''}`;
-        const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, journalContent);
+        const journalContent = `Task "${task.name}" completed.`;
+        let updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, journalContent, 'system');
+        if (note.trim()) {
+          updatedProject = addJournalEntry(updatedProject, note.trim(), 'user');
+        }
         onUpdateProject(updatedProject);
         setCompletionModalState({ isOpen: false, taskId: null, note: '' });
     };
@@ -184,7 +202,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
         let updatedProject = { ...project, tasks: newTasks };
         if (changes.length > 0) {
-          updatedProject = addJournalEntry(updatedProject, `For task "${originalTask.name}", ${changes.join(', ')}.`);
+          updatedProject = addJournalEntry(updatedProject, `For task "${originalTask.name}", ${changes.join(', ')}.`, 'system');
         }
         
         const { progress, status } = recalculateProjectState(newTasks, updatedProject.status);
@@ -200,7 +218,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         let updatedTasks = project.tasks.map(task => task.dependsOn === taskIdToDelete ? { ...task, dependsOn: undefined } : task);
         const newTasks = updatedTasks.filter(task => task.id !== taskIdToDelete);
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `Task "${taskToDelete.name}" was deleted.`);
+        const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `Task "${taskToDelete.name}" was deleted.`, 'system');
         onUpdateProject(updatedProject);
     };
 
@@ -218,7 +236,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         const targetIndex = tasks.findIndex(t => t.id === targetTaskId);
         tasks.splice(targetIndex, 0, draggedItem);
         
-        const updatedProject = addJournalEntry({ ...project, tasks }, `Task "${draggedItem.name}" was reordered.`);
+        const updatedProject = addJournalEntry({ ...project, tasks }, `Task "${draggedItem.name}" was reordered.`, 'system');
         onUpdateProject(updatedProject);
     };
 
@@ -234,7 +252,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
         const newTasks = [...project.tasks, newTask];
         const { progress, status } = recalculateProjectState(newTasks, project.status);
-        const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `New task "${taskName}" was added.`);
+        const updatedProject = addJournalEntry({ ...project, tasks: newTasks, progress, status }, `New task "${taskName}" was added.`, 'system');
         onUpdateProject(updatedProject);
         
         setNewTaskName(''); setNewTaskDueDate(''); setNewTaskPriority(Priority.None); setNewTaskDependency(''); setNewTaskAssignee('');
@@ -254,7 +272,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       const updatedTasks = [...project.tasks, ...newTasks];
       const { progress, status } = recalculateProjectState(updatedTasks, project.status);
       const journalContent = `Added ${newTasks.length} tasks via AI deconstruction: ${newTasks.map(t => `"${t.name}"`).join(', ')}.`;
-      const updatedProject = addJournalEntry({ ...project, tasks: updatedTasks, progress, status }, journalContent);
+      const updatedProject = addJournalEntry({ ...project, tasks: updatedTasks, progress, status }, journalContent, 'system');
       onUpdateProject(updatedProject);
     };
 
@@ -286,7 +304,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       e.preventDefault();
       const note = newJournalNote.trim();
       if (!note) return;
-      onUpdateProject(addJournalEntry(project, note));
+      onUpdateProject(addJournalEntry(project, note, 'user'));
       setNewJournalNote('');
     };
     
@@ -360,12 +378,64 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         setIsCommModalOpen(true);
     };
 
+    const handleGenerateJournalSummary = async () => {
+      setIsSummaryModalOpen(true);
+      setIsSummaryLoading(true);
+      setSummaryContent('');
+      setSummaryError(null);
+      try {
+        const response = await fetch('/api/summarize-journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entries: summarizableEntries }),
+        });
+        const responseText = await response.text();
+        if (!response.ok) {
+          let errorMsg = 'Failed to generate summary.';
+          try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+          throw new Error(errorMsg);
+        }
+        if (!responseText) { throw new Error("Received an empty response from the server."); }
+        const data = JSON.parse(responseText);
+        setSummaryContent(data.summary);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
+        setSummaryError(msg);
+      } finally {
+        setIsSummaryLoading(false);
+      }
+    };
+
+    const handleConfirmSummary = (finalSummary: string) => {
+      // 1. Add the new AI summary entry
+      let updatedProject = addJournalEntry(project, finalSummary, 'ai-summary');
+
+      // 2. Archive the original system entries
+      const summarizableIds = new Set(summarizableEntries.map(e => e.id));
+      const updatedJournal = updatedProject.journal.map(entry => 
+        summarizableIds.has(entry.id) ? { ...entry, isArchived: true } : entry
+      );
+      updatedProject = { ...updatedProject, journal: updatedJournal };
+      
+      onUpdateProject(updatedProject);
+      setIsSummaryModalOpen(false);
+    };
+
 
     const bannerStyle = {
       backgroundImage: project.coverImageUrl ? `url(${project.coverImageUrl})` : 'none',
     };
 
     const showRiskAnalysisButton = project.status === ProjectStatus.AtRisk || project.status === ProjectStatus.OffTrack;
+
+    const getJournalEntryIcon = (entry: JournalEntry) => {
+      switch (entry.type) {
+        case 'user': return <UserNoteIcon />;
+        case 'ai-summary': return <AISummaryIcon />;
+        case 'system':
+        default: return <SystemLogIcon />;
+      }
+    };
 
     return (
       <>
@@ -424,16 +494,27 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                 <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
                             </div>
                              <div className="bg-slate-800 rounded-xl p-6">
-                                <h2 className="text-xl font-bold text-white mb-4">Project Journal</h2>
+                                <div className="flex justify-between items-center mb-4">
+                                  <h2 className="text-xl font-bold text-white">Project Journal</h2>
+                                  {summarizableEntries.length > 2 && (
+                                    <button onClick={handleGenerateJournalSummary} className="flex items-center text-sm bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold py-1 px-3 rounded-md transition" title="Summarize recent activity with AI">
+                                      <MagicWandIcon />
+                                      <span className="ml-2">Summarize Activity</span>
+                                    </button>
+                                  )}
+                                </div>
                                 <form onSubmit={handleAddJournalNote} className="mb-4">
                                   <textarea value={newJournalNote} onChange={(e) => setNewJournalNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="Add a new note or update..." rows={2}/>
                                   <button type="submit" className="mt-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-1 px-3 rounded-md transition disabled:opacity-50" disabled={!newJournalNote.trim()}>Add Note</button>
                                 </form>
                                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                                  {(project.journal || []).map(entry => (
-                                    <div key={entry.id} className="text-sm border-l-2 border-slate-700 pl-3">
-                                      <p className="text-slate-300 whitespace-pre-wrap">{entry.content}</p>
-                                      <p className="text-xs text-slate-500 mt-1">{new Date(entry.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                                  {(project.journal || []).filter(entry => !entry.isArchived).map(entry => (
+                                    <div key={entry.id} className={`flex items-start text-sm border-l-2 pl-3 ${entry.type === 'ai-summary' ? 'border-cyan-500 bg-cyan-900/20 p-3 rounded-r-md' : 'border-slate-700'}`}>
+                                      {getJournalEntryIcon(entry)}
+                                      <div>
+                                        <p className="text-slate-300 whitespace-pre-wrap">{entry.content}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{new Date(entry.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -511,6 +592,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             </div>
         </div>
         
+        {isSummaryModalOpen && (
+          <ProjectJournalSummaryModal
+            onClose={() => setIsSummaryModalOpen(false)}
+            onConfirm={handleConfirmSummary}
+            initialSummary={summaryContent}
+            isLoading={isSummaryLoading}
+            error={summaryError}
+          />
+        )}
+
         {isCommModalOpen && taskForComm && (
             <CommunicationDraftModal
                 onClose={() => setIsCommModalOpen(false)}

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import type { Project } from '../types';
+import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import type { Project, TeamMember } from '../types';
 import { Priority, ProjectStatus } from '../types';
 
 // Declare Chart.js for TypeScript
@@ -12,6 +12,7 @@ declare global {
 interface AnalyticsProps {
   projects: Project[];
   onUpdateProject: (updatedProject: Project) => void;
+  team: TeamMember[];
 }
 
 // Helper function to get the week number for a date
@@ -149,11 +150,53 @@ const PriorityChart: React.FC<DonutChartProps> = ({ data, title }) => {
 
 // --- Main Analytics Component ---
 
-const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject }) => {
+const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }) => {
   const [loadingSummaryId, setLoadingSummaryId] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // State for Portfolio Summary
+  const [portfolioSummary, setPortfolioSummary] = useState<string>('');
+  const [isPortfolioLoading, setIsPortfolioLoading] = useState(true);
+  const [portfolioError, setPortfolioError] = useState<string | null>(null);
+  
+  const fetchPortfolioSummary = useCallback(async () => {
+    setIsPortfolioLoading(true);
+    setPortfolioError(null);
+    try {
+      const response = await fetch('/api/get-portfolio-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects, team }),
+      });
+
+      const responseText = await response.text();
+      if (!response.ok) {
+        let errorMsg = 'Failed to fetch portfolio summary.';
+        try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+        throw new Error(errorMsg);
+      }
+      if (!responseText) { throw new Error("Received an empty response from the server."); }
+      
+      const data = JSON.parse(responseText);
+      setPortfolioSummary(data.summary);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setPortfolioError(msg);
+    } finally {
+      setIsPortfolioLoading(false);
+    }
+  }, [projects, team]);
+
+  useEffect(() => {
+    if (projects.length > 0 && team.length > 0) {
+      fetchPortfolioSummary();
+    } else {
+      setIsPortfolioLoading(false);
+    }
+  }, [fetchPortfolioSummary, projects, team]);
+
 
   const velocityData = useMemo(() => {
     const tasksCompletedByWeek: { [week: string]: number } = {};
@@ -238,6 +281,30 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject }) => {
       }))
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [projects, startDate, endDate]);
+  
+  const portfolioKPIs = useMemo(() => {
+    const allTasks = projects.flatMap(p => p.tasks);
+    const totalOverdue = allTasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < new Date()).length;
+
+    const taskCounts = allTasks
+        .filter(t => !t.completed && t.assigneeId)
+        .reduce((acc, task) => {
+            acc[task.assigneeId!] = (acc[task.assigneeId!] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+    
+    let busiestMember = { name: 'N/A', count: 0 };
+    if (Object.keys(taskCounts).length > 0) {
+        const busiestId = Object.keys(taskCounts).reduce((a, b) => taskCounts[a] > taskCounts[b] ? a : b);
+        busiestMember = {
+            name: team.find(m => m.id === busiestId)?.name || 'Unknown',
+            count: taskCounts[busiestId]
+        };
+    }
+    
+    return { totalOverdue, busiestMember };
+  }, [projects, team]);
+
 
   const handleGenerateSummary = async (project: Project) => {
     setLoadingSummaryId(project.id);
@@ -309,6 +376,36 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject }) => {
       </header>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* Portfolio Health Section */}
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+             <h2 className="text-xl font-bold text-white mb-4">Portfolio Health</h2>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="md:col-span-2 lg:col-span-2 bg-slate-900/50 p-4 rounded-lg">
+                    <h3 className="text-sm font-semibold text-cyan-400 mb-2">AI Strategic Summary</h3>
+                    {isPortfolioLoading ? (
+                         <div className="space-y-2 animate-pulse">
+                            <div className="h-3 bg-slate-700 rounded w-full"></div>
+                            <div className="h-3 bg-slate-700 rounded w-5/6"></div>
+                            <div className="h-3 bg-slate-700 rounded w-3/4"></div>
+                        </div>
+                    ) : portfolioError ? (
+                        <p className="text-sm text-red-400">{portfolioError}</p>
+                    ) : (
+                        <p className="text-sm text-slate-300">{portfolioSummary}</p>
+                    )}
+                </div>
+                 <div className="bg-slate-900/50 p-4 rounded-lg text-center">
+                    <p className="text-3xl font-bold text-red-400">{portfolioKPIs.totalOverdue}</p>
+                    <p className="text-sm text-slate-400">Total Overdue Tasks</p>
+                </div>
+                 <div className="bg-slate-900/50 p-4 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-white truncate">{portfolioKPIs.busiestMember.name}</p>
+                    <p className="text-sm text-slate-400">Busiest Team Member ({portfolioKPIs.busiestMember.count} tasks)</p>
+                </div>
+             </div>
+          </div>
+          
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3 bg-slate-800 rounded-xl p-4 h-80">
@@ -321,7 +418,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject }) => {
           
           {/* Project Health Table */}
           <div className="bg-slate-800 rounded-xl">
-            <h2 className="text-xl font-bold text-white mb-4 px-6 pt-6">Active Project Health</h2>
+            <h2 className="text-xl font-bold text-white mb-4 px-6 pt-6">Individual Project Health</h2>
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
                     <thead className="border-b border-slate-700 text-sm text-slate-400">

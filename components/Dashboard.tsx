@@ -360,7 +360,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       journal: [{
         id: `j-${Date.now()}`,
         date: new Date().toISOString(),
-        content: `Project "${projectData.name}" was created.`
+        content: `Project "${projectData.name}" was created.`,
+        type: 'system',
       }],
       tasks: projectData.tasks.map((task, index) => ({
         ...task,
@@ -398,7 +399,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             setCurrentView('projectList');
             return null;
         case 'analytics':
-            return <Analytics projects={projects} onUpdateProject={handleUpdateProject} />;
+            return <Analytics projects={projects} onUpdateProject={handleUpdateProject} team={team} />;
         case 'chat':
         default:
             return (
