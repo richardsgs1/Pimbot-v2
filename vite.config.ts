@@ -1,31 +1,38 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-// FIX: Import `process` to provide types for `process.cwd()`.
+// Fix: Import `process` to get correct Node.js typings for `process.cwd()` and `process.env`.
 import process from 'node:process';
 import dotenv from 'dotenv';
 import type { ViteDevServer, Connect } from 'vite';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenAI } from '@google/genai';
 
-// Load environment variables from .env file FIRST.
+// --- DEFINITIVE FIX ---
+// Explicitly load environment variables from the .env file at the very start.
+// This makes the API_KEY available to the server environment.
 dotenv.config();
+
+// --- NEW ARCHITECTURE ---
+// Initialize the AI client ONCE.
+// This is the single source of truth for the AI connection.
+if (!process.env.API_KEY) {
+  throw new Error("API_KEY is not defined in your .env file. Please create one and add your API key.");
+}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 
 // Helper to parse the request body.
 async function parseBody(req: Connect.IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
+    req.on('data', chunk => { body += chunk.toString(); });
     req.on('error', reject);
     req.on('end', () => {
-      if (!body) {
-        return resolve({});
-      }
+      if (!body) return resolve({});
       try {
         resolve(JSON.parse(body));
       } catch (e) {
-        console.error('Invalid JSON body received.');
         reject(new Error('Invalid JSON body'));
       }
     });
@@ -34,7 +41,7 @@ async function parseBody(req: Connect.IncomingMessage): Promise<any> {
 
 // Vite plugin to handle /api/* routes
 const apiPlugin = {
-  name: 'vercel-like-api-middleware',
+  name: 'vercel-api-middleware',
   configureServer(server: ViteDevServer) {
     server.middlewares.use(async (req, res, next) => {
       if (!req.url || !req.url.startsWith('/api/')) {
@@ -45,30 +52,28 @@ const apiPlugin = {
       const filePath = path.join(process.cwd(), 'api', `${apiRoute}.ts`);
 
       try {
-        // Use vite.ssrLoadModule to get hot-reloading for API files
         const module = await server.ssrLoadModule(filePath);
         const handler = module.default;
 
         if (typeof handler !== 'function') {
           res.statusCode = 500;
-          res.end(`Handler not found or not a function in ${filePath}`);
-          return;
+          return res.end(`Handler not found in ${filePath}`);
         }
 
-        // Create Vercel-like req/res objects
-        const vercelReq = req as VercelRequest;
+        const vercelReq = req as VercelRequest & { ai: GoogleGenAI };
         vercelReq.body = await parseBody(req);
+        
+        // --- NEW: Inject the shared AI client into the request ---
+        vercelReq.ai = ai;
         
         const vercelRes = res as VercelResponse;
         
         // Add compatibility methods to Vite's response object
         const originalEnd = res.end.bind(res);
-        
         vercelRes.status = (statusCode: number) => {
           res.statusCode = statusCode;
           return vercelRes;
         };
-        
         vercelRes.json = (data: any) => {
           res.setHeader('Content-Type', 'application/json');
           originalEnd(JSON.stringify(data));
