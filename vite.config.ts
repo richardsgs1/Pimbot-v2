@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import dotenv from 'dotenv';
+// FIX: Import `process` to provide proper type definitions for process.cwd().
+import process from 'process';
 
 // Load environment variables from .env file into process.env
 dotenv.config();
@@ -18,17 +20,30 @@ export default defineConfig({
           if (req.url && req.url.startsWith('/api/')) {
             try {
               // Construct the absolute path to the API file
-              // req.url will be like /api/generate-project
-              // We need to map it to /api/generate-project.ts
-              // FIX: Use `process.cwd()` to get the current working directory. The `cwd` function is a method on the global `process` object, not a named export.
               const apiFilePath = path.join(process.cwd(), `${req.url}.ts`);
 
               // Use Vite's SSR loader to execute the module in a Node-like environment.
               // We append a timestamp to bust the cache, ensuring our API code is always fresh on each request.
               const { default: handler } = await server.ssrLoadModule(`${apiFilePath}?t=${Date.now()}`);
               
-              // Execute the Vercel-style handler
-              await handler(req, res);
+              // The Vite dev server's `res` object is a raw Node.js ServerResponse,
+              // which doesn't have the `.status()` or `.json()` helper methods
+              // that Vercel's environment provides. We create an adapter.
+              const responseAdapter = Object.create(res);
+
+              responseAdapter.status = function(statusCode) {
+                  this.statusCode = statusCode;
+                  return this;
+              };
+      
+              responseAdapter.json = function(data) {
+                  this.setHeader('Content-Type', 'application/json');
+                  this.end(JSON.stringify(data));
+              };
+
+              // Execute the Vercel-style handler with the adapted response
+              await handler(req, responseAdapter);
+
             } catch (error) {
               console.error(`API Error for ${req.url}:`, error);
               res.statusCode = 500;
