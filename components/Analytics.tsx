@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import type { Project, TeamMember } from '../types';
 import { Priority, ProjectStatus } from '../types';
-import Chart from 'chart.js/auto';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 interface AnalyticsProps {
   projects: Project[];
