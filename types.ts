@@ -75,3 +75,10 @@ export interface SearchResults {
   tasks: SearchResultItem[];
   journal: SearchResultItem[];
 }
+
+// Types for AI Communication Drafts
+export enum CommunicationType {
+  AssignTask = 'Assign a task',
+  RequestUpdate = 'Request a status update',
+  AnnounceCompletion = 'Announce a completed task',
+}

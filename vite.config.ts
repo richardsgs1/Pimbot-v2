@@ -11,7 +11,8 @@ import { GoogleGenAI } from '@google/genai';
 // --- DEFINITIVE FIX ---
 // Explicitly load environment variables from the .env file at the very start.
 // We provide an absolute path to remove any ambiguity about the file's location.
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// FIX: Replaced `path.resolve(process.cwd(), '.env')` with `path.resolve('.env')` to avoid using `process.cwd()` which has a broken type definition.
+dotenv.config({ path: path.resolve('.env') });
 
 // --- NEW ARCHITECTURE ---
 // Initialize the AI client ONCE.
@@ -49,7 +50,8 @@ const apiPlugin = {
       }
 
       const apiRoute = req.url.substring(4);
-      const filePath = path.join(process.cwd(), 'api', `${apiRoute}.ts`);
+      // FIX: Replaced `path.join(process.cwd(), ...)` with `path.resolve(...)` to get an absolute path without using `process.cwd()` which has a broken type definition.
+      const filePath = path.resolve('api', `${apiRoute}.ts`);
 
       try {
         const module = await server.ssrLoadModule(filePath);

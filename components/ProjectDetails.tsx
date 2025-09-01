@@ -1,15 +1,17 @@
 import React, { useState, useRef, FormEvent, useMemo } from 'react';
-import type { Project, Task, JournalEntry, TeamMember } from '../types';
+import type { Project, Task, JournalEntry, TeamMember, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import TaskBreakdownModal from './TaskBreakdownModal';
 import RiskAnalysisModal from './RiskAnalysisModal';
+import CommunicationDraftModal from './CommunicationDraftModal';
 
 interface ProjectDetailsProps {
   project: Project;
   onBack: () => void;
   onUpdateProject: (updatedProject: Project) => void;
   team: TeamMember[];
+  userData: OnboardingData;
 }
 
 const statusColors: { [key in ProjectStatus]: { bg: string, text: string, dot: string, border: string } } = {
@@ -43,6 +45,7 @@ const DeleteIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" cla
 const DependencyIcon: React.FC<{ title: string }> = ({ title }) => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-500 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><title>{title}</title><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> );
 const MagicWandIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
 const ShieldExclamationIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-1.6-6.634-4.382-8.434zM12 12a1 1 0 100 2 1 1 0 000-2zm0 3a1 1 0 100 2 1 1 0 000-2z" /></svg> );
+const CommunicateIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg> );
 
 
 // --- Helper Function ---
@@ -56,7 +59,7 @@ const addJournalEntry = (currentProject: Project, content: string): Project => {
 };
 
 // --- Main Component ---
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team, userData }) => {
     const colors = statusColors[project.status];
     
     // Modal State
@@ -65,6 +68,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [completionModalState, setCompletionModalState] = useState<{ isOpen: boolean; taskId: string | null; note: string }>({ isOpen: false, taskId: null, note: '' });
     const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
     const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
+    const [isCommModalOpen, setIsCommModalOpen] = useState(false);
+    const [taskForComm, setTaskForComm] = useState<Task | null>(null);
 
     // New Task State
     const [newTaskName, setNewTaskName] = useState('');
@@ -350,6 +355,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         }
     };
 
+    const handleOpenCommModal = (task: Task) => {
+        setTaskForComm(task);
+        setIsCommModalOpen(true);
+    };
+
 
     const bannerStyle = {
       backgroundImage: project.coverImageUrl ? `url(${project.coverImageUrl})` : 'none',
@@ -456,7 +466,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                                 </div>
                                                 <div className="ml-auto pl-2 flex-shrink-0"><Avatar member={teamById[task.assigneeId || '']} /></div>
                                             </div>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleOpenCommModal(task)} className="p-1 text-slate-400 hover:text-cyan-400" title="Draft Communication"><CommunicateIcon /></button>
                                                 <button onClick={() => handleOpenEditModal(task)} className="p-1 text-slate-400 hover:text-white" title="Edit task"><EditIcon /></button>
                                                 <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-slate-400 hover:text-red-400" title="Delete task"><DeleteIcon /></button>
                                             </div>
@@ -500,6 +511,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
             </div>
         </div>
         
+        {isCommModalOpen && taskForComm && (
+            <CommunicationDraftModal
+                onClose={() => setIsCommModalOpen(false)}
+                task={taskForComm}
+                assignee={taskForComm.assigneeId ? teamById[taskForComm.assigneeId] : null}
+                project={{ name: project.name }}
+                projectManagerName={userData.name}
+            />
+        )}
+
         {isRiskModalOpen && (
             <RiskAnalysisModal
                 onClose={() => setIsRiskModalOpen(false)}

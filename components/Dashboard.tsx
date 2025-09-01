@@ -392,7 +392,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
         case 'projectDetails':
             if (selectedProject) {
-                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} team={team} />;
+                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} team={team} userData={userData} />;
             }
             // Fallback to project list if no project is selected
             setCurrentView('projectList');
