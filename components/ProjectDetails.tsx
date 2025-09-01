@@ -2,6 +2,7 @@ import React, { useState, useRef, FormEvent, useMemo } from 'react';
 import type { Project, Task, JournalEntry, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
+import TaskBreakdownModal from './TaskBreakdownModal';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -39,6 +40,7 @@ const CalendarIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" c
 const EditIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z" /></svg> );
 const DeleteIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> );
 const DependencyIcon: React.FC<{ title: string }> = ({ title }) => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-500 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><title>{title}</title><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> );
+const MagicWandIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
 
 // --- Helper Function ---
 const addJournalEntry = (currentProject: Project, content: string): Project => {
@@ -58,6 +60,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
     const [completionModalState, setCompletionModalState] = useState<{ isOpen: boolean; taskId: string | null; note: string }>({ isOpen: false, taskId: null, note: '' });
+    const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
     // New Task State
     const [newTaskName, setNewTaskName] = useState('');
@@ -222,6 +225,23 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
         
         setNewTaskName(''); setNewTaskDueDate(''); setNewTaskPriority(Priority.None); setNewTaskDependency(''); setNewTaskAssignee('');
         setSuggestions([]); suggestionsFetched.current = false;
+    };
+    
+    const handleAddTaskBreakdown = (taskNames: string[]) => {
+      if (taskNames.length === 0) return;
+
+      const newTasks: Task[] = taskNames.map(name => ({
+        id: `task-${Date.now()}-${Math.random()}`,
+        name,
+        completed: false,
+        priority: Priority.None,
+      }));
+
+      const updatedTasks = [...project.tasks, ...newTasks];
+      const { progress, status } = recalculateProjectState(updatedTasks, project.status);
+      const journalContent = `Added ${newTasks.length} tasks via AI deconstruction: ${newTasks.map(t => `"${t.name}"`).join(', ')}.`;
+      const updatedProject = addJournalEntry({ ...project, tasks: updatedTasks, progress, status }, journalContent);
+      onUpdateProject(updatedProject);
     };
 
     const fetchSuggestions = async () => {
@@ -398,7 +418,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-slate-700/50">
                                     <form onSubmit={handleAddTask}>
-                                        <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onFocus={fetchSuggestions} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="+ Add new task"/>
+                                        <div className="relative">
+                                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onFocus={fetchSuggestions} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" placeholder="+ Add new task"/>
+                                            <button type="button" onClick={() => setIsBreakdownModalOpen(true)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-cyan-400 transition" title="Deconstruct Task with AI">
+                                                <MagicWandIcon />
+                                            </button>
+                                        </div>
                                         <div className="grid grid-cols-2 gap-2 mt-2">
                                             <input type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
                                             <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Priority)} className="bg-slate-700 text-slate-400 border border-slate-600 text-sm rounded p-1 focus:outline-none focus:ring-1 focus:ring-cyan-500">
@@ -426,6 +451,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                 </div>
             </div>
         </div>
+        
+        {isBreakdownModalOpen && (
+          <TaskBreakdownModal
+            onClose={() => setIsBreakdownModalOpen(false)}
+            onTasksCreated={handleAddTaskBreakdown}
+            projectContext={{ name: project.name, description: project.description }}
+          />
+        )}
 
         {isEditModalOpen && taskToEdit && (
             <EditTaskModal 
