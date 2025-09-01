@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-// FIX: Import 'cwd' from 'process' to resolve TypeScript type error for process.cwd().
-import { cwd } from 'process';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file into process.env
+dotenv.config();
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -18,7 +20,8 @@ export default defineConfig({
               // Construct the absolute path to the API file
               // req.url will be like /api/generate-project
               // We need to map it to /api/generate-project.ts
-              const apiFilePath = path.join(cwd(), `${req.url}.ts`);
+              // FIX: Use `process.cwd()` to get the current working directory. The `cwd` function is a method on the global `process` object, not a named export.
+              const apiFilePath = path.join(process.cwd(), `${req.url}.ts`);
 
               // Use Vite's SSR loader to execute the module in a Node-like environment.
               // We append a timestamp to bust the cache, ensuring our API code is always fresh on each request.
