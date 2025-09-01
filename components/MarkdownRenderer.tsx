@@ -1,16 +1,6 @@
 import React, { useEffect, useRef, memo } from 'react';
-
-// To inform TypeScript about the global variables from the CDN scripts
-declare global {
-  interface Window {
-    marked: {
-      parse: (markdown: string) => string;
-    };
-    hljs: {
-      highlightElement: (element: HTMLElement) => void;
-    };
-  }
-}
+import { marked } from 'marked';
+import hljs from 'highlight.js';
 
 interface MarkdownRendererProps {
   content: string;
@@ -20,8 +10,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (contentRef.current && window.marked) {
-      contentRef.current.innerHTML = window.marked.parse(content);
+    if (contentRef.current) {
+      contentRef.current.innerHTML = marked.parse(content) as string;
       
       const codeBlocks = contentRef.current.querySelectorAll('pre code');
       codeBlocks.forEach((block) => {
@@ -46,9 +36,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         };
         preElement.appendChild(copyButton);
 
-        if (window.hljs) {
-            window.hljs.highlightElement(block as HTMLElement);
-        }
+        hljs.highlightElement(block as HTMLElement);
       });
     }
   }, [content]);
