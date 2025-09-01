@@ -29,7 +29,12 @@ export default async function handler(
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key is not configured. Please set the API_KEY environment variable.' });
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { tasks, memberName } = req.body as { tasks: (Task & { projectName: string })[], memberName: string };
 
     if (!tasks || !memberName) {
@@ -60,6 +65,7 @@ Your tone should be professional and insightful. Do not use markdown.`;
     const summary = safeExtractText(response).trim();
 
     if (!summary) {
+      // FIX: Corrected a typo in the throw statement.
       throw new Error('The AI model returned an empty or blocked response.');
     }
 

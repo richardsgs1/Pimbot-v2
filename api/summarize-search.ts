@@ -36,7 +36,12 @@ export default async function handler(
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key is not configured. Please set the API_KEY environment variable.' });
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
     const { searchTerm, resultCounts } = req.body as { searchTerm: string; resultCounts: ResultCounts };
 
     if (!searchTerm || !resultCounts) {
