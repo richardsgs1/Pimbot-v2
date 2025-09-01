@@ -68,6 +68,11 @@ const addJournalEntry = (currentProject: Project, content: string, type: Journal
 // --- Main Component ---
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team, userData }) => {
     const colors = statusColors[project.status];
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
     
     // View State
     const [activeTab, setActiveTab] = useState<'tasks' | 'timeline'>('tasks');
@@ -132,7 +137,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
 
     const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
-    const isTaskOverdue = (task: Task) => task.dueDate && !task.completed && new Date(task.dueDate) < new Date();
+    const isTaskOverdue = (task: Task) => task.dueDate && !task.completed && new Date(task.dueDate) < today;
     const isTaskBlocked = (taskId: string): boolean => {
         const task = tasksById[taskId];
         if (!task || !task.dependsOn) return false;
@@ -553,13 +558,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                                 const isBlocked = isTaskBlocked(task.id); const dependencyName = getDependencyName(task.dependsOn); const checkboxTitle = isBlocked ? `Blocked by: "${dependencyName}"` : 'Mark task complete';
                                 return (
                                 <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, task.id)} onDragEnd={() => setDraggedTaskId(null)}
-                                    onDoubleClick={() => handleOpenEditModal(task)}
-                                    className={`group relative p-3 rounded-lg transition-all ${task.completed ? 'bg-slate-700/50' : 'bg-slate-900/50'} ${draggedTaskId === task.id ? 'opacity-50' : 'opacity-100'} border-l-4 ${priorityColors[task.priority].border} hover:bg-slate-700/50`}>
+                                    onDoubleClick={() => !isBlocked && handleOpenEditModal(task)}
+                                    className={`group relative p-3 rounded-lg transition-all ${task.completed ? 'bg-slate-700/50' : 'bg-slate-900/50'} ${draggedTaskId === task.id ? 'opacity-50' : ''} border-l-4 ${priorityColors[task.priority].border} hover:bg-slate-700/50 ${isBlocked ? 'opacity-60 cursor-not-allowed' : 'opacity-100'}`}>
                                     <div className="flex items-start">
                                         <div title={checkboxTitle} className="flex-shrink-0 mt-0.5">
                                             <input type="checkbox" checked={task.completed} onChange={() => handleToggleTask(task.id)} disabled={isBlocked} className="h-5 w-5 rounded border-slate-500 text-cyan-600 focus:ring-cyan-500 bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"/>
                                         </div>
-                                        <div className="ml-3 flex-grow cursor-pointer" onClick={() => handleOpenEditModal(task)}>
+                                        <div className={`ml-3 flex-grow ${!isBlocked ? 'cursor-pointer' : ''}`} onClick={() => !isBlocked && handleOpenEditModal(task)}>
                                             <div className="flex items-center">
                                               <span className={`${task.completed ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{task.name}</span>
                                               {task.dependsOn && <DependencyIcon title={`Depends on: "${dependencyName}"`} />}

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import type { Project, TeamMember } from '../types';
 import { Priority, ProjectStatus } from '../types';
@@ -155,6 +156,11 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   // State for Portfolio Summary
   const [portfolioSummary, setPortfolioSummary] = useState<string>('');
@@ -200,7 +206,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
 
   const velocityData = useMemo(() => {
     const tasksCompletedByWeek: { [week: string]: number } = {};
-    const today = new Date();
+    const todayDate = new Date();
     
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end = endDate ? new Date(endDate + 'T23:59:59') : null;
@@ -210,7 +216,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
         if (task.completed && task.dueDate) {
           const dueDate = new Date(task.dueDate + 'T00:00:00');
           
-          if ((!start || dueDate >= start) && (!end || dueDate <= end) && dueDate <= today) {
+          if ((!start || dueDate >= start) && (!end || dueDate <= end) && dueDate <= todayDate) {
             const taskYear = dueDate.getFullYear();
             const taskWeek = getWeek(dueDate);
             const weekKey = `${taskYear}-W${taskWeek.toString().padStart(2, '0')}`;
@@ -224,7 +230,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
     const values: number[] = [];
     for (let i = 5; i >= 0; i--) {
         const date = new Date();
-        date.setDate(today.getDate() - (i * 7));
+        date.setDate(todayDate.getDate() - (i * 7));
         const week = getWeek(date);
         const year = date.getFullYear();
         const weekKey = `${year}-W${week.toString().padStart(2, '0')}`;
@@ -277,14 +283,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
       })
       .map(p => ({
         ...p,
-        overdueTasks: p.tasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < new Date()).length
+        overdueTasks: p.tasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < today).length
       }))
       .sort((a,b) => a.name.localeCompare(b.name));
-  }, [projects, startDate, endDate]);
+  }, [projects, startDate, endDate, today]);
   
   const portfolioKPIs = useMemo(() => {
     const allTasks = projects.flatMap(p => p.tasks);
-    const totalOverdue = allTasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < new Date()).length;
+    const totalOverdue = allTasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < today).length;
 
     const taskCounts = allTasks
         .filter(t => !t.completed && t.assigneeId)
@@ -303,7 +309,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
     }
     
     return { totalOverdue, busiestMember };
-  }, [projects, team]);
+  }, [projects, team, today]);
 
 
   const handleGenerateSummary = async (project: Project) => {

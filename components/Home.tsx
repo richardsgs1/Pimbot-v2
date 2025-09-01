@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { Project, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -40,6 +41,11 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [isBriefingLoading, setIsBriefingLoading] = useState(true);
   const [briefingError, setBriefingError] = useState<string | null>(null);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const fetchBriefing = useCallback(async () => {
     setIsBriefingLoading(true);
@@ -182,7 +188,7 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
                                     </div>
                                 </div>
                                 {task.dueDate && (
-                                     <p className={`text-xs font-medium ${new Date(task.dueDate) < new Date() ? 'text-red-400' : 'text-slate-400'}`}>
+                                     <p className={`text-xs font-medium ${new Date(task.dueDate) < today ? 'text-red-400' : 'text-slate-400'}`}>
                                         {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                      </p>
                                 )}

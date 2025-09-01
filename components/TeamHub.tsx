@@ -33,6 +33,13 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const totalTasks = member.tasks.length;
+    const highPriorityPercent = totalTasks > 0 ? (member.priorityCounts.High / totalTasks) * 100 : 0;
+    const mediumPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Medium / totalTasks) * 100 : 0;
+    const lowPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Low / totalTasks) * 100 : 0;
+    const nonePriorityPercent = totalTasks > 0 ? (member.priorityCounts.None / totalTasks) * 100 : 0;
+
+
     const fetchSummary = useCallback(async () => {
         if (member.tasks.length === 0) {
             setIsLoading(false);
@@ -96,6 +103,17 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
                         <p className="text-sm text-slate-300">{summary}</p>
                     )}
                 </div>
+                {totalTasks > 0 && (
+                    <div className="mt-4">
+                        <h4 className="text-xs font-semibold text-slate-400 mb-1">Workload Distribution</h4>
+                        <div className="flex w-full h-2 rounded-full overflow-hidden bg-slate-700">
+                            <div className="bg-red-500" style={{ width: `${highPriorityPercent}%` }} title={`High Priority: ${member.priorityCounts.High} tasks`}></div>
+                            <div className="bg-yellow-500" style={{ width: `${mediumPriorityPercent}%` }} title={`Medium Priority: ${member.priorityCounts.Medium} tasks`}></div>
+                            <div className="bg-blue-500" style={{ width: `${lowPriorityPercent}%` }} title={`Low Priority: ${member.priorityCounts.Low} tasks`}></div>
+                            <div className="bg-slate-500" style={{ width: `${nonePriorityPercent}%` }} title={`No Priority: ${member.priorityCounts.None} tasks`}></div>
+                        </div>
+                    </div>
+                )}
             </div>
             {member.tasks.length > 0 && (
                 <div>
@@ -132,6 +150,12 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
 };
 
 const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject }) => {
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
   const workloadData = useMemo<MemberWithWorkload[]>(() => {
     return team.map(member => {
       const assignedTasks = projects.flatMap(p => 
@@ -140,7 +164,7 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject }) =>
           .map(t => ({ ...t, projectName: p.name, projectId: p.id }))
       );
 
-      const overdueCount = assignedTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date()).length;
+      const overdueCount = assignedTasks.filter(t => t.dueDate && new Date(t.dueDate) < today).length;
       
       const priorityCounts = assignedTasks.reduce((acc, task) => {
         acc[task.priority] = (acc[task.priority] || 0) + 1;
@@ -149,7 +173,7 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject }) =>
 
       return { ...member, tasks: assignedTasks, overdueCount, priorityCounts };
     });
-  }, [projects, team]);
+  }, [projects, team, today]);
 
   return (
     <div className="flex-1 flex flex-col h-full">
