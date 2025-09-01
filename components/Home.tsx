@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { Project, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -8,6 +7,7 @@ interface HomeProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   userData: OnboardingData;
+  onMenuClick: () => void;
 }
 
 const statusColors: { [key in ProjectStatus]: { text: string, dot: string } } = {
@@ -37,7 +37,7 @@ const StatCard: React.FC<{ title: string; value: number; icon: React.ReactNode }
     </div>
 );
 
-const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
+const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData, onMenuClick }) => {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [isBriefingLoading, setIsBriefingLoading] = useState(true);
   const [briefingError, setBriefingError] = useState<string | null>(null);
@@ -131,9 +131,16 @@ const Home: React.FC<HomeProps> = ({ projects, onSelectProject, userData }) => {
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <header className="flex-shrink-0 p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold">{getGreeting()}</h1>
-        <p className="text-slate-400">Here's a high-level overview of your projects.</p>
+      <header className="flex items-center flex-shrink-0 p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+        <button onClick={onMenuClick} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <div>
+            <h1 className="text-2xl font-bold">{getGreeting()}</h1>
+            <p className="text-slate-400">Here's a high-level overview of your projects.</p>
+        </div>
       </header>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto">

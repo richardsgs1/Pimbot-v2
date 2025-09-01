@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import type { Project, TeamMember } from '../types';
 import { Priority, ProjectStatus } from '../types';
@@ -14,6 +13,7 @@ interface AnalyticsProps {
   projects: Project[];
   onUpdateProject: (updatedProject: Project) => void;
   team: TeamMember[];
+  onMenuClick: () => void;
 }
 
 // Helper function to get the week number for a date
@@ -151,7 +151,7 @@ const PriorityChart: React.FC<DonutChartProps> = ({ data, title }) => {
 
 // --- Main Analytics Component ---
 
-const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }) => {
+const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, onMenuClick }) => {
   const [loadingSummaryId, setLoadingSummaryId] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
@@ -351,9 +351,16 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team }
     <div className="flex-1 flex flex-col h-full">
       <header className="flex-shrink-0 p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-                <p className="text-slate-400">Visual insights into your project performance and workload.</p>
+            <div className="flex items-center">
+                <button onClick={onMenuClick} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <div>
+                    <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+                    <p className="text-slate-400">Visual insights into your project performance and workload.</p>
+                </div>
             </div>
             <div className="flex items-center gap-2 mt-4 sm:mt-0">
                 <input 

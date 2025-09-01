@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, FormEvent, useMemo } from 'react';
 import type { Project, Task, JournalEntry, TeamMember, OnboardingData } from '../types';
 import { ProjectStatus, Priority } from '../types';
@@ -15,6 +14,7 @@ interface ProjectDetailsProps {
   onUpdateProject: (updatedProject: Project) => void;
   team: TeamMember[];
   userData: OnboardingData;
+  onMenuClick: () => void;
 }
 
 const statusColors: { [key in ProjectStatus]: { bg: string, text: string, dot: string, border: string } } = {
@@ -50,7 +50,7 @@ const MagicWandIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" 
 const ShieldExclamationIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417V21h18v-.583c0-3.46-1.6-6.634-4.382-8.434zM12 12a1 1 0 100 2 1 1 0 000-2zm0 3a1 1 0 100 2 1 1 0 000-2z" /></svg> );
 const CommunicateIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg> );
 const UserNoteIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> );
-const SystemLogIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> );
+const SystemLogIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> );
 const AISummaryIcon: React.FC = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-cyan-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> );
 
 // --- Helper Function ---
@@ -66,7 +66,7 @@ const addJournalEntry = (currentProject: Project, content: string, type: Journal
 };
 
 // --- Main Component ---
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team, userData }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpdateProject, team, userData, onMenuClick }) => {
     const colors = statusColors[project.status];
     const today = useMemo(() => {
         const d = new Date();
@@ -625,10 +625,17 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
       <>
         <div className="flex flex-col h-full">
             <header className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm flex-shrink-0">
-                <button onClick={onBack} className="flex items-center text-slate-300 hover:text-white transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                    Back to Projects
-                </button>
+                <div className="flex items-center">
+                    <button onClick={onMenuClick} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <button onClick={onBack} className="flex items-center text-slate-300 hover:text-white transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        <span className="hidden sm:inline">Back to Projects</span>
+                    </button>
+                </div>
                  <button 
                     onClick={handleGenerateReport}
                     className="bg-cyan-600/80 hover:bg-cyan-600 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center transform hover:scale-105"
@@ -648,14 +655,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, onBack, onUpda
                       <div className="relative p-6">
                           <div className="flex justify-between items-end">
                               <div>
-                                  <h1 className="text-4xl font-bold text-white shadow-lg">{project.name}</h1>
+                                  <h1 className="text-2xl sm:text-4xl font-bold text-white shadow-lg">{project.name}</h1>
                                   <p className="text-slate-300 mt-1 shadow-md">Due: {formattedDate}</p>
                               </div>
                                <div className="flex items-center">
                                   {showRiskAnalysisButton && (
                                       <button onClick={handleAnalyzeRisks} className="flex items-center bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 font-semibold py-2 px-4 rounded-full transition-colors duration-200 mr-4 text-sm">
                                           <ShieldExclamationIcon />
-                                          Analyze Risks
+                                          <span className="hidden sm:inline ml-2">Analyze Risks</span>
                                       </button>
                                   )}
                                   <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>

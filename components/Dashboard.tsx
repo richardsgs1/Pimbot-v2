@@ -116,6 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Update the mock team to ensure the current user's name is correct
   const team = useMemo(() => {
@@ -386,31 +387,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   const renderMainContent = () => {
     const selectedProject = projects.find(p => p.id === selectedProjectId);
+    const menuProps = { onMenuClick: () => setIsSidebarOpen(true) };
 
     switch (currentView) {
         case 'home':
-            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} />;
+            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} {...menuProps} />;
         case 'projectList':
-            return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} />;
+            return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} {...menuProps} />;
         case 'projectDetails':
             if (selectedProject) {
-                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} team={team} userData={userData} />;
+                return <ProjectDetails project={selectedProject} onBack={() => setCurrentView('projectList')} onUpdateProject={handleUpdateProject} team={team} userData={userData} {...menuProps} />;
             }
             // Fallback to project list if no project is selected
             setCurrentView('projectList');
             return null;
         case 'analytics':
-            return <Analytics projects={projects} onUpdateProject={handleUpdateProject} team={team} />;
+            return <Analytics projects={projects} onUpdateProject={handleUpdateProject} team={team} {...menuProps} />;
         case 'teamHub':
-            return <TeamHub projects={projects} team={team} onSelectProject={handleSelectProject} />;
+            return <TeamHub projects={projects} team={team} onSelectProject={handleSelectProject} {...menuProps} />;
         case 'chat':
         default:
             return (
                  <div className="flex-1 flex flex-col h-screen">
                     <header className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm flex-shrink-0">
-                        <div>
-                            <h2 className="text-xl font-bold">Hello, {userData.name}</h2>
-                            <p className="text-sm text-slate-400">{getGreeting()}</p>
+                        <div className="flex items-center">
+                            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div>
+                                <h2 className="text-xl font-bold">Hello, {userData.name}</h2>
+                                <p className="text-sm text-slate-400">{getGreeting()}</p>
+                            </div>
                         </div>
                         <div className="flex items-center">
                             <div className="text-right mr-4">
@@ -496,10 +505,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
+  const SidebarContent = ({ isMobile }: { isMobile?: boolean }) => {
+    const handleNavClick = (view: View) => {
+      setCurrentView(view);
+      if (isMobile) setIsSidebarOpen(false);
+    };
 
-  return (
-    <div className="flex h-screen bg-slate-900 text-white">
-      <aside className="w-64 bg-slate-800 p-6 flex-col justify-between border-r border-slate-700 hidden md:flex">
+    return (
+      <div className="flex flex-col justify-between h-full">
         <div>
           <div className="flex items-center mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -531,19 +544,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           <nav>
             <ul>
               <li className="mb-2">
-                <button onClick={() => setCurrentView('home')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'home' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
+                <button onClick={() => handleNavClick('home')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'home' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
                   <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></SidebarIcon>
                   Home
                 </button>
               </li>
               <li className="mb-2">
-                <button onClick={() => setCurrentView('projectList')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'projectList' || currentView === 'projectDetails' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
+                <button onClick={() => handleNavClick('projectList')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'projectList' || currentView === 'projectDetails' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
                   <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg></SidebarIcon>
                   Projects
                 </button>
               </li>
               <li className="mb-2">
-                <button onClick={() => setCurrentView('chat')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'chat' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
+                <button onClick={() => handleNavClick('chat')} className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${currentView === 'chat' ? 'bg-cyan-600/30 text-cyan-300' : 'hover:bg-slate-700 text-slate-400'}`}>
                   <SidebarIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></SidebarIcon>
                   Chat with PiMbOt
                 </button>
@@ -566,7 +579,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               Logout
             </button>
         </div>
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="flex h-screen bg-slate-900 text-white">
+      <aside className="w-64 bg-slate-800 p-6 border-r border-slate-700 hidden md:flex">
+        <SidebarContent />
       </aside>
+
+      {/* Mobile Sidebar */}
+      <div className={`fixed inset-0 z-40 md:hidden ${isSidebarOpen ? '' : 'pointer-events-none'}`}>
+        <div 
+          onClick={() => setIsSidebarOpen(false)} 
+          className={`absolute inset-0 bg-black/60 transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}
+          aria-hidden="true"
+        ></div>
+        <div className={`relative w-64 bg-slate-800 p-6 h-full border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <SidebarContent isMobile />
+        </div>
+      </div>
+
       <main className="flex-1 flex flex-col">
         {renderMainContent()}
       </main>

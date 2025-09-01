@@ -7,6 +7,7 @@ interface ProjectListProps {
   projects: Project[];
   onSelectProject: (id: string) => void;
   onProjectCreated: (projectData: Omit<Project, 'id' | 'status' | 'progress'>) => void;
+  onMenuClick: () => void;
 }
 
 const statusColors: { [key in ProjectStatus]: { bg: string, text: string, dot: string } } = {
@@ -63,7 +64,7 @@ const ProjectCard: React.FC<{ project: Project; onSelect: () => void }> = ({ pro
 };
 
 
-const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, onProjectCreated }) => {
+const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, onProjectCreated, onMenuClick }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const handleProjectCreated = (projectData: Omit<Project, 'id' | 'status' | 'progress'>) => {
@@ -75,7 +76,14 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, on
     <>
       <div className="flex flex-col h-full">
           <header className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm flex-shrink-0">
-              <h2 className="text-xl font-bold">Projects</h2>
+              <div className="flex items-center">
+                <button onClick={onMenuClick} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h2 className="text-xl font-bold">Projects</h2>
+              </div>
               <button 
                 onClick={() => setIsModalOpen(true)}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300 transform hover:scale-105"

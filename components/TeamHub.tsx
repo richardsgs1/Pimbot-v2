@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { Project, TeamMember, Task } from '../types';
 import { Priority } from '../types';
@@ -7,6 +6,7 @@ interface TeamHubProps {
   projects: Project[];
   team: TeamMember[];
   onSelectProject: (projectId: string) => void;
+  onMenuClick: () => void;
 }
 
 const priorityIcons: { [key in Priority]: React.ReactNode } = {
@@ -149,7 +149,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
     );
 };
 
-const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject }) => {
+const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject, onMenuClick }) => {
     const today = useMemo(() => {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -177,9 +177,16 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject }) =>
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <header className="flex-shrink-0 p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold">Team Hub</h1>
-        <p className="text-slate-400">An AI-powered overview of your team's workload and capacity.</p>
+      <header className="flex items-center flex-shrink-0 p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+        <button onClick={onMenuClick} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <div>
+            <h1 className="text-2xl font-bold">Team Hub</h1>
+            <p className="text-slate-400">An AI-powered overview of your team's workload and capacity.</p>
+        </div>
       </header>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
