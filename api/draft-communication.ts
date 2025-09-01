@@ -1,7 +1,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
-import type { Task, TeamMember, Project, OnboardingData } from '../types';
+import type { Task, TeamMember } from '../types';
 import { CommunicationType } from '../types';
 
 // A highly robust function to extract text from a Gemini response.

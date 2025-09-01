@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import type { Task, TeamMember, Project } from '../types';
+import React, { useState, useCallback } from 'react';
+import type { Task, TeamMember } from '../types';
 import { CommunicationType } from '../types';
 
 interface CommunicationDraftModalProps {
