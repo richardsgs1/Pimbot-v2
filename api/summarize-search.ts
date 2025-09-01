@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
 interface ResultCounts {
   projects: number;
   tasks: number;
@@ -38,6 +36,7 @@ export default async function handler(
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
     const { searchTerm, resultCounts } = req.body as { searchTerm: string; resultCounts: ResultCounts };
 
     if (!searchTerm || !resultCounts) {

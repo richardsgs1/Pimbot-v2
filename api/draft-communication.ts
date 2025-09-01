@@ -3,8 +3,6 @@ import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
 import type { Task, TeamMember } from '../types';
 import { CommunicationType } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
 // A highly robust function to extract text from a Gemini response.
 function safeExtractText(response: GenerateContentResponse): string {
     if (response.promptFeedback?.blockReason) {
@@ -74,6 +72,7 @@ export default async function handler(
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
     const { type, task, project, assignee, projectManager } = req.body as {
         type: CommunicationType;
         task: Task;

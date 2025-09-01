@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Type, GenerateContentResponse, GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
 interface SimpleTask {
     name: string;
     completed: boolean;
@@ -56,6 +54,7 @@ export default async function handler(
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
     const { projectDescription, tasks } = req.body as { projectDescription: string; tasks: SimpleTask[] };
 
     if (!projectDescription) {

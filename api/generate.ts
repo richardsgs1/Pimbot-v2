@@ -2,8 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { OnboardingData } from '../types';
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
@@ -18,6 +16,7 @@ export default async function handler(
   }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
     const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
 
     if (!prompt || !userData) {
