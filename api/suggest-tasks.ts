@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
+import { Type, GenerateContentResponse, GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 interface SimpleTask {
     name: string;
@@ -8,26 +10,18 @@ interface SimpleTask {
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.
 function safeExtractText(response: GenerateContentResponse): string {
-    // 1. Proactively check for a block reason. This is the most reliable way.
     if (response.promptFeedback?.blockReason) {
         console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
         return '';
     }
-
-    // 2. Try to access the .text property within a try-catch, as it can throw on certain responses.
     try {
         const text = response.text;
-        if (text) {
-            return text;
-        }
+        if (text) return text;
     } catch (e) {
         console.error("Error accessing response.text. The response might be blocked.", e);
     }
-
-    // 3. As a fallback, try to access the text through the full candidates path.
     try {
-        const fallbackText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-        return fallbackText ?? '';
+        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     } catch (e) {
         console.error("Error accessing fallback response text.", e);
         return '';
@@ -36,18 +30,14 @@ function safeExtractText(response: GenerateContentResponse): string {
 
 // A robust function to clean and parse JSON from the model's text response.
 function cleanAndParseJson(rawText: string): any {
-  if (!rawText) {
-    return {};
-  }
+  if (!rawText) return {};
   let cleanedText = rawText.trim();
   const jsonRegex = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
   const match = cleanedText.match(jsonRegex);
   if (match && match[1]) {
     cleanedText = match[1];
   }
-  if (!cleanedText) {
-    return {};
-  }
+  if (!cleanedText) return {};
   try {
     return JSON.parse(cleanedText);
   } catch (e) {
@@ -66,12 +56,6 @@ export default async function handler(
   }
 
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error('API key not configured.');
-    }
-    const ai = new GoogleGenAI({ apiKey });
-
     const { projectDescription, tasks } = req.body as { projectDescription: string; tasks: SimpleTask[] };
 
     if (!projectDescription) {

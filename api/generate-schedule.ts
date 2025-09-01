@@ -1,7 +1,8 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Type, GenerateContentResponse, GoogleGenAI } from '@google/genai';
 import type { Task } from '../types';
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 // A highly robust function to extract text from a Gemini response.
 function safeExtractText(response: GenerateContentResponse): string {
@@ -39,7 +40,7 @@ function cleanAndParseJson(rawText: string): any {
 
 
 export default async function handler(
-  req: VercelRequest & { ai: GoogleGenAI },
+  req: VercelRequest,
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
@@ -47,7 +48,6 @@ export default async function handler(
   }
 
   try {
-    const ai = req.ai;
     const { tasks, projectDueDate } = req.body as { tasks: Task[], projectDueDate: string };
 
     if (!tasks || !projectDueDate) {
