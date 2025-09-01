@@ -52,7 +52,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ tasks, projectDueDate }) =>
             
             {/* Task Rows */}
             <div className="space-y-2 relative">
-            {scheduledTasks.map((task, index) => {
+            {scheduledTasks.map((task) => {
                 const offsetDays = daysBetween(projectStartDate, task.startDate!);
                 const left = (offsetDays / totalTimelineDays) * 100;
                 const width = (task.duration! / totalTimelineDays) * 100;
