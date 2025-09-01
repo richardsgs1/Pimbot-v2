@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-// FIX: Use a value import for @google/genai types as per coding guidelines, instead of `import type`.
 import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
 import type { Project } from '../types';
 

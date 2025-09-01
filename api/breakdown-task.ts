@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-// Fix: Corrected import path from '@google/ai' to '@google/genai'
 import { Type, GenerateContentResponse, GoogleGenAI } from '@google/genai';
 
 // A highly robust function to extract text from a Gemini response, handling multiple failure modes.

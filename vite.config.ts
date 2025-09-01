@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-// FIX: Import `process` to provide correct types for `process.cwd()` and resolve TypeScript errors.
 import process from 'node:process';
 import dotenv from 'dotenv';
 import type { ViteDevServer, Connect } from 'vite';
@@ -11,15 +10,12 @@ import { GoogleGenAI } from '@google/genai';
 // --- DEFINITIVE FIX ---
 // Explicitly load environment variables from the .env file at the very start.
 // We provide an absolute path to remove any ambiguity about the file's location.
-// FIX: Replaced `path.resolve(process.cwd(), '.env')` with `path.resolve('.env')` to avoid using `process.cwd()` which has a broken type definition.
 dotenv.config({ path: path.resolve('.env') });
 
 // --- NEW ARCHITECTURE ---
 // Initialize the AI client ONCE.
 // This is the single source of truth for the AI connection.
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY is not defined in your .env file. Please create one and add your API key.");
-}
+// FIX: Removed explicit check for API_KEY to adhere to guidelines assuming it's always provided.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
@@ -50,7 +46,6 @@ const apiPlugin = {
       }
 
       const apiRoute = req.url.substring(4);
-      // FIX: Replaced `path.join(process.cwd(), ...)` with `path.resolve(...)` to get an absolute path without using `process.cwd()` which has a broken type definition.
       const filePath = path.resolve('api', `${apiRoute}.ts`);
 
       try {

@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { OnboardingData } from '../types';
-// FIX: Use a value import for GoogleGenAI as per coding guidelines, instead of `import type`.
 import { GoogleGenAI } from '@google/genai';
 
 interface ChatMessage {
