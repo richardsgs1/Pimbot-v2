@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 // FIX: Import `process` from `node:process` to avoid potential type conflicts
 // with the global `process` object that can occur in a Vite environment.
-import process from 'node:process';
+// FIX: Changed default import of `process` to a named import of `cwd` to resolve the type error.
+import { cwd } from 'node:process';
 import dotenv from 'dotenv';
 import type { ViteDevServer, Connect } from 'vite';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -44,7 +45,8 @@ const apiPlugin = {
 
       const apiRoute = req.url.substring(4);
       // FIX: Use process.cwd() as cwd is a method on the process object and not a named export.
-      const filePath = path.join(process.cwd(), 'api', `${apiRoute}.ts`);
+      // FIX: Use the imported `cwd` function directly to avoid the type error on `process.cwd()`.
+      const filePath = path.join(cwd(), 'api', `${apiRoute}.ts`);
 
       try {
         // Use vite.ssrLoadModule to get hot-reloading for API files
