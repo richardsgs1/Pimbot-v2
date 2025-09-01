@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-// FIX: Import 'process' to get correct typings for process.cwd().
+// FIX: Import `process` to provide types for `process.cwd()`.
 import process from 'node:process';
 import dotenv from 'dotenv';
 import type { ViteDevServer, Connect } from 'vite';
