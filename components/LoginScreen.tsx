@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 
 interface LoginScreenProps {
-  onLoginSuccess: (name: string) => void;
+  // FIX: Updated onLoginSuccess to pass the email as a user ID.
+  onLoginSuccess: (name: string, email: string) => void;
 }
 
 const RobotIcon: React.FC = () => (
@@ -20,7 +21,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     const name = email.split('@')[0] || 'Project Manager';
     // Capitalize first letter of the name
     const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-    onLoginSuccess(formattedName);
+    // FIX: Pass email along with the formatted name.
+    onLoginSuccess(formattedName, email);
   };
 
   return (

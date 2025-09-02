@@ -8,6 +8,7 @@ import Home from './Home';
 import Analytics from './Analytics';
 import SearchResultsOverlay from './SearchResultsOverlay';
 import TeamHub from './TeamHub';
+import DailyBriefing from './DailyBriefing';
 
 // Mock Data for Team
 const mockTeam: TeamMember[] = [
@@ -391,7 +392,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
     switch (currentView) {
         case 'home':
-            return <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} {...menuProps} />;
+            return (
+              <div className="flex-1 flex flex-col h-screen">
+                  <header className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm flex-shrink-0">
+                      <div className="flex items-center">
+                          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mr-4 p-1 rounded-full hover:bg-slate-700" aria-label="Open menu">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                              </svg>
+                          </button>
+                          <div>
+                              <h2 className="text-xl font-bold">Hello, {userData.name}</h2>
+                              <p className="text-sm text-slate-400">{getGreeting()}</p>
+                          </div>
+                      </div>
+                      <div className="flex items-center">
+                          <div className="text-right mr-4">
+                          <p className="font-semibold">{userData.name}</p>
+                          <p className="text-xs text-slate-400">{userData.skillLevel}</p>
+                          </div>
+                          <UserIcon name={userData.name} />
+                      </div>
+                  </header>
+
+                  <div className="flex-1 overflow-y-auto p-6">
+                      <div className="max-w-4xl mx-auto">
+                          <DailyBriefing userData={userData} />
+                          <Home projects={projects} onSelectProject={handleSelectProject} userData={userData} onMenuClick={() => setIsSidebarOpen(true)} />
+                      </div>
+                  </div>
+              </div>
+            );
         case 'projectList':
             return <ProjectList projects={projects} onSelectProject={handleSelectProject} onProjectCreated={handleCreateProject} {...menuProps} />;
         case 'projectDetails':
@@ -417,8 +448,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                                 </svg>
                             </button>
                             <div>
-                                <h2 className="text-xl font-bold">Hello, {userData.name}</h2>
-                                <p className="text-sm text-slate-400">{getGreeting()}</p>
+                                <h2 className="text-xl font-bold">Chat with PiMbOt</h2>
+                                <p className="text-sm text-slate-400">Your AI Project Management Assistant</p>
                             </div>
                         </div>
                         <div className="flex items-center">

@@ -1,52 +1,28 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import type { OnboardingData } from './types';
 
-// Simple UUID v4 generator moved to the top of the file
-const uuidv4 = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+type AppState = 'login' | 'onboarding' | 'dashboard';
 
-// A helper to get or create a unique user ID
-const getUserId = (): string => {
-  let userId = localStorage.getItem('pimbot_userId');
-  if (!userId) {
-    userId = uuidv4();
-    localStorage.setItem('pimbot_userId', userId);
-  }
-  return userId;
+// FIX: Added a default ID to the onboarding data.
+const defaultOnboardingData: OnboardingData = {
+  id: 'user-1',
+  skillLevel: null,
+  methodologies: [],
+  tools: [],
+  name: 'Valued User',
 };
 
-
 const App: React.FC = () => {
-  // Use a function for lazy initialization to ensure getUserId is called only once.
-  const [userId] = useState(getUserId);
-
-  type AppState = 'login' | 'onboarding' | 'dashboard';
-
   const [appState, setAppState] = useState<AppState>(() => {
     return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
   });
   
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
     const savedData = localStorage.getItem('pimbot_onboardingData');
-    if (savedData) {
-      return JSON.parse(savedData);
-    }
-    // If no saved data, create default data with the stable user ID.
-    return {
-      skillLevel: null,
-      methodologies: [],
-      tools: [],
-      name: 'Valued User',
-      id: userId,
-    };
+    return savedData ? JSON.parse(savedData) : defaultOnboardingData;
   });
 
   useEffect(() => {
@@ -54,42 +30,33 @@ const App: React.FC = () => {
   }, [appState]);
 
   useEffect(() => {
-    // Ensure data being saved always has the correct, stable user ID.
-    localStorage.setItem('pimbot_onboardingData', JSON.stringify({ ...onboardingData, id: userId }));
-  }, [onboardingData, userId]);
+    localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
+  }, [onboardingData]);
 
-  const handleLoginSuccess = useCallback((name: string) => {
-    // When logging in, ensure we start with the correct user ID.
-    setOnboardingData(prev => ({ ...prev, name, id: userId }));
+  // FIX: Updated handleLoginSuccess to accept email and set it as the user ID.
+  const handleLoginSuccess = useCallback((name: string, email: string) => {
+    setOnboardingData(prev => ({ ...prev, name, id: email }));
     setAppState('onboarding');
-  }, [userId]);
+  }, []);
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
-    // Ensure the final onboarding data has the stable ID before saving.
-    setOnboardingData({ ...data, id: userId });
+    setOnboardingData(data);
     setAppState('dashboard');
-  }, [userId]);
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('pimbot_appState');
     localStorage.removeItem('pimbot_onboardingData');
-    // We don't remove the userId so they are recognized if they log back in.
+    setOnboardingData(defaultOnboardingData);
     setAppState('login');
-    // Reset to default state but keep the ID
-    setOnboardingData({
-        skillLevel: null,
-        methodologies: [],
-        tools: [],
-        name: 'Valued User',
-        id: userId,
-    });
-  }, [userId]);
+  }, []);
 
   const renderContent = () => {
     switch (appState) {
       case 'login':
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
       case 'onboarding':
+        // FIX: Passed the entire onboarding data object to the Onboarding component.
         return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
       case 'dashboard':
         return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
