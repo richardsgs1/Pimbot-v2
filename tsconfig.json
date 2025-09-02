@@ -26,7 +26,6 @@
     }
   },
   "include": [
-    "api",
     "components",
     "App.tsx",
     "index.tsx",
