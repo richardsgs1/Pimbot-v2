@@ -17,8 +17,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       codeBlocks.forEach((block) => {
         const preElement = block.parentElement as HTMLPreElement;
         
+        // Avoid adding duplicate buttons
         if (preElement.querySelector('.copy-button')) {
-          preElement.querySelector('.copy-button')!.remove();
+          return;
         }
 
         const copyButton = document.createElement('button');

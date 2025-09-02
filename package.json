@@ -17,6 +17,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/highlight.js": "^10.1.0",
     "@types/marked": "^6.0.0",
     "@types/node": "^20.12.12",
     "@types/react": "^18.2.15",
