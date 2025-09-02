@@ -31,7 +31,8 @@ const mockProjects: Project[] = [
       { id: 't1-1', name: 'Finalize ad copy', completed: true, priority: Priority.High, dueDate: '2024-07-15', assigneeId: 'user-2' },
       { id: 't1-2', name: 'Approve social media assets', completed: true, priority: Priority.Medium, dueDate: '2024-07-20', assigneeId: 'user-3' },
       { id: 't1-3', name: 'Launch PPC campaign', completed: false, priority: Priority.High, dueDate: '2024-08-01', dependsOn: 't1-2', assigneeId: 'user-1' },
-      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low, dependsOn: 't1-3', assigneeId: 'user-4' },
+      // FIX: Added missing `dueDate` property to the task.
+      { id: 't1-4', name: 'Monitor initial engagement metrics', completed: false, priority: Priority.Low, dueDate: '2024-08-15', dependsOn: 't1-3', assigneeId: 'user-4' },
     ],
     journal: [],
   },
@@ -47,7 +48,8 @@ const mockProjects: Project[] = [
       { id: 't2-2', name: 'Wireframing and mockups', completed: true, priority: Priority.Medium, dueDate: '2024-06-15', dependsOn: 't2-1', assigneeId: 'user-2' },
       { id: 't2-3', name: 'Frontend development', completed: false, priority: Priority.High, dueDate: '2024-07-25', dependsOn: 't2-2', assigneeId: 'user-1' },
       { id: 't2-4', name: 'Backend integration', completed: false, priority: Priority.Medium, dueDate: '2024-07-30', dependsOn: 't2-2' },
-      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low, dependsOn: 't2-3', assigneeId: 'user-4' },
+      // FIX: Added missing `dueDate` property to the task.
+      { id: 't2-5', name: 'Content migration', completed: false, priority: Priority.Low, dueDate: '2024-08-10', dependsOn: 't2-3', assigneeId: 'user-4' },
     ],
     journal: [],
   },
@@ -61,8 +63,10 @@ const mockProjects: Project[] = [
     tasks: [
         { id: 't3-1', name: 'Develop dashboard UI', completed: true, priority: Priority.High, dueDate: '2024-05-10', assigneeId: 'user-1' },
         { id: 't3-2', name: 'Implement calendar API', completed: true, priority: Priority.Medium, dueDate: '2024-05-20', assigneeId: 'user-2' },
-        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low, dependsOn: 't3-2', assigneeId: 'user-3' },
-        { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None, dependsOn: 't3-3' },
+        // FIX: Added missing `dueDate` property to the task.
+        { id: 't3-3', name: 'Perform QA and bug fixing', completed: true, priority: Priority.Low, dueDate: '2024-05-25', dependsOn: 't3-2', assigneeId: 'user-3' },
+        // FIX: Added missing `dueDate` property to the task.
+        { id: 't3-4', name: 'Deploy to app stores', completed: true, priority: Priority.None, dueDate: '2024-05-30', dependsOn: 't3-3' },
     ],
     journal: [],
   },

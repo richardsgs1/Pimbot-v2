@@ -1,84 +1,53 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import type { Project } from '../types';
-
-// A highly robust function to extract text from a Gemini response, handling multiple failure modes.
-function safeExtractText(response: GenerateContentResponse): string {
-    if (response.promptFeedback?.blockReason) {
-        console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
-        return '';
-    }
-    try {
-        const text = response.text;
-        if (text) return text;
-    } catch (e) {
-        console.error("Error accessing response.text. The response might be blocked.", e);
-    }
-    try {
-        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    } catch (e) {
-        console.error("Error accessing fallback response text.", e);
-        return '';
-    }
-}
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const { project } = req.body as { project: Project };
+
+  if (!project) {
+    return res.status(400).json({ error: 'Project data is required' });
+  }
+
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key is not configured. Please set the API_KEY environment variable.' });
-    }
     const ai = new GoogleGenAI({ apiKey });
     
-    const { project } = req.body as { project: Project };
+    const overdueTasks = project.tasks.filter(t => !t.completed && new Date(t.dueDate) < new Date()).length;
 
-    if (!project) {
-      return res.status(400).json({ error: 'Project data is required.' });
-    }
+    const prompt = `Analyze the health of the project "${project.name}".
+    Description: ${project.description}
+    Current Status: ${project.status}
+    Progress: ${project.progress}%
+    Due Date: ${project.dueDate}
+    Total Tasks: ${project.tasks.length}
+    Overdue Tasks: ${overdueTasks}
+    
+    Based on this data, provide a concise (2-3 sentences) health summary. Identify the primary risk factor (e.g., overdue tasks, slow progress relative to deadline) and suggest one specific, actionable recommendation to improve the project's health.`;
 
-    const systemInstruction = `You are an expert project manager providing a health check summary.
-Analyze the provided project JSON data.
-Provide a concise, 2-3 sentence summary of the project's health.
-- Start with an overall assessment (e.g., "On track," "Shows signs of risk," "Slightly behind schedule").
-- Mention one key risk or area that needs attention, especially related to overdue tasks or high-priority incomplete tasks.
-- Mention one positive point or recent accomplishment if applicable.
-- Your tone should be neutral, professional, and actionable. Do not use markdown.`;
-
-    const projectDataString = `
-      Project Name: ${project.name}
-      Status: ${project.status}
-      Progress: ${project.progress}%
-      Due Date: ${project.dueDate}
-      Tasks:
-      ${project.tasks.map(t => `- ${t.name} (Status: ${t.completed ? 'Completed' : 'Incomplete'}, Priority: ${t.priority}, Due: ${t.dueDate || 'N/A'})`).join('\n')}
-    `;
+    const model = 'gemini-2.5-flash';
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Analyze this project data and provide a health summary:\n${projectDataString}`,
-      config: {
-        systemInstruction,
-      },
+        model,
+        contents: prompt,
     });
 
-    const summary = safeExtractText(response).trim();
-
-    if (!summary) {
-      throw new Error('The AI model returned an empty or blocked response. This may be due to content safety filters.');
-    }
-
-    return res.status(200).json({ summary });
+    res.status(200).json({ summary: response.text });
 
   } catch (error) {
     console.error('Error calling Gemini API for health summary:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate project health summary.';
-    return res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: 'Failed to generate health summary.' });
   }
 }

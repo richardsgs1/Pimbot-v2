@@ -1,48 +1,72 @@
-import React, { useEffect, useRef, memo } from 'react';
-import { marked } from 'marked';
-import hljs from 'highlight.js';
+import React from 'react';
 
 interface MarkdownRendererProps {
   content: string;
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
+  const inlineRender = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code class="bg-slate-700 text-cyan-400 rounded px-1.5 py-1 text-sm font-mono">$1</code>')
+      .replace(/\n/g, '<br />');
+  };
 
-  useEffect(() => {
-    if (contentRef.current) {
-      contentRef.current.innerHTML = marked.parse(content) as string;
-      
-      const codeBlocks = contentRef.current.querySelectorAll('pre code');
-      codeBlocks.forEach((block) => {
-        const preElement = block.parentElement as HTMLPreElement;
-        
-        // Avoid adding duplicate buttons
-        if (preElement.querySelector('.copy-button')) {
-          return;
-        }
-
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-button';
-        copyButton.innerText = 'Copy';
-        copyButton.setAttribute('aria-label', 'Copy code to clipboard');
-        copyButton.onclick = () => {
-          if (block.textContent) {
-            navigator.clipboard.writeText(block.textContent);
-            copyButton.innerText = 'Copied!';
-            setTimeout(() => {
-              copyButton.innerText = 'Copy';
-            }, 2000);
-          }
-        };
-        preElement.appendChild(copyButton);
-
-        hljs.highlightElement(block as HTMLElement);
-      });
+  const renderBlock = (block: string, index: number) => {
+    // Code blocks
+    if (block.startsWith('```') && block.endsWith('```')) {
+      const code = block.slice(3, -3).trim();
+      return (
+        <pre key={index} className="bg-slate-900/70 border border-slate-700 rounded-md p-4 my-2 text-sm overflow-x-auto">
+          <code>{code}</code>
+        </pre>
+      );
     }
-  }, [content]);
+    
+    const lines = block.split('\n');
 
-  return <div ref={contentRef} className="prose max-w-none prose-sm sm:prose-base"></div>;
+    // Unordered lists
+    const isUl = lines.every(line => line.trim().startsWith('* ') || line.trim().startsWith('- '));
+    if (isUl) {
+      return (
+        <ul key={index} className="list-disc list-inside space-y-1 my-2">
+          {lines.map((line, i) => (
+            <li key={i} dangerouslySetInnerHTML={{ __html: inlineRender(line.replace(/^\s*[\*\-]\s/, '')) }} />
+          ))}
+        </ul>
+      );
+    }
+
+    // Ordered lists
+    const isOl = lines.every(line => line.trim().match(/^\d+\.\s/));
+    if (isOl) {
+       return (
+        <ol key={index} className="list-decimal list-inside space-y-1 my-2">
+          {lines.map((line, i) => (
+            <li key={i} dangerouslySetInnerHTML={{ __html: inlineRender(line.replace(/^\s*\d+\.\s/, '')) }} />
+          ))}
+        </ol>
+      );
+    }
+
+    // Paragraphs
+    return (
+      <p key={index} className="my-2" dangerouslySetInnerHTML={{ __html: inlineRender(block) }} />
+    );
+  };
+
+  // Split content by code blocks and then by empty lines for other blocks
+  const blocks = content.split(/(```[\s\S]*?```)/g).flatMap(part => {
+      if (part.startsWith('```')) return [part.trim()];
+      return part.split(/\n\s*\n/); // Split by one or more empty lines
+  }).filter(block => block.trim() !== '');
+
+  return (
+    <div className="text-slate-300 leading-relaxed">
+      {blocks.map(renderBlock)}
+    </div>
+  );
 };
 
-export default memo(MarkdownRenderer);
+export default MarkdownRenderer;

@@ -1,7 +1,9 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { OnboardingData } from '../types';
-import { GoogleGenAI } from '@google/genai';
 
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenAI } from '@google/genai';
+import type { OnboardingData } from '../types';
+
+// Define the expected message format from the frontend
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
@@ -12,70 +14,69 @@ export default async function handler(
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key is not configured. Please set the API_KEY environment variable.' });
-    }
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
+  // Adjusted to receive history from the frontend
+  const { prompt, userData, history } = req.body as { prompt: string; userData: OnboardingData; history: ChatMessage[] };
 
-    if (!prompt || !userData) {
-      return res.status(400).json({ error: 'Prompt and userData are required' });
-    }
-    
+  if (!prompt || !userData) {
+    return res.status(400).json({ error: 'Prompt and userData are required' });
+  }
+
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+
     const methodologies = userData.methodologies.length > 0 ? userData.methodologies.join(', ') : 'various methodologies';
     const tools = userData.tools.length > 0 ? userData.tools.join(', ') : 'various tools';
     const systemInstruction = `You are PiMbOt AI, an expert project management assistant.
 Your user is a project manager with an experience level of "${userData.skillLevel}".
 They are familiar with ${methodologies} and use tools like ${tools}.
-Your tone should be supportive, clear, and professional. Tailor the complexity of your answers to their experience level. Provide actionable advice, clear explanations, and use markdown formatting for clarity (e.g., lists, bolding, code blocks).`;
+Your tone should be supportive, clear, and professional. Tailor the complexity of your answers to their experience level. Provide actionable advice and clear explanations.`;
+
+    const model = 'gemini-2.5-flash';
     
-    const contents = history.map(msg => ({
-      role: msg.role,
-      parts: [{ text: msg.content }]
-    }));
-    contents.push({ role: 'user', parts: [{ text: prompt }] });
+    // Transform frontend chat history to the format Gemini API expects
+    const contents = [
+      ...(history || []).map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.content }]
+      })),
+      { role: 'user', parts: [{ text: prompt }] }
+    ];
 
     const stream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: contents,
+        model,
+        contents,
         config: {
             systemInstruction
         }
     });
 
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Transfer-Encoding': 'chunked',
+      'X-Content-Type-Options': 'nosniff',
+    });
 
     for await (const chunk of stream) {
-      try {
-        if (chunk.promptFeedback?.blockReason) {
-          console.warn(`A streaming chunk was blocked: ${chunk.promptFeedback.blockReason}`);
-          continue;
-        }
-        
-        const text = chunk.text;
-        if (text) {
-          res.write(text);
-        }
-      } catch (e) {
-        console.warn('A chunk was likely blocked during streaming.', e);
+      if (chunk.text) {
+        res.write(chunk.text);
       }
     }
-
+    
     res.end();
 
   } catch (error) {
     console.error('Error calling Gemini API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate content from the AI model.';
     if (!res.headersSent) {
-      res.status(500).json({ error: errorMessage });
+      res.status(500).json({ error: 'Failed to generate content from the AI model.' });
     } else {
       res.end();
     }

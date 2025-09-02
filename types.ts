@@ -1,75 +1,76 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import LoginScreen from './components/LoginScreen';
-import Onboarding from './components/Onboarding';
-import Dashboard from './components/Dashboard';
-import type { OnboardingData } from './types';
 
-type AppState = 'login' | 'onboarding' | 'dashboard';
+export enum SkillLevel {
+  NOVICE = 'Novice',
+  INTERMEDIATE = 'Intermediate',
+  EXPERIENCED = 'Experienced',
+  EXPERT = 'Expert',
+}
 
-// FIX: Added a default ID to the onboarding data.
-const defaultOnboardingData: OnboardingData = {
-  id: 'user-1',
-  skillLevel: null,
-  methodologies: [],
-  tools: [],
-  name: 'Valued User',
-};
+export interface OnboardingData {
+  id: string;
+  skillLevel: SkillLevel | null;
+  methodologies: string[];
+  tools: string[];
+  name: string;
+}
 
-const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>(() => {
-    return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
-  });
-  
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
-    const savedData = localStorage.getItem('pimbot_onboardingData');
-    return savedData ? JSON.parse(savedData) : defaultOnboardingData;
-  });
+export enum ProjectStatus {
+  OnTrack = 'On Track',
+  AtRisk = 'At Risk',
+  OffTrack = 'Off Track',
+  Completed = 'Completed',
+}
 
-  useEffect(() => {
-    localStorage.setItem('pimbot_appState', appState);
-  }, [appState]);
+export enum Priority {
+  High = 'High',
+  Medium = 'Medium',
+  Low = 'Low',
+  None = 'None',
+}
 
-  useEffect(() => {
-    localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
-  }, [onboardingData]);
+export interface TeamMember {
+  id: string;
+  name: string;
+  avatarColor: string;
+}
 
-  // FIX: Updated handleLoginSuccess to accept email and set it as the user ID.
-  const handleLoginSuccess = useCallback((name: string, email: string) => {
-    setOnboardingData(prev => ({ ...prev, name, id: email }));
-    setAppState('onboarding');
-  }, []);
+export interface Task {
+  id: string;
+  name: string;
+  completed: boolean;
+  priority: Priority;
+  dueDate: string;
+  assigneeId?: string;
+  dependsOn?: string;
+}
 
-  const handleOnboardingComplete = useCallback((data: OnboardingData) => {
-    setOnboardingData(data);
-    setAppState('dashboard');
-  }, []);
+export interface JournalEntry {
+  id: string;
+  date: string;
+  content: string;
+  type: 'user' | 'model' | 'system';
+}
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('pimbot_appState');
-    localStorage.removeItem('pimbot_onboardingData');
-    setOnboardingData(defaultOnboardingData);
-    setAppState('login');
-  }, []);
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  dueDate: string;
+  progress: number;
+  tasks: Task[];
+  journal: JournalEntry[];
+  aiHealthSummary?: string;
+}
 
-  const renderContent = () => {
-    switch (appState) {
-      case 'login':
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-      case 'onboarding':
-        // FIX: Passed the entire onboarding data object to the Onboarding component.
-        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
-      case 'dashboard':
-        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
-      default:
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-    }
-  };
+export type ProjectSearchResult = { type: 'project'; data: Project };
+export type TaskSearchResult = { type: 'task'; data: Task; project: { id: string; name: string } };
+export type JournalSearchResult = { type: 'journal'; data: JournalEntry; project: { id: string; name: string } };
 
-  return (
-    <div className="bg-slate-900 text-white min-h-screen">
-      {renderContent()}
-    </div>
-  );
-};
+export type SearchResultItem = ProjectSearchResult | TaskSearchResult | JournalSearchResult;
 
-export default App;
+export interface SearchResults {
+  projects: ProjectSearchResult[];
+  tasks: TaskSearchResult[];
+  journal: JournalSearchResult[];
+}

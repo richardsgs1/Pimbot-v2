@@ -1,94 +1,52 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GenerateContentResponse, GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import type { Project, TeamMember } from '../types';
-
-// A highly robust function to extract text from a Gemini response.
-function safeExtractText(response: GenerateContentResponse): string {
-    if (response.promptFeedback?.blockReason) {
-        console.warn(`Response was blocked due to ${response.promptFeedback.blockReason}`);
-        return '';
-    }
-    try {
-        const text = response.text;
-        if (text) return text;
-    } catch (e) {
-        console.error("Error accessing response.text. The response might be blocked.", e);
-    }
-    try {
-        return response.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    } catch (e) {
-        console.error("Error accessing fallback response text.", e);
-        return '';
-    }
-}
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const { projects, team } = req.body as { projects: Project[]; team: TeamMember[] };
+
+  if (!projects || !team) {
+    return res.status(400).json({ error: 'Projects and team data are required' });
+  }
+
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key is not configured. Please set the API_KEY environment variable.' });
-    }
     const ai = new GoogleGenAI({ apiKey });
+
+    const prompt = `Analyze the following project portfolio and provide a concise, high-level strategic summary (3-4 sentences). 
+    Focus on overall health, potential risks, and resource allocation.
     
-    const { projects, team } = req.body as { projects: Project[], team: TeamMember[] };
+    Number of Projects: ${projects.length}
+    Number of Team Members: ${team.length}
+    
+    Project Details:
+    ${projects.map(p => `- ${p.name} (Status: ${p.status}, Progress: ${p.progress}%, Due: ${p.dueDate})`).join('\n')}
+    
+    Your summary should identify any patterns (e.g., multiple projects at risk, tight deadlines clustering) and suggest a strategic focus point for the project manager.`;
 
-    if (!projects || !team) {
-      return res.status(400).json({ error: 'Projects and team data are required.' });
-    }
-
-    const systemInstruction = `You are a senior project management analyst. Your task is to provide a high-level, strategic summary of an entire project portfolio.
-Analyze the provided data which includes all projects and team members.
-Your summary should be a concise paragraph (3-4 sentences) and must identify:
-- The overall health of the portfolio (e.g., "healthy," "stable with some concerns," "facing significant challenges").
-- The most significant cross-project risk (e.g., a single person being a bottleneck on multiple at-risk projects, multiple projects having similar overdue dependencies).
-- One key upcoming opportunity or deadline that requires attention.
-Your tone should be professional, strategic, and forward-looking. Do not use markdown.`;
-
-    // Pre-process data to send a concise summary to the AI
-    const portfolioData = {
-      totalProjects: projects.length,
-      projectStatusCounts: projects.reduce((acc, p) => {
-        acc[p.status] = (acc[p.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
-      tasksPerAssignee: projects.flatMap(p => p.tasks)
-        .filter(t => !t.completed && t.assigneeId)
-        .reduce((acc, t) => {
-          const assigneeName = team.find(m => m.id === t.assigneeId)?.name || 'Unknown';
-          acc[assigneeName] = (acc[assigneeName] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-      overdueTasks: projects.flatMap(p => p.tasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < new Date()).map(t => ({ taskName: t.name, projectName: p.name }))),
-    };
-
-    const prompt = `Based on the following portfolio data, generate a strategic summary:\n\n${JSON.stringify(portfolioData, null, 2)}`;
+    const model = 'gemini-2.5-flash';
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction,
-      },
+        model,
+        contents: prompt,
     });
 
-    const summary = safeExtractText(response).trim();
-
-    if (!summary) {
-      throw new Error('The AI model returned an empty or blocked response.');
-    }
-
-    return res.status(200).json({ summary });
+    res.status(200).json({ summary: response.text });
 
   } catch (error) {
-    console.error('Error in get-portfolio-summary handler:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate portfolio summary.';
-    return res.status(500).json({ error: errorMessage });
+    console.error('Error calling Gemini API for portfolio summary:', error);
+    res.status(500).json({ error: 'Failed to generate portfolio summary.' });
   }
-}
+}}

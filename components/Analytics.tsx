@@ -235,7 +235,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
     }
     
     return { labels, values };
-  }, [projects, startDate, endDate]);
+  }, [projects, startDate, endDate, today]);
   
   const priorityData = useMemo(() => {
     const counts = { High: 0, Medium: 0, Low: 0, None: 0 };
@@ -330,8 +330,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
         }
         
         const data = JSON.parse(responseText);
-        const updatedProject = { ...project, aiHealthSummary: data.summary };
-        onUpdateProject(updatedProject);
+        const updatedProjectWithSummary = { ...project, aiHealthSummary: data.summary };
+        onUpdateProject(updatedProjectWithSummary);
 
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
