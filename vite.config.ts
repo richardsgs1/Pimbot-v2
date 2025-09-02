@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // The vite.config.ts has been updated to include a proxy for API requests,
 // which is a best practice for local development.
@@ -15,6 +16,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3000'
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.')
     }
   }
 });

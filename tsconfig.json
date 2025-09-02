@@ -21,8 +21,9 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Paths */
+    "baseUrl": ".",
     "paths": {
-      "~/*": ["./*"]
+      "@/*": ["./*"]
     }
   },
   "include": [
