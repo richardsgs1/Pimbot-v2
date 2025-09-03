@@ -74,3 +74,10 @@ export interface SearchResults {
   tasks: TaskSearchResult[];
   journal: JournalSearchResult[];
 }
+
+export enum CommunicationType {
+  StatusUpdate = 'Project Status Update',
+  RiskEscalation = 'Risk Escalation',
+  StakeholderUpdate = 'Stakeholder Update',
+  MeetingFollowUp = 'Meeting Follow-Up',
+}

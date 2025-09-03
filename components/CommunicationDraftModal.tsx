@@ -1,132 +1,137 @@
 
-import React, { useState, useCallback } from 'react';
-import type { Task, TeamMember } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { Project } from '../types';
 import { CommunicationType } from '../types';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface CommunicationDraftModalProps {
+  isOpen: boolean;
   onClose: () => void;
-  task: Task;
-  assignee: TeamMember | null;
-  project: { name: string };
-  projectManagerName: string;
+  project: Project;
 }
 
-const CommunicationDraftModal: React.FC<CommunicationDraftModalProps> = ({ onClose, task, assignee, project, projectManagerName }) => {
-  const [selectedType, setSelectedType] = useState<CommunicationType | null>(null);
-  const [draft, setDraft] = useState('');
+const CommunicationDraftModal: React.FC<CommunicationDraftModalProps> = ({ isOpen, onClose, project }) => {
+  const [communicationType, setCommunicationType] = useState<CommunicationType>(CommunicationType.StatusUpdate);
+  const [audience, setAudience] = useState('Team Members');
+  const [keyPoints, setKeyPoints] = useState('');
+  const [draft, setDraft] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copyButtonText, setCopyButtonText] = useState('Copy');
+  const [copySuccess, setCopySuccess] = useState('');
 
-  const generateDraft = useCallback(async (type: CommunicationType) => {
-    setSelectedType(type);
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset state when modal is closed
+      setDraft(null);
+      setError(null);
+      setIsLoading(false);
+      setKeyPoints('');
+      setCopySuccess('');
+    }
+  }, [isOpen]);
+
+  const handleGenerateDraft = async () => {
+    if (!keyPoints.trim()) {
+      setError('Please provide at least one key point.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
-    setDraft('');
-
+    setDraft(null);
+    setCopySuccess('');
     try {
       const response = await fetch('/api/draft-communication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            type, 
-            task, 
-            project, 
-            assignee, 
-            projectManager: { name: projectManagerName } 
-        }),
+        body: JSON.stringify({ project, communicationType, audience, keyPoints }),
       });
-
-      const responseText = await response.text();
+      const data = await response.json();
       if (!response.ok) {
-        let errorMsg = 'Failed to generate draft.';
-        try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
-        throw new Error(errorMsg);
+        throw new Error(data.error || 'Failed to generate draft.');
       }
-      if (!responseText) { throw new Error("Received an empty response from the server."); }
-      
-      const data = JSON.parse(responseText);
       setDraft(data.draft);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setError(`Error: ${errorMessage}`);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
-  }, [task, assignee, project, projectManagerName]);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(draft);
-    setCopyButtonText('Copied!');
-    setTimeout(() => setCopyButtonText('Copy'), 2000);
   };
-  
-  const communicationOptions = [
-      ...(assignee ? [CommunicationType.AssignTask, CommunicationType.RequestUpdate] : []),
-      ...(task.completed ? [CommunicationType.AnnounceCompletion] : []),
-  ];
+
+  const handleCopyToClipboard = () => {
+    if (draft) {
+      navigator.clipboard.writeText(draft);
+      setCopySuccess('Copied!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" aria-modal="true" role="dialog">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl relative p-8 flex flex-col max-h-[90vh]">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors" aria-label="Close modal">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-        
-        <div className="flex-shrink-0">
-            <h2 className="text-2xl font-bold text-white mb-2">Draft Communication</h2>
-            <p className="text-slate-400 mb-1">For task: <span className="font-semibold text-slate-300">"{task.name}"</span></p>
-            {assignee && <p className="text-slate-400">Regarding: <span className="font-semibold text-slate-300">{assignee.name}</span></p>}
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="comm-modal-title">
+      <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <header className="p-4 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
+          <h2 id="comm-modal-title" className="text-xl font-bold">Draft Communication</h2>
+          <button onClick={onClose} className="p-1 rounded-full text-slate-400 hover:bg-slate-700" aria-label="Close modal">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </header>
+
+        <div className="p-6 overflow-y-auto">
+          {!draft && !isLoading && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="comm-type" className="block text-sm font-medium text-slate-300 mb-2">Communication Type</label>
+                <select id="comm-type" value={communicationType} onChange={(e) => setCommunicationType(e.target.value as CommunicationType)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5">
+                  {Object.values(CommunicationType).map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="audience" className="block text-sm font-medium text-slate-300 mb-2">Audience</label>
+                <input type="text" id="audience" value={audience} onChange={(e) => setAudience(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" placeholder="e.g., Stakeholders, Development Team" />
+              </div>
+              <div>
+                <label htmlFor="key-points" className="block text-sm font-medium text-slate-300 mb-2">Key Points (one per line)</label>
+                <textarea id="key-points" rows={4} value={keyPoints} onChange={(e) => setKeyPoints(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" placeholder="- Project is on track for Q3 launch&#10;- Marketing assets have been approved&#10;- Blocked by legal review on ad copy"></textarea>
+              </div>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center min-h-[200px]">
+              <svg className="animate-spin h-8 w-8 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <p className="mt-4 text-slate-400">PiMbOt AI is drafting your message...</p>
+            </div>
+          )}
+
+          {error && <div className="bg-red-900/50 text-red-300 p-3 rounded-lg text-sm">{error}</div>}
+
+          {draft && (
+            <div>
+              <div className="prose prose-invert bg-slate-900/50 border border-slate-700 rounded-lg p-4 max-w-none">
+                <MarkdownRenderer content={draft} />
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="flex-grow overflow-y-auto mt-6 pr-4 -mr-4 border-t border-slate-700 pt-6">
-            {!selectedType ? (
-                <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">What do you want to do?</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {communicationOptions.map(type => (
-                            <button key={type} onClick={() => generateDraft(type)} className="p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-left transition">
-                                <span className="font-semibold text-white">{type}</span>
-                            </button>
-                        ))}
-                         {communicationOptions.length === 0 && <p className="text-slate-400">No communication actions available for this task's state.</p>}
-                    </div>
-                </div>
-            ) : (
-                <div>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-white">Generated Draft</h3>
-                        <button onClick={() => setSelectedType(null)} className="text-sm text-cyan-400 hover:text-cyan-300">
-                            &larr; Back to options
-                        </button>
-                    </div>
-                    {isLoading && (
-                         <div className="flex items-center justify-center h-48">
-                            <svg className="animate-spin h-8 w-8 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        </div>
-                    )}
-                    {error && <p className="text-red-400 text-sm">{error}</p>}
-                    {!isLoading && draft && (
-                        <textarea
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg resize-none text-slate-200 p-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition h-64"
-                        />
-                    )}
-                </div>
-            )}
-        </div>
-        
-        {draft && !isLoading && (
-            <div className="mt-6 flex justify-end flex-shrink-0 border-t border-slate-700 pt-6">
-                 <button
-                    onClick={handleCopy}
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
-                >
-                    {copyButtonText}
-                </button>
-            </div>
-        )}
+        <footer className="p-4 border-t border-slate-700 flex justify-end items-center gap-4 flex-shrink-0">
+          {draft && !isLoading && (
+            <>
+              <button onClick={handleCopyToClipboard} className="relative bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+                {copySuccess || 'Copy'}
+              </button>
+              <button onClick={handleGenerateDraft} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition">
+                Regenerate
+              </button>
+            </>
+          )}
+          {!draft && !isLoading && (
+             <button onClick={handleGenerateDraft} disabled={isLoading || !keyPoints.trim()} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-slate-600 disabled:cursor-not-allowed">
+              Generate Draft
+            </button>
+          )}
+        </footer>
       </div>
     </div>
   );
