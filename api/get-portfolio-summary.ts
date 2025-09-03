@@ -49,4 +49,4 @@ export default async function handler(
     console.error('Error calling Gemini API for portfolio summary:', error);
     res.status(500).json({ error: 'Failed to generate portfolio summary.' });
   }
-}}
+}

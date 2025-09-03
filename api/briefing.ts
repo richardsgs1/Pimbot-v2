@@ -74,7 +74,12 @@ Keep the tone encouraging and professional.`;
         }
     });
 
-    const briefingData = JSON.parse(response.text);
+    const responseText = response.text;
+    if (!responseText) {
+      throw new Error("Received an empty response from the AI model.");
+    }
+
+    const briefingData = JSON.parse(responseText);
     res.status(200).json(briefingData);
 
   } catch (error) {
