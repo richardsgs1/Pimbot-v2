@@ -1,15 +1,3 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
-// The vite.config.ts has been updated to include a proxy for API requests,
-// which is a best practice for local development.
-//
-// For the most accurate local development that mirrors the Vercel production environment,
-// it is still recommended to use the Vercel CLI command:
-//
-// vercel dev
-//
 {
   "compilerOptions": {
     "target": "ESNext",
