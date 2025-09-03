@@ -10,17 +10,27 @@ import path from 'path';
 //
 // vercel dev
 //
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3000'
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./*"]
     }
   },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '.')
-    }
-  }
-});
+  "include": ["components", "api", "App.tsx", "index.tsx", "types.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
