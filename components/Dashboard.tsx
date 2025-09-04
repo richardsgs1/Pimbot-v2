@@ -321,10 +321,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
   
-  const clearChat = () => {
-    setChatHistory([]);
-    localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
-  };
+const clearChat = () => {
+  setChatHistory([]);
+  localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
+  setCurrentView('chat'); // Switch to chat view to see the effect
+  console.log('Chat cleared'); // Add this to test if function is being called
+};
   
   const handleSelectProject = (id: string) => {
     setSelectedProjectId(id);
