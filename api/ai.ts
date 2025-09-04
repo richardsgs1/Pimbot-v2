@@ -1,4 +1,7 @@
-import { GoogleGenerativeAI } from '@google/genai';
+// Option 1: Try this import first
+import { GoogleGenerativeAI } from '@google/generative-ai';
+// If that doesn't work, try: import { GoogleGenerativeAI } from '@google/genai';
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
