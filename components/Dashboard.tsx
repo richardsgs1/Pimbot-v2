@@ -158,6 +158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     return results;
   }, [searchTerm, projects]);
 
+  // Updated search summary useEffect to use new API
   useEffect(() => {
     if (!searchTerm.trim()) {
       setAiSearchSummary(null);
@@ -172,10 +173,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       setIsSummaryLoading(true);
       setAiSearchSummary(null);
       try {
-        const response = await fetch('/api/summarize-search', {
+        const response = await fetch('/api/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            action: 'summarize-search',
             searchTerm,
             resultCounts: {
               projects: searchResults.projects.length,
@@ -241,6 +243,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   useEffect(adjustTextareaHeight, [prompt]);
 
+  // Updated handleSubmit to use new API
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || isStreaming) return;
@@ -257,15 +260,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     setTimeout(() => adjustTextareaHeight(), 0);
 
     try {
-      const response = await fetch('/api/generate', {
+      const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: currentPrompt, userData, history: historyForApi }),
+        body: JSON.stringify({ 
+          action: 'generate',
+          prompt: currentPrompt, 
+          userData, 
+          history: historyForApi 
+        }),
       });
 
       if (!response.ok) {
         let errorMsg = 'The server returned an error.';
-        try { const errorData = await response.json(); errorMsg = errorData.error || errorMsg; } catch(e) { errorMsg = response.statusText; }
+        try { 
+          const errorData = await response.json(); 
+          errorMsg = errorData.error || errorMsg; 
+        } catch(e) { 
+          errorMsg = response.statusText; 
+        }
         throw new Error(errorMsg);
       }
       
