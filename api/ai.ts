@@ -271,5 +271,4 @@ Provide key insights, patterns, and recommendations based on the journal activit
     console.error('Journal summary error:', error);
     return res.status(500).json({ error: 'Failed to summarize journal' });
   }
-}/ /   F o r c e   r e b u i l d  
- 
+}
