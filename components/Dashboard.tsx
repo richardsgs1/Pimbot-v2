@@ -158,20 +158,45 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     return results;
   }, [searchTerm, projects]);
 
-  // Updated search summary useEffect to use new API
+  // Fixed search summary useEffect with proper debouncing
   useEffect(() => {
     if (!searchTerm.trim()) {
       setAiSearchSummary(null);
+      setIsSummaryLoading(false);
       return;
     }
-    const hasResults = searchResults.projects.length > 0 || searchResults.tasks.length > 0 || searchResults.journal.length > 0;
-    if (!hasResults) {
-      setAiSearchSummary(null);
-      return;
-    }
+
     const handler = setTimeout(async () => {
+      // Calculate results inside the timeout to avoid immediate execution
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      const currentResults: SearchResults = { projects: [], tasks: [], journal: [] };
+      
+      projects.forEach(project => {
+        if (project.name.toLowerCase().includes(lowerCaseSearchTerm) || project.description.toLowerCase().includes(lowerCaseSearchTerm)) {
+          currentResults.projects.push({ type: 'project', data: project });
+        }
+        project.tasks.forEach(task => {
+          if (task.name.toLowerCase().includes(lowerCaseSearchTerm)) {
+            currentResults.tasks.push({ type: 'task', data: task, project: { id: project.id, name: project.name } });
+          }
+        });
+        project.journal.forEach(entry => {
+          if (entry.content.toLowerCase().includes(lowerCaseSearchTerm)) {
+            currentResults.journal.push({ type: 'journal', data: entry, project: { id: project.id, name: project.name } });
+          }
+        });
+      });
+
+      const hasResults = currentResults.projects.length > 0 || currentResults.tasks.length > 0 || currentResults.journal.length > 0;
+      if (!hasResults) {
+        setAiSearchSummary(null);
+        setIsSummaryLoading(false);
+        return;
+      }
+
       setIsSummaryLoading(true);
       setAiSearchSummary(null);
+      
       try {
         const response = await fetch('/api/ai', {
           method: 'POST',
@@ -180,12 +205,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             action: 'summarize-search',
             searchTerm,
             resultCounts: {
-              projects: searchResults.projects.length,
-              tasks: searchResults.tasks.length,
-              journal: searchResults.journal.length
+              projects: currentResults.projects.length,
+              tasks: currentResults.tasks.length,
+              journal: currentResults.journal.length
             }
           }),
         });
+        
         const responseText = await response.text();
         if (!response.ok) {
             let errorMsg = 'Failed to fetch summary.';
@@ -204,9 +230,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       } finally {
         setIsSummaryLoading(false);
       }
-    }, 500);
+    }, 800); // Increased timeout to 800ms for better debouncing
+
     return () => clearTimeout(handler);
-  }, [searchResults, searchTerm]);
+  }, [searchTerm, projects]); // Only depend on searchTerm for proper debouncing
 
   const handleSearchResultClick = (item: SearchResultItem) => {
     if (item.type === 'project') {
@@ -321,12 +348,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
   
-const clearChat = () => {
-  setChatHistory([]);
-  localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
-  setCurrentView('chat'); // Switch to chat view to see the effect
-  console.log('Chat cleared'); // Add this to test if function is being called
-};
+  const clearChat = () => {
+    setChatHistory([]);
+    localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
+    setCurrentView('chat');
+    console.log('Chat cleared');
+  };
   
   const handleSelectProject = (id: string) => {
     setSelectedProjectId(id);
