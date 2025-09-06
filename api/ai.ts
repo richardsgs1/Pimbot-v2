@@ -51,7 +51,7 @@ async function handleGenerate(req: VercelRequest, res: VercelResponse, data: any
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const context = `You are PiMbOt AI, a project management assistant and teaching tool. 
 User Info: ${userData.name}, Skill Level: ${userData.skillLevel || 'Not specified'}
@@ -97,7 +97,7 @@ async function handleBriefing(req: VercelRequest, res: VercelResponse, data: any
   const { userData, projects } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Create a daily briefing for ${userData.name} (${userData.skillLevel} level PM).
     
@@ -126,7 +126,7 @@ async function handlePortfolioSummary(req: VercelRequest, res: VercelResponse, d
   const { projects } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Analyze this project portfolio and provide insights:
     
@@ -155,7 +155,7 @@ async function handleHealthSummary(req: VercelRequest, res: VercelResponse, data
   const { project } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Analyze project health and provide summary:
     
@@ -184,7 +184,7 @@ async function handleDraftCommunication(req: VercelRequest, res: VercelResponse,
   const { type, context, recipient } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Draft a ${type} communication for project management:
     
@@ -208,7 +208,7 @@ async function handleSummarizeSearch(req: VercelRequest, res: VercelResponse, da
   const { searchTerm, resultCounts } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `User searched for "${searchTerm}" and found:
 - ${resultCounts.projects} projects
@@ -232,7 +232,7 @@ async function handleSuggestTasks(req: VercelRequest, res: VercelResponse, data:
   const { project, userData } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Suggest next tasks for this project based on user skill level (${userData.skillLevel}):
 
@@ -255,7 +255,7 @@ async function handleSummarizeJournal(req: VercelRequest, res: VercelResponse, d
   const { journalEntries, timeframe } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Summarize these project journal entries from ${timeframe}:
 
