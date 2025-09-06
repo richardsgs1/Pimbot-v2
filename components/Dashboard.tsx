@@ -115,6 +115,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -136,9 +137,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     localStorage.setItem(`pimbot_projects_${userData.name}`, JSON.stringify(projects));
   }, [projects, userData.name]);
 
+  // Debounce the search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const searchResults = useMemo<SearchResults>(() => {
-    if (!searchTerm.trim()) return { projects: [], tasks: [], journal: [] };
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    if (!debouncedSearchTerm.trim()) return { projects: [], tasks: [], journal: [] };
+    const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
     const results: SearchResults = { projects: [], tasks: [], journal: [] };
     projects.forEach(project => {
       if (project.name.toLowerCase().includes(lowerCaseSearchTerm) || project.description.toLowerCase().includes(lowerCaseSearchTerm)) {
@@ -156,58 +166,38 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       });
     });
     return results;
-  }, [searchTerm, projects]);
+  }, [debouncedSearchTerm, projects]);
 
-  // Fixed search summary useEffect with proper debouncing
+  // AI search summary effect - only triggers on debouncedSearchTerm
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    if (!debouncedSearchTerm.trim()) {
       setAiSearchSummary(null);
       setIsSummaryLoading(false);
       return;
     }
 
-    const handler = setTimeout(async () => {
-      // Calculate results inside the timeout to avoid immediate execution
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      const currentResults: SearchResults = { projects: [], tasks: [], journal: [] };
-      
-      projects.forEach(project => {
-        if (project.name.toLowerCase().includes(lowerCaseSearchTerm) || project.description.toLowerCase().includes(lowerCaseSearchTerm)) {
-          currentResults.projects.push({ type: 'project', data: project });
-        }
-        project.tasks.forEach(task => {
-          if (task.name.toLowerCase().includes(lowerCaseSearchTerm)) {
-            currentResults.tasks.push({ type: 'task', data: task, project: { id: project.id, name: project.name } });
-          }
-        });
-        project.journal.forEach(entry => {
-          if (entry.content.toLowerCase().includes(lowerCaseSearchTerm)) {
-            currentResults.journal.push({ type: 'journal', data: entry, project: { id: project.id, name: project.name } });
-          }
-        });
-      });
-
-      const hasResults = currentResults.projects.length > 0 || currentResults.tasks.length > 0 || currentResults.journal.length > 0;
-      if (!hasResults) {
-        setAiSearchSummary(null);
-        setIsSummaryLoading(false);
-        return;
-      }
-
-      setIsSummaryLoading(true);
+    const hasResults = searchResults.projects.length > 0 || searchResults.tasks.length > 0 || searchResults.journal.length > 0;
+    if (!hasResults) {
       setAiSearchSummary(null);
-      
+      setIsSummaryLoading(false);
+      return;
+    }
+
+    setIsSummaryLoading(true);
+    setAiSearchSummary(null);
+    
+    const fetchSummary = async () => {
       try {
         const response = await fetch('/api/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'summarize-search',
-            searchTerm,
+            searchTerm: debouncedSearchTerm,
             resultCounts: {
-              projects: currentResults.projects.length,
-              tasks: currentResults.tasks.length,
-              journal: currentResults.journal.length
+              projects: searchResults.projects.length,
+              tasks: searchResults.tasks.length,
+              journal: searchResults.journal.length
             }
           }),
         });
@@ -230,10 +220,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       } finally {
         setIsSummaryLoading(false);
       }
-    }, 800); // Increased timeout to 800ms for better debouncing
+    };
 
-    return () => clearTimeout(handler);
-  }, [searchTerm, projects]); // Only depend on searchTerm for proper debouncing
+    fetchSummary();
+  }, [debouncedSearchTerm, searchResults]);
 
   const handleSearchResultClick = (item: SearchResultItem) => {
     if (item.type === 'project') {
@@ -243,6 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
     setCurrentView('projectDetails');
     setSearchTerm('');
+    setDebouncedSearchTerm('');
   };
   
   const scrollToBottom = () => {
@@ -270,7 +261,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   useEffect(adjustTextareaHeight, [prompt]);
 
-  // Updated handleSubmit to use new API
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || isStreaming) return;
@@ -473,9 +463,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <h1 className="text-2xl font-bold">PiMbOt AI</h1>
           </div>
           <div className="relative mb-4">
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search..." className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
-            {searchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={null} isSummaryLoading={false} />}
+            <input 
+              type="text" 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              placeholder="Search..." 
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" 
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {debouncedSearchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={aiSearchSummary} isSummaryLoading={isSummaryLoading} />}
           </div>
           <button onClick={clearChat} className="w-full flex items-center justify-center p-3 mb-4 rounded-lg bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
