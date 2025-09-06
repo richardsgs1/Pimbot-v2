@@ -68,7 +68,6 @@ const mockProjects: Project[] = [
   },
 ];
 
-
 interface DashboardProps {
   userData: OnboardingData;
   onLogout: () => void;
@@ -99,7 +98,6 @@ const ModelIcon: React.FC = () => (
     </div>
 );
 
-
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [prompt, setPrompt] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
@@ -115,7 +113,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -137,18 +134,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     localStorage.setItem(`pimbot_projects_${userData.name}`, JSON.stringify(projects));
   }, [projects, userData.name]);
 
-  // Debounce the search term
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
   const searchResults = useMemo<SearchResults>(() => {
-    if (!debouncedSearchTerm.trim()) return { projects: [], tasks: [], journal: [] };
-    const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
+    if (!searchTerm.trim()) return { projects: [], tasks: [], journal: [] };
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const results: SearchResults = { projects: [], tasks: [], journal: [] };
     projects.forEach(project => {
       if (project.name.toLowerCase().includes(lowerCaseSearchTerm) || project.description.toLowerCase().includes(lowerCaseSearchTerm)) {
@@ -166,16 +154,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       });
     });
     return results;
-  }, [debouncedSearchTerm, projects]);
+  }, [searchTerm, projects]);
 
-  // AI search summary effect - only triggers on debouncedSearchTerm
+  // Simplified search summary effect - no debouncing for now to test
   useEffect(() => {
-    if (!debouncedSearchTerm.trim()) {
+    if (!searchTerm.trim()) {
       setAiSearchSummary(null);
       setIsSummaryLoading(false);
       return;
     }
-
+    
     const hasResults = searchResults.projects.length > 0 || searchResults.tasks.length > 0 || searchResults.journal.length > 0;
     if (!hasResults) {
       setAiSearchSummary(null);
@@ -183,47 +171,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       return;
     }
 
-    setIsSummaryLoading(true);
-    setAiSearchSummary(null);
-    
-    const fetchSummary = async () => {
-      try {
-        const response = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'summarize-search',
-            searchTerm: debouncedSearchTerm,
-            resultCounts: {
-              projects: searchResults.projects.length,
-              tasks: searchResults.tasks.length,
-              journal: searchResults.journal.length
-            }
-          }),
-        });
-        
-        const responseText = await response.text();
-        if (!response.ok) {
-            let errorMsg = 'Failed to fetch summary.';
-            try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
-            throw new Error(errorMsg);
-        }
-        if (!responseText) {
-            setAiSearchSummary(null);
-            return;
-        }
-        const data = JSON.parse(responseText);
-        setAiSearchSummary(data.summary);
-      } catch (error) {
-        console.error("Failed to get AI search summary:", error);
-        setAiSearchSummary("Could not generate summary.");
-      } finally {
-        setIsSummaryLoading(false);
-      }
-    };
-
-    fetchSummary();
-  }, [debouncedSearchTerm, searchResults]);
+    // Simplified - no API call for now to test search input
+    setAiSearchSummary("Search summary temporarily disabled for testing");
+    setIsSummaryLoading(false);
+  }, [searchTerm, searchResults]);
 
   const handleSearchResultClick = (item: SearchResultItem) => {
     if (item.type === 'project') {
@@ -233,7 +184,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
     setCurrentView('projectDetails');
     setSearchTerm('');
-    setDebouncedSearchTerm('');
   };
   
   const scrollToBottom = () => {
@@ -475,7 +425,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {debouncedSearchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={aiSearchSummary} isSummaryLoading={isSummaryLoading} />}
+            {/* SearchResultsOverlay temporarily commented out for testing */}
+            {/* {searchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={aiSearchSummary} isSummaryLoading={isSummaryLoading} />} */}
           </div>
           <button onClick={clearChat} className="w-full flex items-center justify-center p-3 mb-4 rounded-lg bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
