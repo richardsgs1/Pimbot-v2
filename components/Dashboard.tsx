@@ -356,7 +356,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               </svg>
             </SidebarIcon>
             Logout
-          </button>
+          </a>
         </div>
       </div>
     );
@@ -368,14 +368,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         return (
           <div className="space-y-6">
             <DailyBriefing userData={userData} />
-            <Home projects={projects} userData={userData} />
+            <Home 
+              projects={projects} 
+              userData={userData}
+              onSelectProject={(project: Project) => {
+                setSelectedProject(project);
+                setCurrentView('projectDetails');
+              }}
+              onMenuClick={(view: View) => setCurrentView(view)}
+            />
           </div>
         );
       case 'projectList':
         return (
           <ProjectList 
             projects={projects} 
-            onProjectSelect={(project) => {
+            onSelectProject={(project: Project) => {
               setSelectedProject(project);
               setCurrentView('projectDetails');
             }}
@@ -386,7 +394,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         return selectedProject ? (
           <ProjectDetails 
             project={selectedProject} 
-            onProjectUpdate={(updatedProject) => {
+            onUpdate={(updatedProject: Project) => {
               setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
               setSelectedProject(updatedProject);
             }}
@@ -453,9 +461,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           </div>
         );
       case 'analytics':
-        return <Analytics projects={projects} />;
+        return (
+          <Analytics 
+            projects={projects}
+            onUpdateProject={(updatedProject: Project) => {
+              setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+            }}
+            team={mockTeamMembers}
+            onMenuClick={(view: View) => setCurrentView(view)}
+          />
+        );
       case 'teamHub':
-        return <TeamHub projects={projects} />;
+        return (
+          <TeamHub 
+            projects={projects}
+            team={mockTeamMembers}
+            onSelectProject={(project: Project) => {
+              setSelectedProject(project);
+              setCurrentView('projectDetails');
+            }}
+            onMenuClick={(view: View) => setCurrentView(view)}
+          />
+        );
       default:
         return <div>View not found</div>;
     }
