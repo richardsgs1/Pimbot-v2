@@ -476,11 +476,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           <TeamHub 
             projects={projects}
             team={mockTeamMembers}
-            onSelectProject={(project: Project) => {
-              setSelectedProject(project);
-              setCurrentView('projectDetails');
+            onSelectProject={(projectId: string) => {
+              const project = projects.find(p => p.id === projectId);
+              if (project) {
+                setSelectedProject(project);
+                setCurrentView('projectDetails');
+              }
             }}
-            onMenuClick={(view: View) => setCurrentView(view)}
+            onMenuClick={() => setCurrentView('home')}
           />
         );
       default:
