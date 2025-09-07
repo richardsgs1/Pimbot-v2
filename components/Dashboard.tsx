@@ -257,8 +257,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <input 
               type="text" 
               value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..." 
+              onChange={handleSearchInput}
+              placeholder="Search projects and tasks..." 
               className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" 
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -266,27 +266,35 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {searchTerm.trim().length >= 3 && (
-              <div className="absolute top-full left-0 right-0 bg-slate-700 rounded-lg mt-1 p-3 text-sm max-h-32 overflow-y-auto z-50">
-                <div className="text-slate-300 mb-2">Found {searchResults.projects.length} projects, {searchResults.tasks.length} tasks</div>
-                {searchResults.projects.slice(0, 3).map((result) => (
-                  <div 
-                    key={result.data.id} 
-                    className="text-cyan-300 hover:text-white cursor-pointer py-1"
-                    onClick={() => handleSearchResultClick(result)}
-                  >
-                    📁 {result.data.name}
-                  </div>
-                ))}
-                {searchResults.tasks.slice(0, 3).map((result) => (
-                  <div 
-                    key={result.data.id} 
-                    className="text-blue-300 hover:text-white cursor-pointer py-1"
-                    onClick={() => handleSearchResultClick(result)}
-                  >
-                    ✓ {result.data.name}
-                  </div>
-                ))}
+            {searchVisible && (
+              <div className="absolute top-full left-0 right-0 bg-slate-700 rounded-lg mt-1 p-3 text-sm max-h-48 overflow-y-auto z-50 border border-slate-600 shadow-lg">
+                {searchResults.projects.length === 0 && searchResults.tasks.length === 0 ? (
+                  <div className="text-slate-400 text-center py-2">No results found</div>
+                ) : (
+                  <>
+                    <div className="text-slate-300 mb-2 font-medium">
+                      Found {searchResults.projects.length} projects, {searchResults.tasks.length} tasks
+                    </div>
+                    {searchResults.projects.map((result) => (
+                      <div 
+                        key={`project-${result.data.id}`} 
+                        className="text-cyan-300 hover:bg-slate-600 hover:text-white cursor-pointer py-2 px-2 rounded transition-colors"
+                        onClick={() => handleSearchResultClick(result)}
+                      >
+                        📁 {result.data.name}
+                      </div>
+                    ))}
+                    {searchResults.tasks.map((result) => (
+                      <div 
+                        key={`task-${result.data.id}`} 
+                        className="text-blue-300 hover:bg-slate-600 hover:text-white cursor-pointer py-2 px-2 rounded transition-colors"
+                        onClick={() => handleSearchResultClick(result)}
+                      >
+                        ✓ {result.data.name} <span className="text-slate-400 text-xs">in {result.project.name}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
