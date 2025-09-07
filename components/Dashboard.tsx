@@ -8,7 +8,6 @@ import Home from './Home';
 import Analytics from './Analytics';
 import TeamHub from './TeamHub';
 import DailyBriefing from './DailyBriefing';
-import SimpleSearch from './SimpleSearch';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -75,8 +74,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Simple search - no complex state management
   const searchResults = useMemo<SearchResults>(() => {
-    if (!searchTerm.trim()) return { projects: [], tasks: [], journal: [] };
+    if (searchTerm.trim().length < 3) {
+      return { projects: [], tasks: [], journal: [] };
+    }
     
     const term = searchTerm.toLowerCase();
     
@@ -123,10 +125,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatHistory]);
-
-  const handleSearchTermChange = useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -194,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
-  const handleSearchResultClick = (result: SearchResultItem) => {
+  const handleSearchResultClick = useCallback((result: SearchResultItem) => {
     if (result.type === 'project') {
       setSelectedProject(result.data);
       setCurrentView('projectDetails');
@@ -206,7 +204,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       }
     }
     setSearchTerm('');
-  };
+  }, [projects]);
 
   const clearChat = useCallback(() => {
     setChatHistory([]);
@@ -257,7 +255,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <input 
               type="text" 
               value={searchTerm} 
-              onChange={handleSearchInput}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search projects and tasks..." 
               className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" 
             />
@@ -266,7 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {searchVisible && (
+            {searchTerm.trim().length >= 3 && (
               <div className="absolute top-full left-0 right-0 bg-slate-700 rounded-lg mt-1 p-3 text-sm max-h-48 overflow-y-auto z-50 border border-slate-600 shadow-lg">
                 {searchResults.projects.length === 0 && searchResults.tasks.length === 0 ? (
                   <div className="text-slate-400 text-center py-2">No results found</div>
