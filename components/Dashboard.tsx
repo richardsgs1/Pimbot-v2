@@ -9,6 +9,7 @@ import Analytics from './Analytics';
 import SearchResultsOverlay from './SearchResultsOverlay';
 import TeamHub from './TeamHub';
 import DailyBriefing from './DailyBriefing';
+import SimpleSearch from './SimpleSearch';
 
 // Mock Data for Team
 const mockTeam: TeamMember[] = [
@@ -412,22 +413,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4 2 2 0 000-4zm0 2a2 2 0 110 4 2 2 0 010-4zm0 0v2m0 8v-2m0 2H8m4 0h4m-4 0v2m0-14a2 2 0 100 4 2 2 0 000-4zM4 12a8 8 0 1116 0H4z" /></svg>
             <h1 className="text-2xl font-bold">PiMbOt AI</h1>
           </div>
-          <div className="relative mb-4">
-            <input 
-              type="text" 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              placeholder="Search..." 
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition" 
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            {/* SearchResultsOverlay temporarily commented out for testing */}
-            {/* {searchTerm.trim() && <SearchResultsOverlay results={searchResults} onResultClick={handleSearchResultClick} aiSummary={aiSearchSummary} isSummaryLoading={isSummaryLoading} />} */}
-          </div>
+ <SimpleSearch onSearch={(term) => setSearchTerm(term)} />
           <button onClick={clearChat} className="w-full flex items-center justify-center p-3 mb-4 rounded-lg bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             New Chat
