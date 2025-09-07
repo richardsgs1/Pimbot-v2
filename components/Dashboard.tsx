@@ -356,7 +356,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               </svg>
             </SidebarIcon>
             Logout
-          </a>
+          </button>
         </div>
       </div>
     );
@@ -371,11 +371,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <Home 
               projects={projects} 
               userData={userData}
-              onSelectProject={(project: Project) => {
-                setSelectedProject(project);
-                setCurrentView('projectDetails');
+              onSelectProject={(id: string) => {
+                const project = projects.find(p => p.id === id);
+                if (project) {
+                  setSelectedProject(project);
+                  setCurrentView('projectDetails');
+                }
               }}
-              onMenuClick={(view: View) => setCurrentView(view)}
+              onMenuClick={() => setCurrentView('projectList')}
             />
           </div>
         );
@@ -383,22 +386,32 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         return (
           <ProjectList 
             projects={projects} 
-            onSelectProject={(project: Project) => {
-              setSelectedProject(project);
-              setCurrentView('projectDetails');
+            onSelectProject={(id: string) => {
+              const project = projects.find(p => p.id === id);
+              if (project) {
+                setSelectedProject(project);
+                setCurrentView('projectDetails');
+              }
             }}
-            userData={userData}
+            onProjectCreated={(projectData: any) => {
+              // Handle project creation if needed
+              console.log('Project created:', projectData);
+            }}
+            onMenuClick={() => setCurrentView('home')}
           />
         );
       case 'projectDetails':
         return selectedProject ? (
           <ProjectDetails 
             project={selectedProject} 
-            onUpdate={(updatedProject: Project) => {
+            onProjectUpdate={(updatedProject: Project) => {
               setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
               setSelectedProject(updatedProject);
             }}
+            onBack={() => setCurrentView('projectList')}
+            team={mockTeamMembers}
             userData={userData}
+            onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         ) : null;
       case 'chat':
@@ -468,7 +481,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
             }}
             team={mockTeamMembers}
-            onMenuClick={(view: View) => setCurrentView(view)}
+            onMenuClick={() => setCurrentView('home')}
           />
         );
       case 'teamHub':
