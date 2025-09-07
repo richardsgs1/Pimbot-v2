@@ -404,7 +404,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         return selectedProject ? (
           <ProjectDetails 
             project={selectedProject} 
-            onProjectUpdate={(updatedProject: Project) => {
+            onUpdateProject={(updatedProject: Project) => {
               setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
               setSelectedProject(updatedProject);
             }}
