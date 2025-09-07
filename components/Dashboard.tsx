@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, useRef, useEffect, useMemo } from 'react';
+import React, { useState, FormEvent, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { OnboardingData, Project, SearchResults, SearchResultItem, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -131,6 +131,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Stable search callback
+  const handleSearchTermChange = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(`pimbot_projects_${userData.name}`, JSON.stringify(projects));
   }, [projects, userData.name]);
@@ -207,12 +212,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       } finally {
         setIsSummaryLoading(false);
       }
-    }, 1000);
+    }, 1200);
 
     return () => clearTimeout(handler);
   }, [searchTerm, searchResults]);
 
-  const handleSearchResultClick = (item: SearchResultItem) => {
+  const handleSearchResultClick = useCallback((item: SearchResultItem) => {
     if (item.type === 'project') {
       setSelectedProjectId(item.data.id);
     } else {
@@ -220,7 +225,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
     setCurrentView('projectDetails');
     setSearchTerm('');
-  };
+  }, []);
   
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -324,19 +329,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
   
-  const clearChat = () => {
+  const clearChat = useCallback(() => {
     setChatHistory([]);
     localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
     setCurrentView('chat');
     console.log('Chat cleared');
-  };
+  }, [userData.name]);
   
-  const handleSelectProject = (id: string) => {
+  const handleSelectProject = useCallback((id: string) => {
     setSelectedProjectId(id);
     setCurrentView('projectDetails');
-  };
+  }, []);
   
-  const handleCreateProject = (projectData: Omit<Project, 'id' | 'status' | 'progress' | 'journal'>) => {
+  const handleCreateProject = useCallback((projectData: Omit<Project, 'id' | 'status' | 'progress' | 'journal'>) => {
     const newProject: Project = {
       ...projectData,
       id: `proj-${Date.now()}`, status: ProjectStatus.OnTrack, progress: 0,
@@ -344,11 +349,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       tasks: projectData.tasks.map((task, index) => ({ ...task, id: `task-${Date.now()}-${index}`, completed: false, priority: Priority.None }))
     };
     setProjects(prevProjects => [newProject, ...prevProjects]);
-  };
+  }, []);
 
-  const handleUpdateProject = (updatedProject: Project) => {
+  const handleUpdateProject = useCallback((updatedProject: Project) => {
     setProjects(prevProjects => prevProjects.map(p => (p.id === updatedProject.id ? updatedProject : p)));
-  };
+  }, []);
 
   const renderViewContent = () => {
     const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -449,7 +454,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <h1 className="text-2xl font-bold">PiMbOt AI</h1>
           </div>
           <div className="relative">
-            <SimpleSearch onSearch={(term) => setSearchTerm(term)} />
+            <SimpleSearch onSearch={handleSearchTermChange} />
             {searchTerm.trim() && (
               <SearchResultsOverlay 
                 results={searchResults} 

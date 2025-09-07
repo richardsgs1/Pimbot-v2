@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface SimpleSearchProps {
   onSearch: (term: string) => void;
@@ -7,14 +7,19 @@ interface SimpleSearchProps {
 const SimpleSearch: React.FC<SimpleSearchProps> = ({ onSearch }) => {
   const [localTerm, setLocalTerm] = useState('');
 
+  // Stable callback reference
+  const debouncedOnSearch = useCallback((term: string) => {
+    onSearch(term);
+  }, [onSearch]);
+
   // Proper debouncing with cleanup
   useEffect(() => {
     const timer = setTimeout(() => {
-      onSearch(localTerm);
-    }, 500);
+      debouncedOnSearch(localTerm);
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [localTerm, onSearch]);
+  }, [localTerm, debouncedOnSearch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalTerm(e.target.value);
