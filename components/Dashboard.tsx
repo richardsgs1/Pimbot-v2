@@ -453,9 +453,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           </div>
         );
       case 'analytics':
-        return <Analytics projects={projects} teamMembers={mockTeamMembers} />;
+        return <Analytics projects={projects} />;
       case 'teamHub':
-        return <TeamHub teamMembers={mockTeamMembers} projects={projects} />;
+        return <TeamHub projects={projects} />;
       default:
         return <div>View not found</div>;
     }
