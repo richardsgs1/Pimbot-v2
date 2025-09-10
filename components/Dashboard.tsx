@@ -84,71 +84,57 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   }, [chatHistory]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || isStreaming) return;
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  if (!prompt.trim() || isStreaming) return;
 
-    setError(null);
-    setIsStreaming(true);
+  setError(null);
+  setIsStreaming(true);
+  
+  const userMessage = { role: 'user' as const, content: prompt };
+  setChatHistory(prev => [...prev, userMessage]);
+  setPrompt('');
+
+  try {
+    const response = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'generate',
+        prompt: prompt,
+        userData: userData,
+        projects: projects,
+        history: chatHistory
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to get response');
     
-    const userMessage = { role: 'user' as const, content: prompt };
-    setChatHistory(prev => [...prev, userMessage]);
-    setPrompt('');
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
 
-    try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'generate',
-          prompt: prompt,
-          userData: userData,
-          projects: projects 
-        })
+    const assistantMessage = { role: 'assistant' as const, content: '' };
+    setChatHistory(prev => [...prev, assistantMessage]);
+
+    // Read the streaming response
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const text = new TextDecoder().decode(value);
+      setChatHistory(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1].content += text;
+        return updated;
       });
-
-      if (!response.ok) throw new Error('Failed to get response');
-      
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
-
-      const assistantMessage = { role: 'assistant' as const, content: '' };
-      setChatHistory(prev => [...prev, assistantMessage]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = new TextDecoder().decode(value);
-        const lines = text.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
-            
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                setChatHistory(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1].content += parsed.content;
-                  return updated;
-                });
-              }
-            } catch (e) {
-              console.warn('Failed to parse streaming data:', e);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setChatHistory(prev => prev.slice(0, -1));
-    } finally {
-      setIsStreaming(false);
     }
-  };
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'An error occurred');
+    setChatHistory(prev => prev.slice(0, -1));
+  } finally {
+    setIsStreaming(false);
+  }
+};
 
   const clearChat = useCallback(() => {
     setChatHistory([]);
