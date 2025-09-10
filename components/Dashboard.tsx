@@ -210,6 +210,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const clearChat = useCallback(() => {
     setChatHistory([]);
     localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
+    setCurrentView('chat'); // Navigate to chat view to see the cleared chat
     console.log('Chat cleared');
   }, [userData.name]);
 
@@ -349,12 +350,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         );
       case 'projectList':
         return (
-          <ProjectList 
+          List 
             projects={projects} 
             onSelectProject={(id: string) => {
               const project = projects.find(p => p.id === id);
               if (project) {
-                setSelectedProject(project);
+                setSelectedProj<Projectect(project);
                 setCurrentView('projectDetails');
               }
             }}
@@ -367,16 +368,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         );
       case 'projectDetails':
         return selectedProject ? (
-          <ProjectDetails 
-            project={selectedProject} 
-            onUpdateProject={(updatedProject: Project) => {
-              setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-              setSelectedProject(updatedProject);
+          <ProjectList 
+            projects={projects} 
+            onSelectProject={(id: string) => {
+              const project = projects.find(p => p.id === id);
+              if (project) {
+                setSelectedProject(project);
+                setCurrentView('projectDetails');
+              }
             }}
-            onBack={() => setCurrentView('projectList')}
-            team={mockTeamMembers}
-            userData={userData}
-            onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onProjectCreated={(projectData: Project) => {
+              setProjects(prev => [...prev, projectData]);
+            }}
+            onMenuClick={() => setCurrentView('home')}
           />
         ) : null;
       case 'chat':
