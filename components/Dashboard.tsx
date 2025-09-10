@@ -1,5 +1,5 @@
-import React, { useState, FormEvent, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { OnboardingData, Project, SearchResults, SearchResultItem, TeamMember } from '../types';
+import React, { useState, FormEvent, useRef, useEffect, useCallback } from 'react';
+import type { OnboardingData, Project, TeamMember } from '../types';
 import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProjectList from './ProjectList';
@@ -71,51 +71,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [prompt, setPrompt] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Simple search - no complex state management
-  const searchResults = useMemo<SearchResults>(() => {
-    if (searchTerm.trim().length < 3) {
-      return { projects: [], tasks: [], journal: [] };
-    }
-    
-    const term = searchTerm.toLowerCase();
-    
-    const projectResults = projects
-      .filter(project => 
-        project.name.toLowerCase().includes(term) || 
-        project.description.toLowerCase().includes(term)
-      )
-      .map(project => ({ type: 'project' as const, data: project }));
-    
-    const taskResults = projects.flatMap(project =>
-      project.tasks
-        .filter(task => task.name.toLowerCase().includes(term))
-        .map(task => ({
-          type: 'task' as const,
-          data: task,
-          project: { id: project.id, name: project.name }
-        }))
-    );
-    
-    const journalResults = projects.flatMap(project =>
-      project.journal
-        .filter(entry => entry.content.toLowerCase().includes(term))
-        .map(entry => ({
-          type: 'journal' as const,
-          data: entry,
-          project: { id: project.id, name: project.name }
-        }))
-    );
-    
-    return {
-      projects: projectResults,
-      tasks: taskResults,
-      journal: journalResults
-    };
-  }, [searchTerm, projects]);
 
   useEffect(() => {
     localStorage.setItem(`pimbot_chatHistory_${userData.name}`, JSON.stringify(chatHistory));
@@ -193,24 +150,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
-  const handleSearchResultClick = useCallback((result: SearchResultItem) => {
-    if (result.type === 'project') {
-      setSelectedProject(result.data);
-      setCurrentView('projectDetails');
-    } else if (result.type === 'task') {
-      const project = projects.find(p => p.id === result.project.id);
-      if (project) {
-        setSelectedProject(project);
-        setCurrentView('projectDetails');
-      }
-    }
-    setSearchTerm('');
-  }, [projects]);
-
   const clearChat = useCallback(() => {
     setChatHistory([]);
     localStorage.removeItem(`pimbot_chatHistory_${userData.name}`);
-    setCurrentView('chat'); // Navigate to chat view to see the cleared chat
+    setCurrentView('chat');
     console.log('Chat cleared');
   }, [userData.name]);
 
@@ -263,6 +206,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               }
             }}
           />
+
           <button onClick={clearChat} className="w-full flex items-center justify-center p-3 mb-4 rounded-lg bg-cyan-600/50 hover:bg-cyan-600/80 text-cyan-200 font-semibold transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -350,24 +294,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         );
       case 'projectList':
         return (
-          List 
-            projects={projects} 
-            onSelectProject={(id: string) => {
-              const project = projects.find(p => p.id === id);
-              if (project) {
-                setSelectedProj<Projectect(project);
-                setCurrentView('projectDetails');
-              }
-            }}
-            onProjectCreated={(projectData: any) => {
-              // Handle project creation if needed
-              console.log('Project created:', projectData);
-            }}
-            onMenuClick={() => setCurrentView('home')}
-          />
-        );
-      case 'projectDetails':
-        return selectedProject ? (
           <ProjectList 
             projects={projects} 
             onSelectProject={(id: string) => {
@@ -381,6 +307,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               setProjects(prev => [...prev, projectData]);
             }}
             onMenuClick={() => setCurrentView('home')}
+          />
+        );
+      case 'projectDetails':
+        return selectedProject ? (
+          <ProjectDetails 
+            project={selectedProject} 
+            onUpdateProject={(updatedProject: Project) => {
+              setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+              setSelectedProject(updatedProject);
+            }}
+            onBack={() => setCurrentView('projectList')}
+            team={mockTeamMembers}
+            userData={userData}
+            onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         ) : null;
       case 'chat':
