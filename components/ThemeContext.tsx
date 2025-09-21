@@ -52,21 +52,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const root = document.documentElement;
     
     if (theme === 'light') {
-      // Light theme colors
-      root.style.setProperty('--bg-primary', '#ffffff');
-      root.style.setProperty('--bg-secondary', '#f8fafc');
-      root.style.setProperty('--bg-tertiary', '#f1f5f9');
-      root.style.setProperty('--text-primary', '#0f172a');
-      root.style.setProperty('--text-secondary', '#475569');
-      root.style.setProperty('--text-tertiary', '#64748b');
-      root.style.setProperty('--border-primary', '#e2e8f0');
-      root.style.setProperty('--border-secondary', '#cbd5e1');
-      root.style.setProperty('--accent-primary', '#0891b2');
-      root.style.setProperty('--accent-hover', '#0e7490');
-      root.style.setProperty('--success', '#059669');
-      root.style.setProperty('--warning', '#d97706');
-      root.style.setProperty('--error', '#dc2626');
-      root.style.setProperty('--shadow', '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)');
+      // Light blue theme colors - easier on the eyes
+      root.style.setProperty('--bg-primary', '#f0f8ff');      // Very light blue (Alice Blue)
+      root.style.setProperty('--bg-secondary', '#e6f3ff');    // Slightly deeper light blue
+      root.style.setProperty('--bg-tertiary', '#dbeafe');     // Light blue with subtle gray
+      root.style.setProperty('--text-primary', '#1e293b');    // Dark slate for primary text
+      root.style.setProperty('--text-secondary', '#475569');  // Medium slate for secondary text
+      root.style.setProperty('--text-tertiary', '#64748b');   // Lighter slate for tertiary text
+      root.style.setProperty('--border-primary', '#bfdbfe');  // Light blue border
+      root.style.setProperty('--border-secondary', '#93c5fd'); // Slightly stronger blue border
+      root.style.setProperty('--accent-primary', '#0284c7');  // Sky blue accent
+      root.style.setProperty('--accent-hover', '#0369a1');    // Darker sky blue on hover
+      root.style.setProperty('--success', '#059669');         // Green (unchanged)
+      root.style.setProperty('--warning', '#d97706');         // Orange (unchanged)
+      root.style.setProperty('--error', '#dc2626');           // Red (unchanged)
+      root.style.setProperty('--shadow', '0 1px 3px 0 rgb(59 130 246 / 0.1), 0 1px 2px -1px rgb(59 130 246 / 0.1)'); // Blue-tinted shadow
     } else {
       // Dark theme colors (current)
       root.style.setProperty('--bg-primary', '#0f172a');

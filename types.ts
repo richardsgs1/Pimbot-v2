@@ -1,38 +1,25 @@
-
 export enum SkillLevel {
   NO_EXPERIENCE = 'No Experience',
   NOVICE = 'Novice',
-  INTERMEDIATE = 'Intermediate', 
+  INTERMEDIATE = 'Intermediate',
   EXPERIENCED = 'Experienced',
   EXPERT = 'Expert',
 }
 
-export interface OnboardingData {
-  id: string;
-  skillLevel: SkillLevel | null;
-  methodologies: string[];
-  tools: string[];
-  name: string;
-}
-
 export enum ProjectStatus {
+  Planning = 'Planning',
   OnTrack = 'On Track',
   AtRisk = 'At Risk',
   OffTrack = 'Off Track',
   Completed = 'Completed',
+  OnHold = 'On Hold',
 }
 
 export enum Priority {
-  High = 'High',
-  Medium = 'Medium',
   Low = 'Low',
-  None = 'None',
-}
-
-export interface TeamMember {
-  id: string;
-  name: string;
-  avatarColor: string;
+  Medium = 'Medium',
+  High = 'High',
+  Critical = 'Critical',
 }
 
 export interface Task {
@@ -41,15 +28,18 @@ export interface Task {
   completed: boolean;
   priority: Priority;
   dueDate: string;
+  startDate?: string;    // Added for timeline support
+  duration?: number;     // Added for timeline support (in days)
   assigneeId?: string;
   dependsOn?: string;
 }
 
-export interface JournalEntry {
+export interface TeamMember {
   id: string;
-  date: string;
-  content: string;
-  type: 'user' | 'model' | 'system';
+  name: string;
+  role: string;
+  email: string;
+  avatar?: string;
 }
 
 export interface Project {
@@ -57,29 +47,42 @@ export interface Project {
   name: string;
   description: string;
   status: ProjectStatus;
-  dueDate: string;
   progress: number;
+  startDate?: string;    // Added for timeline support
+  endDate: string;
+  dueDate?: string;      // Added to fix Home.tsx and ProjectList.tsx errors
+  priority: Priority;
+  manager: string;
+  teamSize: number;
   tasks: Task[];
-  journal: JournalEntry[];
-  aiHealthSummary?: string;
+  budget?: number;
+  spent?: number;
+  teamMembers?: TeamMember[];
 }
 
-export type ProjectSearchResult = { type: 'project'; data: Project };
-export type TaskSearchResult = { type: 'task'; data: Task; project: { id: string; name: string } };
-export type JournalSearchResult = { type: 'journal'; data: JournalEntry; project: { id: string; name: string } };
-
-export type SearchResultItem = ProjectSearchResult | TaskSearchResult | JournalSearchResult;
-
-export interface SearchResults {
-  projects: ProjectSearchResult[];
-  tasks: TaskSearchResult[];
-  journal: JournalSearchResult[];
+export interface OnboardingData {
+  skillLevel: SkillLevel | null;
+  methodologies: string[];
+  tools: string[];
+  name: string;
 }
 
 export enum CommunicationType {
   StatusUpdate = 'Project Status Update',
-  StakeholderUpdate = 'Stakeholder Update', 
+  StakeholderUpdate = 'Stakeholder Update',
   TeamAnnouncement = 'Team Announcement',
   RiskAlert = 'Risk Alert',
   MilestoneUpdate = 'Milestone Update'
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface AIResponse {
+  content: string;
+  type: 'text' | 'markdown';
 }

@@ -1,121 +1,243 @@
-
-import React from 'react';
-import type { Task } from '../types';
+import React, { useMemo } from 'react';
+import type { Project, Task } from '../types';
+import { Priority } from '../types';
 
 interface TimelineViewProps {
-  tasks: Task[];
-  projectDueDate: string;
+  projects: Project[];
+  selectedProjectId?: string;
 }
 
-const daysBetween = (date1: string, date2: string): number => {
-  const d1 = new Date(date1).getTime();
-  const d2 = new Date(date2).getTime();
-  return Math.round((d2 - d1) / (1000 * 3600 * 24));
-};
+interface TimelineTask extends Task {
+  projectName: string;
+  projectId: string;
+  calculatedStartDate: Date;
+  calculatedEndDate: Date;
+  calculatedDuration: number;
+}
 
-const addDays = (dateStr: string, days: number): Date => {
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + days);
-    return date;
-};
+const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId }) => {
+  const timelineTasks = useMemo(() => {
+    const tasksWithTimeline: TimelineTask[] = [];
+    
+    const projectsToShow = selectedProjectId 
+      ? projects.filter(p => p.id === selectedProjectId)
+      : projects;
 
-const TimelineView: React.FC<TimelineViewProps> = ({ tasks, projectDueDate }) => {
-  const scheduledTasks = tasks.filter(t => t.startDate && t.duration);
-  
-  if (scheduledTasks.length === 0) {
-    return <p className="text-slate-400 text-center py-8">No schedule data available. Generate a schedule to see the timeline.</p>;
+    projectsToShow.forEach(project => {
+      project.tasks.forEach(task => {
+        // Calculate start date and duration if not provided
+        const dueDate = new Date(task.dueDate);
+        const duration = task.duration || 7; // Default 7 days if not specified
+        const startDate = task.startDate 
+          ? new Date(task.startDate)
+          : new Date(dueDate.getTime() - (duration * 24 * 60 * 60 * 1000));
+
+        tasksWithTimeline.push({
+          ...task,
+          projectName: project.name,
+          projectId: project.id,
+          calculatedStartDate: startDate,
+          calculatedEndDate: dueDate,
+          calculatedDuration: duration
+        });
+      });
+    });
+
+    // Sort by start date
+    return tasksWithTimeline.sort((a, b) => 
+      a.calculatedStartDate.getTime() - b.calculatedStartDate.getTime()
+    );
+  }, [projects, selectedProjectId]);
+
+  const timelineRange = useMemo(() => {
+    if (timelineTasks.length === 0) return { start: new Date(), end: new Date() };
+    
+    const startDates = timelineTasks.map(t => t.calculatedStartDate);
+    const endDates = timelineTasks.map(t => t.calculatedEndDate);
+    
+    const earliestStart = new Date(Math.min(...startDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...endDates.map(d => d.getTime())));
+    
+    return { start: earliestStart, end: latestEnd };
+  }, [timelineTasks]);
+
+  const totalDays = Math.ceil((timelineRange.end.getTime() - timelineRange.start.getTime()) / (24 * 60 * 60 * 1000)) || 1;
+
+  const getTaskPosition = (task: TimelineTask) => {
+    const startOffset = Math.max(0, (task.calculatedStartDate.getTime() - timelineRange.start.getTime()) / (24 * 60 * 60 * 1000));
+    const duration = (task.calculatedEndDate.getTime() - task.calculatedStartDate.getTime()) / (24 * 60 * 60 * 1000);
+    
+    return {
+      left: `${(startOffset / totalDays) * 100}%`,
+      width: `${Math.max(2, (duration / totalDays) * 100)}%`
+    };
+  };
+
+  const getPriorityColor = (priority: Priority) => {
+    switch (priority) {
+      case Priority.High: return 'bg-red-500';
+      case Priority.Medium: return 'bg-yellow-500';
+      case Priority.Low: return 'bg-blue-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const generateDateHeaders = () => {
+    const headers = [];
+    const current = new Date(timelineRange.start);
+    
+    while (current <= timelineRange.end) {
+      headers.push(new Date(current));
+      current.setDate(current.getDate() + Math.max(1, Math.floor(totalDays / 10)));
+    }
+    
+    return headers;
+  };
+
+  if (timelineTasks.length === 0) {
+    return (
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-8 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[var(--text-tertiary)] mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">No Tasks to Display</h3>
+        <p className="text-[var(--text-tertiary)]">
+          {selectedProjectId ? 'This project has no tasks yet.' : 'Create some projects and tasks to see your timeline.'}
+        </p>
+      </div>
+    );
   }
 
-  const projectStartDate = scheduledTasks.reduce((earliest, task) => {
-    return new Date(task.startDate!) < new Date(earliest) ? task.startDate! : earliest;
-  }, scheduledTasks[0].startDate!);
-
-  const totalTimelineDays = daysBetween(projectStartDate, projectDueDate) + 1;
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const todayOffsetDays = daysBetween(projectStartDate, today.toISOString().split('T')[0]);
-  const todayPosition = (todayOffsetDays / totalTimelineDays) * 100;
-  
-  const tasksById = React.useMemo(() => scheduledTasks.reduce((acc, task) => { acc[task.id] = task; return acc; }, {} as Record<string, Task>), [scheduledTasks]);
-
   return (
-    <div className="bg-slate-800 rounded-xl p-6 relative overflow-x-auto">
-        <h2 className="text-xl font-bold text-white mb-6">Project Timeline</h2>
-        <div className="relative" style={{ minWidth: '800px' }}>
-            {/* Today Marker */}
-            {todayPosition >= 0 && todayPosition <= 100 && (
-                <div className="absolute top-0 bottom-0 border-l-2 border-red-500/70 z-10" style={{ left: `${todayPosition}%` }}>
-                    <div className="absolute -top-6 -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">TODAY</div>
-                </div>
-            )}
-            
-            {/* Task Rows */}
-            <div className="space-y-2 relative">
-            {scheduledTasks.map((task) => {
-                const offsetDays = daysBetween(projectStartDate, task.startDate!);
-                const left = (offsetDays / totalTimelineDays) * 100;
-                const width = (task.duration! / totalTimelineDays) * 100;
-
-                const taskEndDate = addDays(task.startDate!, task.duration!);
-                const isOverdue = !task.completed && taskEndDate < today;
-                
-                let bgColor = 'bg-cyan-600';
-                if (task.completed) bgColor = 'bg-blue-600';
-                if (isOverdue) bgColor = 'bg-red-600';
-
-                return (
-                    <div key={task.id} className="h-10 flex items-center group relative">
-                        <div className="w-48 text-sm text-slate-300 truncate pr-4 font-medium flex-shrink-0" title={task.name}>{task.name}</div>
-                        <div className="flex-grow h-full bg-slate-700/50 rounded-md relative">
-                             <div 
-                                className={`absolute h-full rounded-md transition-all duration-300 ${bgColor} flex items-center justify-start pl-2`} 
-                                style={{ left: `${left}%`, width: `${width}%` }}
-                                title={`${task.name}\nStart: ${task.startDate}\nDuration: ${task.duration} days`}
-                             >
-                             </div>
-                        </div>
-                    </div>
-                );
-            })}
-            </div>
-            {/* Dependency Lines - this is a simplified SVG overlay */}
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ minWidth: '800px' }}>
-                {scheduledTasks.map((task, index) => {
-                    if (!task.dependsOn || !tasksById[task.dependsOn] || !tasksById[task.dependsOn].startDate) return null;
-
-                    const dependentTask = tasksById[task.dependsOn];
-                    const startY = (index * 48) + 20;
-                    
-                    const dependentIndex = scheduledTasks.findIndex(t => t.id === dependentTask.id);
-                    const endY = (dependentIndex * 48) + 20;
-
-                    const startOffsetDays = daysBetween(projectStartDate, task.startDate!);
-                    const startXPercent = ((startOffsetDays) / totalTimelineDays) * 100;
-
-                    const endOffsetDays = daysBetween(projectStartDate, dependentTask.startDate!);
-                    const endXPercent = ((endOffsetDays + dependentTask.duration!) / totalTimelineDays) * 100;
-
-                    return (
-                        <path 
-                            key={`${task.id}-dep`}
-                            d={`M calc(${endXPercent}% + 8px) ${endY} L calc(${endXPercent}% + 20px) ${endY} L calc(${endXPercent}% + 20px) ${startY} L calc(${startXPercent}% - 8px) ${startY}`}
-                            stroke="#f59e0b"
-                            strokeWidth="1.5"
-                            fill="none"
-                            markerEnd="url(#arrow)"
-                        />
-                    );
-                })}
-                 <defs>
-                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
-                        markerWidth="4" markerHeight="4"
-                        orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
-                    </marker>
-                </defs>
-            </svg>
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold text-[var(--text-primary)]">Project Timeline</h3>
+        <div className="flex items-center text-sm text-[var(--text-tertiary)]">
+          <span className="mr-4">
+            {formatDate(timelineRange.start)} - {formatDate(timelineRange.end)}
+          </span>
+          <span>{timelineTasks.length} tasks</span>
         </div>
+      </div>
+
+      {/* Date Headers */}
+      <div className="relative mb-4 h-8">
+        <div className="flex justify-between text-xs text-[var(--text-tertiary)] border-b border-[var(--border-primary)] pb-2">
+          {generateDateHeaders().map((date, index) => (
+            <span key={index} className="font-medium">
+              {formatDate(date)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Timeline Tasks */}
+      <div className="space-y-3">
+        {timelineTasks.map((task, index) => {
+          const position = getTaskPosition(task);
+          const isCompleted = task.completed;
+          const isOverdue = !isCompleted && new Date() > task.calculatedEndDate;
+          
+          return (
+            <div key={task.id} className="relative">
+              {/* Task Row */}
+              <div className="flex items-center mb-2">
+                <div className="w-48 flex-shrink-0 pr-4">
+                  <div className="text-sm font-medium text-[var(--text-primary)] truncate" title={task.name}>
+                    {task.name}
+                  </div>
+                  <div className="text-xs text-[var(--text-tertiary)] truncate" title={task.projectName}>
+                    {task.projectName}
+                  </div>
+                </div>
+                
+                {/* Timeline Bar Container */}
+                <div className="flex-1 relative h-8 bg-[var(--bg-tertiary)] rounded-lg overflow-hidden">
+                  {/* Timeline Bar */}
+                  <div
+                    className={`absolute top-1 bottom-1 rounded transition-all duration-200 flex items-center justify-center text-xs font-medium text-white ${
+                      isCompleted 
+                        ? 'bg-green-500' 
+                        : isOverdue 
+                        ? 'bg-red-500' 
+                        : getPriorityColor(task.priority)
+                    } ${isCompleted ? 'opacity-70' : ''}`}
+                    style={position}
+                    title={`${task.name} - ${formatDate(task.calculatedStartDate)} to ${formatDate(task.calculatedEndDate)}`}
+                  >
+                    <span className="truncate px-2">
+                      {task.calculatedDuration}d
+                    </span>
+                  </div>
+                  
+                  {/* Today Indicator */}
+                  {(() => {
+                    const today = new Date();
+                    if (today >= timelineRange.start && today <= timelineRange.end) {
+                      const todayOffset = (today.getTime() - timelineRange.start.getTime()) / (24 * 60 * 60 * 1000);
+                      const todayPosition = (todayOffset / totalDays) * 100;
+                      
+                      return (
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-[var(--accent-primary)] z-10"
+                          style={{ left: `${todayPosition}%` }}
+                          title="Today"
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                {/* Task Status */}
+                <div className="w-20 flex-shrink-0 pl-4 text-right">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    isCompleted 
+                      ? 'bg-green-500/20 text-green-300' 
+                      : isOverdue
+                      ? 'bg-red-500/20 text-red-300'
+                      : 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]'
+                  }`}>
+                    {isCompleted ? 'Done' : isOverdue ? 'Overdue' : 'Active'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
+        <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+              High Priority
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
+              Medium Priority
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+              Low Priority
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+              Completed
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="w-0.5 h-4 bg-[var(--accent-primary)] mr-2"></div>
+            Today
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
