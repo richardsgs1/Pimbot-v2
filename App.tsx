@@ -1,78 +1,59 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import LoginScreen from './components/LoginScreen';
+import React, { useState, useEffect } from 'react';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
 
-type AppState = 'login' | 'onboarding' | 'dashboard';
-
-// FIX: Added a default ID to the onboarding data.
-const defaultOnboardingData: OnboardingData = {
-  id: 'user-1',
-  skillLevel: null,
-  methodologies: [],
-  tools: [],
-  name: 'Valued User',
-};
-
-const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>(() => {
-    return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
-  });
-
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
-    const savedData = localStorage.getItem('pimbot_onboardingData');
-    return savedData ? JSON.parse(savedData) : defaultOnboardingData;
-  });
+function App() {
+  const [userData, setUserData] = useState<OnboardingData | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('pimbot_appState', appState);
-  }, [appState]);
-
-  useEffect(() => {
-    localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
-  }, [onboardingData]);
-
-  // FIX: Updated handleLoginSuccess to accept email and set it as the user ID.
-  const handleLoginSuccess = useCallback((name: string, email: string) => {
-    setOnboardingData(prev => ({ ...prev, name, id: email }));
-    setAppState('onboarding');
-  }, []);
-
-  const handleOnboardingComplete = useCallback((data: OnboardingData) => {
-    setOnboardingData(data);
-    setAppState('dashboard');
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('pimbot_appState');
-    localStorage.removeItem('pimbot_onboardingData');
-    setOnboardingData(defaultOnboardingData);
-    setAppState('login');
-  }, []);
-
-  const renderContent = () => {
-    switch (appState) {
-      case 'login':
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-      case 'onboarding':
-        // FIX: Passed the entire onboarding data object to the Onboarding component.
-        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
-      case 'dashboard':
-        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
-      default:
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    // Check if user data exists in localStorage
+    const savedUserData = localStorage.getItem('pimbot-user-data');
+    if (savedUserData) {
+      try {
+        const parsedData = JSON.parse(savedUserData);
+        setUserData(parsedData);
+      } catch (error) {
+        console.error('Error parsing saved user data:', error);
+        localStorage.removeItem('pimbot-user-data');
+      }
     }
+  }, []);
+
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    setUserData(data);
+    // Save to localStorage
+    localStorage.setItem('pimbot-user-data', JSON.stringify(data));
+  };
+
+  const handleLogout = () => {
+    setUserData(null);
+    localStorage.removeItem('pimbot-user-data');
+  };
+
+  // Default initial data for onboarding
+  const defaultOnboardingData: OnboardingData = {
+    name: '',
+    skillLevel: null,
+    methodologies: [],
+    tools: []
   };
 
   return (
     <ThemeProvider>
-      <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300">
-        {renderContent()}
+      <div className="App">
+        {!userData ? (
+          <Onboarding 
+            onOnboardingComplete={handleOnboardingComplete}
+            initialData={defaultOnboardingData}
+          />
+        ) : (
+          <Dashboard userData={userData} onSignOut={handleLogout} />
+        )}
       </div>
     </ThemeProvider>
   );
-};
+}
 
 export default App;
