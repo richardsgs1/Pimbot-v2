@@ -98,19 +98,31 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           color: #0369a1 !important;
         }
         
-        /* Force dark cards to have light text */
+        /* Force all dark card backgrounds to have light text */
         [data-theme="light"] .bg-slate-800,
         [data-theme="light"] .bg-slate-800 *,
-        [data-theme="light"] .bg-slate-800 h1,
-        [data-theme="light"] .bg-slate-800 h2,
-        [data-theme="light"] .bg-slate-800 h3,
-        [data-theme="light"] .bg-slate-800 p,
-        [data-theme="light"] .bg-slate-800 span,
-        [data-theme="light"] .bg-slate-800 div {
+        [data-theme="light"] .bg-slate-700,
+        [data-theme="light"] .bg-slate-700 *,
+        [data-theme="light"] .bg-gray-800,
+        [data-theme="light"] .bg-gray-800 *,
+        [data-theme="light"] .bg-gray-700,
+        [data-theme="light"] .bg-gray-700 * {
           color: #ffffff !important;
         }
         
-        /* Override muted text classes to be readable on both backgrounds */
+        /* Force chat message backgrounds to be dark */
+        [data-theme="light"] [class*="bg-"][class*="tertiary"],
+        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] {
+          background-color: #334155 !important;
+          color: #ffffff !important;
+        }
+        
+        [data-theme="light"] [class*="bg-"][class*="tertiary"] *,
+        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] * {
+          color: #ffffff !important;
+        }
+        
+        /* Override muted text classes to be readable */
         [data-theme="light"] .text-slate-400,
         [data-theme="light"] .text-slate-500 {
           color: #94a3b8 !important;
@@ -121,9 +133,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           color: #64748b !important;
         }
         
-        /* Make sure tertiary text uses our CSS variable properly */
+        /* Make sure tertiary text uses appropriate color based on background */
         [data-theme="light"] .text-\\[var\\(--text-tertiary\\)\\] {
-          color: var(--text-tertiary) !important;
+          color: #64748b !important;
+        }
+        
+        /* On dark backgrounds, make tertiary text lighter */
+        [data-theme="light"] .bg-slate-800 .text-\\[var\\(--text-tertiary\\)\\],
+        [data-theme="light"] .bg-slate-700 .text-\\[var\\(--text-tertiary\\)\\],
+        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] .text-\\[var\\(--text-tertiary\\)\\] {
+          color: #cbd5e1 !important;
         }
         
         /* Preserve status badges and accent colors */
