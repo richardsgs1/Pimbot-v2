@@ -514,10 +514,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onSignOut }) => {
                     <h3 className="font-semibold text-white">{project.name}</h3>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       project.status === ProjectStatus.OnTrack
-                        ? 'bg-green-100 text-green-900'
+                        ? 'bg-green-200 text-green-900'
                         : project.status === ProjectStatus.AtRisk
-                        ? 'bg-yellow-100 text-yellow-900'
-                        : 'bg-red-100 text-red-900'
+                        ? 'bg-yellow-200 text-yellow-900'
+                        : 'bg-red-200 text-red-900'
                     }`}>
                       {project.status}
                     </span>
