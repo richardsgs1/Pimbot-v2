@@ -178,22 +178,124 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
       case 'projectDetails':
         return selectedProject ? (
-          <ProjectDetails
-            project={selectedProject}
-            onMenuClick={() => setShowSidebar(true)}
-            onUpdateProject={(updatedProject: Project) => {
-              setProjects(prev => 
-                prev.map(p => p.id === updatedProject.id ? updatedProject : p)
-              );
-              setSelectedProject(updatedProject);
-            }}
-            team={selectedProject.teamMembers || []}
-            userData={userData}
-            onBack={() => {
-              setCurrentView('projectList');
-              setSelectedProject(null);
-            }}
-          />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <button
+                  onClick={() => {
+                    setCurrentView('projectList');
+                    setSelectedProject(null);
+                  }}
+                  className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div>
+                  <h1 className="text-2xl font-bold text-[var(--text-primary)]">{selectedProject.name}</h1>
+                  <p className="text-[var(--text-tertiary)]">{selectedProject.description}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Project Details Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Project Info */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Project Overview</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-[var(--text-tertiary)]">Status</p>
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                        selectedProject.status === ProjectStatus.OnTrack ? 'bg-green-100 text-green-800' :
+                        selectedProject.status === ProjectStatus.AtRisk ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {selectedProject.status}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-[var(--text-tertiary)]">Progress</p>
+                      <p className="text-lg font-semibold text-[var(--text-primary)]">{selectedProject.progress}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-[var(--text-tertiary)]">Due Date</p>
+                      <p className="text-[var(--text-primary)]">{new Date(selectedProject.dueDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-[var(--text-tertiary)]">Manager</p>
+                      <p className="text-[var(--text-primary)]">{selectedProject.manager}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tasks */}
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Tasks</h3>
+                  <div className="space-y-3">
+                    {selectedProject.tasks.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            className="mr-3"
+                            readOnly
+                          />
+                          <div>
+                            <p className={`font-medium ${task.completed ? 'line-through text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
+                              {task.name}
+                            </p>
+                            <p className="text-sm text-[var(--text-tertiary)]">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          task.priority === Priority.High ? 'bg-red-100 text-red-800' :
+                          task.priority === Priority.Medium ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Budget</h3>
+                  {selectedProject.budget && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-[var(--text-tertiary)]">Budget</span>
+                        <span className="text-[var(--text-primary)]">${selectedProject.budget.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[var(--text-tertiary)]">Spent</span>
+                        <span className="text-[var(--text-primary)]">${(selectedProject.spent || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-[var(--text-secondary)]">Remaining</span>
+                        <span className="text-[var(--text-primary)]">${(selectedProject.budget - (selectedProject.spent || 0)).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Team</h3>
+                  <div className="space-y-2">
+                    <p className="text-[var(--text-tertiary)]">Team Size: {selectedProject.teamSize}</p>
+                    <p className="text-[var(--text-tertiary)]">Manager: {selectedProject.manager}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
