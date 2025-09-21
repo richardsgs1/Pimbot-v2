@@ -35,17 +35,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const root = document.documentElement;
     
     if (theme === 'light') {
-      // Muted blue-gray theme with high contrast text
-      root.style.setProperty('--bg-primary', '#f8fafc');      // Slate-50 - very light background
-      root.style.setProperty('--bg-secondary', '#f1f5f9');    // Slate-100 - cards background
-      root.style.setProperty('--bg-tertiary', '#e2e8f0');     // Slate-200 - hover states
-      root.style.setProperty('--text-primary', '#020617');    // Slate-950 - very dark text
-      root.style.setProperty('--text-secondary', '#0f172a');  // Slate-900 - dark text
-      root.style.setProperty('--text-tertiary', '#334155');   // Slate-700 - readable muted text
-      root.style.setProperty('--border-primary', '#94a3b8');  // Slate-400 - defined borders
+      // High contrast light theme - maximum readability
+      root.style.setProperty('--bg-primary', '#ffffff');      // Pure white background
+      root.style.setProperty('--bg-secondary', '#f8fafc');    // Slate-50 - cards background
+      root.style.setProperty('--bg-tertiary', '#f1f5f9');     // Slate-100 - hover states
+      root.style.setProperty('--text-primary', '#000000');    // Pure black - maximum contrast
+      root.style.setProperty('--text-secondary', '#1e293b');  // Slate-800 - dark secondary text
+      root.style.setProperty('--text-tertiary', '#475569');   // Slate-600 - muted but dark enough
+      root.style.setProperty('--border-primary', '#cbd5e1');  // Slate-300 - visible borders
       root.style.setProperty('--accent-primary', '#0369a1');  // Blue-700 - strong accent
       root.style.setProperty('--accent-secondary', '#0284c7'); // Sky-600 - hover state
-      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(15, 23, 42, 0.1)'); // Subtle shadow
+      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)'); // Standard shadow
     } else {
       // Dark theme colors
       root.style.setProperty('--bg-primary', '#0f172a');      // Slate-900
