@@ -90,11 +90,37 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         [data-theme="light"] .prose ol,
         [data-theme="light"] .prose li,
         [data-theme="light"] .prose strong,
-        [data-theme="light"] .prose em {
+        [data-theme="light"] .prose em,
+        [data-theme="light"] div,
+        [data-theme="light"] span,
+        [data-theme="light"] p {
           color: #000000 !important;
         }
         [data-theme="light"] .prose a {
           color: #0369a1 !important;
+        }
+        /* Ensure all text in light mode is black */
+        [data-theme="light"] * {
+          color: #000000 !important;
+        }
+        /* Override specific component text colors */
+        [data-theme="light"] [class*="text-"],
+        [data-theme="light"] .text-slate-400,
+        [data-theme="light"] .text-slate-500,
+        [data-theme="light"] .text-slate-600,
+        [data-theme="light"] .text-gray-400,
+        [data-theme="light"] .text-gray-500,
+        [data-theme="light"] .text-gray-600 {
+          color: #000000 !important;
+        }
+        /* Keep accent colors for links and buttons */
+        [data-theme="light"] a,
+        [data-theme="light"] button,
+        [data-theme="light"] .text-cyan-400,
+        [data-theme="light"] .text-blue-400,
+        [data-theme="light"] .bg-cyan-600,
+        [data-theme="light"] .bg-blue-600 {
+          color: inherit;
         }
       `;
     } else {
