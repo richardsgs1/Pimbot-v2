@@ -41,6 +41,15 @@ export interface TeamMember {
   role: string;
   email: string;
   avatar?: string;
+  avatarColor?: string;  // Add this property
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string;
+  content: string;
+  author: string;
+  type?: string;  // Add this optional property
 }
 
 export interface Project {
@@ -59,6 +68,7 @@ export interface Project {
   budget?: number;
   spent?: number;
   teamMembers?: TeamMember[];
+  journal?: JournalEntry[];  // Add this property
 }
 
 export interface OnboardingData {

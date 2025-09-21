@@ -4,7 +4,6 @@ import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import Home from './Home';
 import ProjectList from './ProjectList';
-import ProjectDetails from './ProjectDetails';
 import Chat from './Chat';
 import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
@@ -55,7 +54,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         }
       ],
       budget: 50000,
-      spent: 32500
+      spent: 32500,
+      teamMembers: [
+        {
+          id: '1',
+          name: 'Sarah Johnson',
+          role: 'Project Manager',
+          email: 'sarah@company.com',
+          avatarColor: '#3B82F6'
+        },
+        {
+          id: '2',
+          name: 'Mike Chen',
+          role: 'Developer',
+          email: 'mike@company.com',
+          avatarColor: '#10B981'
+        }
+      ],
+      journal: [
+        {
+          id: '1',
+          date: '2024-01-20',
+          content: 'Project kickoff meeting completed. All stakeholders aligned on objectives.',
+          author: 'Sarah Johnson'
+        }
+      ]
     },
     {
       id: '2',
@@ -90,7 +113,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         }
       ],
       budget: 120000,
-      spent: 42000
+      spent: 42000,
+      teamMembers: [
+        {
+          id: '3',
+          name: 'Mike Chen',
+          role: 'Lead Developer',
+          email: 'mike@company.com',
+          avatarColor: '#8B5CF6'
+        },
+        {
+          id: '4',
+          name: 'Lisa Wong',
+          role: 'UI Designer',
+          email: 'lisa@company.com',
+          avatarColor: '#F59E0B'
+        }
+      ],
+      journal: [
+        {
+          id: '2',
+          date: '2024-02-05',
+          content: 'Development phase initiated. Backend API structure defined.',
+          author: 'Mike Chen'
+        }
+      ]
     }
   ]);
   
@@ -101,7 +148,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     setCurrentView(view);
     setProjectFilter(null);
     setShowSidebar(false);
+    
+    // Update browser history
+    window.history.pushState({ view }, '', `#${view}`);
   };
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.view) {
+        setCurrentView(event.state.view);
+        setProjectFilter(null);
+      }
+    };
+
+    // Set initial URL
+    window.history.replaceState({ view: currentView }, '', `#${currentView}`);
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Update history when view changes programmatically
+  useEffect(() => {
+    window.history.replaceState({ view: currentView }, '', `#${currentView}`);
+  }, [currentView]);
 
   const getHeaderInfo = () => {
     switch (currentView) {
@@ -134,7 +205,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       case 'home':
         return (
           <div className="space-y-6">
-            <DailyBriefing userData={userData} />
+            <DailyBriefing userData={userData} projects={projects} />
             <Home 
               projects={projects} 
               userData={userData}
