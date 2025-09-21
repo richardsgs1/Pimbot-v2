@@ -47,20 +47,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.style.setProperty('--accent-secondary', '#0284c7'); // Sky-600 - hover state
       root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)'); // Standard shadow
       
-      // Force text colors for common elements
+      // Force text colors for common elements and prose
       document.body.style.color = '#000000';
       root.style.setProperty('--tw-prose-body', '#000000');
       root.style.setProperty('--tw-prose-headings', '#000000');
-      root.style.setProperty('--tw-prose-lead', '#374151');
+      root.style.setProperty('--tw-prose-lead', '#000000');
       root.style.setProperty('--tw-prose-links', '#0369a1');
       root.style.setProperty('--tw-prose-bold', '#000000');
-      root.style.setProperty('--tw-prose-counters', '#6b7280');
-      root.style.setProperty('--tw-prose-bullets', '#d1d5db');
+      root.style.setProperty('--tw-prose-counters', '#000000');
+      root.style.setProperty('--tw-prose-bullets', '#000000');
       root.style.setProperty('--tw-prose-hr', '#e5e7eb');
-      root.style.setProperty('--tw-prose-quotes', '#111827');
+      root.style.setProperty('--tw-prose-quotes', '#000000');
       root.style.setProperty('--tw-prose-quote-borders', '#e5e7eb');
-      root.style.setProperty('--tw-prose-captions', '#6b7280');
-      root.style.setProperty('--tw-prose-code', '#111827');
+      root.style.setProperty('--tw-prose-captions', '#000000');
+      root.style.setProperty('--tw-prose-code', '#000000');
       root.style.setProperty('--tw-prose-pre-code', '#e5e7eb');
       root.style.setProperty('--tw-prose-pre-bg', '#1f2937');
       root.style.setProperty('--tw-prose-th-borders', '#d1d5db');
@@ -77,6 +77,25 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.style.setProperty('--accent-primary', '#06b6d4');  // Cyan-500
       root.style.setProperty('--accent-secondary', '#0891b2'); // Cyan-600
       root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.3)'); // Dark shadow
+      
+      // Reset prose colors for dark theme
+      document.body.style.color = '#f8fafc';
+      root.style.setProperty('--tw-prose-body', '#f8fafc');
+      root.style.setProperty('--tw-prose-headings', '#f8fafc');
+      root.style.setProperty('--tw-prose-lead', '#e2e8f0');
+      root.style.setProperty('--tw-prose-links', '#06b6d4');
+      root.style.setProperty('--tw-prose-bold', '#f8fafc');
+      root.style.setProperty('--tw-prose-counters', '#94a3b8');
+      root.style.setProperty('--tw-prose-bullets', '#475569');
+      root.style.setProperty('--tw-prose-hr', '#475569');
+      root.style.setProperty('--tw-prose-quotes', '#e2e8f0');
+      root.style.setProperty('--tw-prose-quote-borders', '#475569');
+      root.style.setProperty('--tw-prose-captions', '#94a3b8');
+      root.style.setProperty('--tw-prose-code', '#e2e8f0');
+      root.style.setProperty('--tw-prose-pre-code', '#94a3b8');
+      root.style.setProperty('--tw-prose-pre-bg', '#1e293b');
+      root.style.setProperty('--tw-prose-th-borders', '#475569');
+      root.style.setProperty('--tw-prose-td-borders', '#334155');
     }
 
     // Save theme preference
