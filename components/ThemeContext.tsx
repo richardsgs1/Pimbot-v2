@@ -77,7 +77,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         document.head.appendChild(lightThemeCSS);
       }
       lightThemeCSS.textContent = `
-        /* Prose styling overrides */
+        /* Prose styling overrides for light backgrounds */
         [data-theme="light"] .prose,
         [data-theme="light"] .prose *,
         [data-theme="light"] .prose p,
@@ -98,49 +98,54 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           color: #0369a1 !important;
         }
         
-        /* Light backgrounds should have dark text */
-        [data-theme="light"] [class*="bg-white"] *,
-        [data-theme="light"] [class*="bg-slate-50"] *,
-        [data-theme="light"] [class*="bg-slate-100"] *,
-        [data-theme="light"] [class*="bg-gray-50"] *,
-        [data-theme="light"] [class*="bg-gray-100"] *,
-        [data-theme="light"] .bg-\\[var\\(--bg-primary\\)\\] *,
-        [data-theme="light"] .bg-\\[var\\(--bg-secondary\\)\\] *,
-        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] * {
-          color: #000000 !important;
+        /* Force dark cards to have light text */
+        [data-theme="light"] .bg-slate-800,
+        [data-theme="light"] .bg-slate-800 *,
+        [data-theme="light"] .bg-slate-800 h1,
+        [data-theme="light"] .bg-slate-800 h2,
+        [data-theme="light"] .bg-slate-800 h3,
+        [data-theme="light"] .bg-slate-800 p,
+        [data-theme="light"] .bg-slate-800 span,
+        [data-theme="light"] .bg-slate-800 div {
+          color: #ffffff !important;
         }
         
-        /* Override specific muted text classes on light backgrounds */
+        /* Override muted text classes to be readable on both backgrounds */
         [data-theme="light"] .text-slate-400,
-        [data-theme="light"] .text-slate-500,
+        [data-theme="light"] .text-slate-500 {
+          color: #94a3b8 !important;
+        }
+        
         [data-theme="light"] .text-slate-600,
-        [data-theme="light"] .text-gray-400,
-        [data-theme="light"] .text-gray-500,
-        [data-theme="light"] .text-gray-600,
+        [data-theme="light"] .text-gray-600 {
+          color: #64748b !important;
+        }
+        
+        /* Make sure tertiary text uses our CSS variable properly */
         [data-theme="light"] .text-\\[var\\(--text-tertiary\\)\\] {
-          color: #475569 !important;
+          color: var(--text-tertiary) !important;
         }
         
-        /* Keep dark backgrounds with light text intact */
-        [data-theme="light"] [class*="bg-slate-800"],
-        [data-theme="light"] [class*="bg-slate-900"],
-        [data-theme="light"] [class*="bg-gray-800"],
-        [data-theme="light"] [class*="bg-gray-900"],
-        [data-theme="light"] [class*="bg-blue-"],
-        [data-theme="light"] [class*="bg-cyan-"],
-        [data-theme="light"] [class*="bg-green-"],
-        [data-theme="light"] [class*="bg-red-"],
-        [data-theme="light"] [class*="bg-yellow-"] {
-          color: inherit;
-        }
-        
-        /* Preserve button and accent colors */
-        [data-theme="light"] button,
-        [data-theme="light"] a,
-        [data-theme="light"] .text-white,
+        /* Preserve status badges and accent colors */
+        [data-theme="light"] .bg-green-100,
+        [data-theme="light"] .bg-yellow-100,
+        [data-theme="light"] .bg-red-100,
+        [data-theme="light"] .bg-blue-100,
+        [data-theme="light"] .text-green-800,
+        [data-theme="light"] .text-yellow-800,
+        [data-theme="light"] .text-red-800,
+        [data-theme="light"] .text-blue-800,
         [data-theme="light"] .text-cyan-400,
-        [data-theme="light"] .text-blue-400,
-        [data-theme="light"] .text-green-400 {
+        [data-theme="light"] .text-white {
+          color: inherit !important;
+        }
+        
+        /* Ensure buttons maintain proper colors */
+        [data-theme="light"] button,
+        [data-theme="light"] button *,
+        [data-theme="light"] a,
+        [data-theme="light"] .bg-cyan-600,
+        [data-theme="light"] .bg-cyan-600 * {
           color: inherit !important;
         }
       `;
