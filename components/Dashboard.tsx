@@ -64,6 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>(() => {
     const saved = localStorage.getItem(`pimbot_chatHistory_${userData.name}`);
     return saved ? JSON.parse(saved) : [];
@@ -84,57 +85,57 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   }, [chatHistory]);
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  if (!prompt.trim() || isStreaming) return;
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim() || isStreaming) return;
 
-  setError(null);
-  setIsStreaming(true);
-  
-  const userMessage = { role: 'user' as const, content: prompt };
-  setChatHistory(prev => [...prev, userMessage]);
-  setPrompt('');
-
-  try {
-    const response = await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'generate',
-        prompt: prompt,
-        userData: userData,
-        projects: projects,
-        history: chatHistory
-      })
-    });
-
-    if (!response.ok) throw new Error('Failed to get response');
+    setError(null);
+    setIsStreaming(true);
     
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    const userMessage = { role: 'user' as const, content: prompt };
+    setChatHistory(prev => [...prev, userMessage]);
+    setPrompt('');
 
-    const assistantMessage = { role: 'assistant' as const, content: '' };
-    setChatHistory(prev => [...prev, assistantMessage]);
-
-    // Read the streaming response
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = new TextDecoder().decode(value);
-      setChatHistory(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1].content += text;
-        return updated;
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'generate',
+          prompt: prompt,
+          userData: userData,
+          projects: projects,
+          history: chatHistory
+        })
       });
+
+      if (!response.ok) throw new Error('Failed to get response');
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const assistantMessage = { role: 'assistant' as const, content: '' };
+      setChatHistory(prev => [...prev, assistantMessage]);
+
+      // Read the streaming response
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = new TextDecoder().decode(value);
+        setChatHistory(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1].content += text;
+          return updated;
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setChatHistory(prev => prev.slice(0, -1));
+    } finally {
+      setIsStreaming(false);
     }
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'An error occurred');
-    setChatHistory(prev => prev.slice(0, -1));
-  } finally {
-    setIsStreaming(false);
-  }
-};
+  };
 
   const clearChat = useCallback(() => {
     setChatHistory([]);
@@ -148,6 +149,10 @@ const handleSubmit = async (e: FormEvent) => {
       case 'home':
         return { title: 'Dashboard Overview', subtitle: 'Welcome back to your project management hub' };
       case 'projectList':
+        if (projectFilter && projectFilter !== 'all') {
+          const filterTitle = projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1).replace('-', ' ');
+          return { title: `${filterTitle} Projects`, subtitle: `Projects filtered by ${filterTitle.toLowerCase()} status` };
+        }
         return { title: 'All Projects', subtitle: 'Manage and track your project portfolio' };
       case 'projectDetails':
         return { title: selectedProject?.name || 'Project Details', subtitle: 'Project overview and task management' };
@@ -169,6 +174,7 @@ const handleSubmit = async (e: FormEvent) => {
   const SidebarContent = ({ isMobile }: { isMobile?: boolean }) => {
     const handleNavClick = (view: View) => {
       setCurrentView(view);
+      setProjectFilter(null); // Clear any filters when switching views
       if (isMobile) setIsSidebarOpen(false);
     };
 
@@ -274,7 +280,14 @@ const handleSubmit = async (e: FormEvent) => {
                   setCurrentView('projectDetails');
                 }
               }}
-              onMenuClick={() => setCurrentView('projectList')}
+              onMenuClick={(filter: string) => {
+                if (filter.startsWith('projects-')) {
+                  setProjectFilter(filter.replace('projects-', ''));
+                  setCurrentView('projectList');
+                } else {
+                  setCurrentView('projectList');
+                }
+              }}
             />
           </div>
         );
@@ -282,6 +295,7 @@ const handleSubmit = async (e: FormEvent) => {
         return (
           <ProjectList 
             projects={projects} 
+            projectFilter={projectFilter}
             onSelectProject={(id: string) => {
               const project = projects.find(p => p.id === id);
               if (project) {
@@ -292,6 +306,7 @@ const handleSubmit = async (e: FormEvent) => {
             onProjectCreated={(projectData: Project) => {
               setProjects(prev => [...prev, projectData]);
             }}
+            onClearFilter={() => setProjectFilter(null)}
             onMenuClick={() => setCurrentView('home')}
           />
         );

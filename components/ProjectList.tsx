@@ -4,18 +4,61 @@ import { ProjectStatus } from '../types';
 
 interface ProjectListProps {
   projects: Project[];
+  projectFilter: string | null;
   onSelectProject: (id: string) => void;
   onProjectCreated: (projectData: any) => void;
+  onClearFilter: () => void;
   onMenuClick: () => void;
 }
 
-const ProjectList: React.FC<ProjectListProps> = ({ onMenuClick, projects, onSelectProject, onProjectCreated }) => {
+const ProjectList: React.FC<ProjectListProps> = ({ 
+  onMenuClick, 
+  projects, 
+  projectFilter,
+  onSelectProject, 
+  onProjectCreated,
+  onClearFilter
+}) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
     dueDate: ''
   });
+
+  const getFilteredProjects = () => {
+    if (!projectFilter || projectFilter === 'all') {
+      return projects;
+    }
+    
+    switch (projectFilter) {
+      case 'on-track':
+        return projects.filter(p => p.status === ProjectStatus.OnTrack);
+      case 'at-risk':
+        return projects.filter(p => p.status === ProjectStatus.AtRisk);
+      case 'off-track':
+        return projects.filter(p => p.status === ProjectStatus.OffTrack);
+      case 'completed':
+        return projects.filter(p => p.status === ProjectStatus.Completed);
+      default:
+        return projects;
+    }
+  };
+
+  const getFilterTitle = () => {
+    if (!projectFilter || projectFilter === 'all') {
+      return 'All Projects';
+    }
+    return projectFilter.charAt(0).toUpperCase() + projectFilter.slice(1).replace('-', ' ') + ' Projects';
+  };
+
+  const getFilterDescription = () => {
+    if (!projectFilter || projectFilter === 'all') {
+      return 'Manage and track your project portfolio';
+    }
+    const filterName = projectFilter.replace('-', ' ');
+    return `Projects currently ${filterName}`;
+  };
 
   const handleCreateProject = () => {
     if (!newProject.name.trim()) return;
@@ -36,6 +79,8 @@ const ProjectList: React.FC<ProjectListProps> = ({ onMenuClick, projects, onSele
     setShowCreateForm(false);
   };
 
+  const displayProjects = getFilteredProjects();
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -45,7 +90,20 @@ const ProjectList: React.FC<ProjectListProps> = ({ onMenuClick, projects, onSele
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h1 className="text-2xl font-bold">Projects</h1>
+          <div>
+            <h1 className="text-2xl font-bold">{getFilterTitle()}</h1>
+            {projectFilter && projectFilter !== 'all' && (
+              <button 
+                onClick={onClearFilter}
+                className="text-sm text-cyan-400 hover:text-cyan-300 mt-1 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to all projects
+              </button>
+            )}
+          </div>
         </div>
         <button 
           onClick={() => setShowCreateForm(true)}
@@ -58,7 +116,32 @@ const ProjectList: React.FC<ProjectListProps> = ({ onMenuClick, projects, onSele
         </button>
       </div>
       
-      <p className="text-slate-400 mb-4">Select a project to view its details or create a new one.</p>
+      <p className="text-slate-400 mb-4">{getFilterDescription()}</p>
+
+      {/* Filter Status Bar */}
+      {projectFilter && projectFilter !== 'all' && (
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className={`w-3 h-3 rounded-full mr-3 ${
+                projectFilter === 'on-track' ? 'bg-green-400' :
+                projectFilter === 'at-risk' ? 'bg-yellow-400' :
+                projectFilter === 'off-track' ? 'bg-red-400' :
+                'bg-blue-400'
+              }`}></div>
+              <span className="text-sm text-slate-300">
+                Showing {displayProjects.length} of {projects.length} projects
+              </span>
+            </div>
+            <button 
+              onClick={onClearFilter}
+              className="text-xs text-slate-400 hover:text-slate-300 px-2 py-1 rounded border border-slate-600 hover:border-slate-500 transition-colors"
+            >
+              Clear Filter
+            </button>
+          </div>
+        </div>
+      )}
 
       {showCreateForm && (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-4">
@@ -104,14 +187,59 @@ const ProjectList: React.FC<ProjectListProps> = ({ onMenuClick, projects, onSele
       )}
 
       <div className="bg-slate-800 border border-slate-700 rounded-lg">
-        {projects.map(p => (
+        {displayProjects.map(p => (
             <div key={p.id} onClick={() => onSelectProject(p.id)} className="cursor-pointer p-4 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50 transition-colors">
-                <p className="font-semibold">{p.name}</p>
-                <p className="text-sm text-slate-400">{p.description}</p>
-                <p className="text-xs text-slate-500 mt-1">Due: {new Date(p.dueDate).toLocaleDateString()}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-white">{p.name}</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    p.status === ProjectStatus.OnTrack ? 'bg-green-500/20 text-green-300' :
+                    p.status === ProjectStatus.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
+                    p.status === ProjectStatus.OffTrack ? 'bg-red-500/20 text-red-300' :
+                    'bg-blue-500/20 text-blue-300'
+                  }`}>
+                    {p.status}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-400 mb-2">{p.description}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">Due: {new Date(p.dueDate).toLocaleDateString()}</p>
+                  <div className="flex items-center">
+                    <div className="w-16 bg-slate-700 rounded-full h-2 mr-2">
+                      <div 
+                        className="bg-cyan-500 h-2 rounded-full" 
+                        style={{width: `${p.progress}%`}}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-slate-400">{p.progress}%</span>
+                  </div>
+                </div>
             </div>
         ))}
-        {projects.length === 0 && <p className="p-4 text-slate-400">No projects exist. Click "New Project" to create one.</p>}
+        {displayProjects.length === 0 && (
+          <div className="p-8 text-center">
+            <p className="text-slate-400 mb-4">
+              {projectFilter && projectFilter !== 'all' 
+                ? `No projects found with "${projectFilter.replace('-', ' ')}" status.`
+                : "No projects exist yet."
+              }
+            </p>
+            {!projectFilter || projectFilter === 'all' ? (
+              <button 
+                onClick={() => setShowCreateForm(true)}
+                className="text-cyan-400 hover:text-cyan-300 font-medium"
+              >
+                Create your first project →
+              </button>
+            ) : (
+              <button 
+                onClick={onClearFilter}
+                className="text-cyan-400 hover:text-cyan-300 font-medium"
+              >
+                View all projects →
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
