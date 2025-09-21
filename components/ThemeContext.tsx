@@ -15,21 +15,13 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) return savedTheme;
-    
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme') as Theme;
+      if (saved) return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    
     return 'light';
   });
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -39,177 +31,92 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     
     if (theme === 'light') {
       // High contrast light theme - maximum readability
-      root.style.setProperty('--bg-primary', '#ffffff');      
-      root.style.setProperty('--bg-secondary', '#f8fafc');    
-      root.style.setProperty('--bg-tertiary', '#f1f5f9');     
-      root.style.setProperty('--text-primary', '#000000');    
-      root.style.setProperty('--text-secondary', '#1e293b');  
-      root.style.setProperty('--text-tertiary', '#475569');   
-      root.style.setProperty('--border-primary', '#cbd5e1');  
-      root.style.setProperty('--accent-primary', '#0369a1');  
-      root.style.setProperty('--accent-secondary', '#0284c7'); 
-      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)');
-      
-      // Force text colors for common elements and prose
-      document.body.style.color = '#000000';
-      root.style.setProperty('--tw-prose-body', '#000000');
-      root.style.setProperty('--tw-prose-headings', '#000000');
-      root.style.setProperty('--tw-prose-lead', '#000000');
-      root.style.setProperty('--tw-prose-links', '#0369a1');
-      root.style.setProperty('--tw-prose-bold', '#000000');
-      root.style.setProperty('--tw-prose-counters', '#000000');
-      root.style.setProperty('--tw-prose-bullets', '#000000');
-      root.style.setProperty('--tw-prose-hr', '#e5e7eb');
-      root.style.setProperty('--tw-prose-quotes', '#000000');
-      root.style.setProperty('--tw-prose-quote-borders', '#e5e7eb');
-      root.style.setProperty('--tw-prose-captions', '#000000');
-      root.style.setProperty('--tw-prose-code', '#000000');
-      root.style.setProperty('--tw-prose-pre-code', '#e5e7eb');
-      root.style.setProperty('--tw-prose-pre-bg', '#1f2937');
-      root.style.setProperty('--tw-prose-th-borders', '#d1d5db');
-      root.style.setProperty('--tw-prose-td-borders', '#e5e7eb');
+      root.style.setProperty('--bg-primary', '#ffffff');
+      root.style.setProperty('--bg-secondary', '#f8fafc');
+      root.style.setProperty('--bg-tertiary', '#e2e8f0');
+      root.style.setProperty('--text-primary', '#000000');
+      root.style.setProperty('--text-secondary', '#1e293b');
+      root.style.setProperty('--text-tertiary', '#475569');
+      root.style.setProperty('--border-primary', '#d1d5db');
+      root.style.setProperty('--accent-primary', '#3b82f6');
+      root.style.setProperty('--accent-secondary', '#2563eb');
 
-      // Inject aggressive CSS to override prose styling
+      // Inject CSS for form inputs and prose styling
       let lightThemeCSS = document.getElementById('light-theme-override');
       if (!lightThemeCSS) {
         lightThemeCSS = document.createElement('style');
         lightThemeCSS.id = 'light-theme-override';
+        lightThemeCSS.innerHTML = `
+          /* Form input overrides */
+          [data-theme="light"] input,
+          [data-theme="light"] textarea,
+          [data-theme="light"] select {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+          }
+          
+          [data-theme="light"] input::placeholder,
+          [data-theme="light"] textarea::placeholder {
+            color: #6b7280 !important;
+            opacity: 1 !important;
+          }
+          
+          /* Prose text overrides */
+          [data-theme="light"] .prose,
+          [data-theme="light"] .prose * {
+            color: #000000 !important;
+          }
+          
+          /* Chat message and briefing text */
+          [data-theme="light"] .prose h1,
+          [data-theme="light"] .prose h2,
+          [data-theme="light"] .prose h3,
+          [data-theme="light"] .prose p,
+          [data-theme="light"] .prose ul,
+          [data-theme="light"] .prose ol,
+          [data-theme="light"] .prose li {
+            color: #000000 !important;
+          }
+          
+          /* Preserve dark cards */
+          [data-theme="light"] .bg-slate-800,
+          [data-theme="light"] .bg-slate-800 * {
+            color: #ffffff !important;
+          }
+        `;
         document.head.appendChild(lightThemeCSS);
       }
-      lightThemeCSS.textContent = `
-        /* Prose styling overrides for light backgrounds */
-        [data-theme="light"] .prose,
-        [data-theme="light"] .prose *,
-        [data-theme="light"] .prose p,
-        [data-theme="light"] .prose h1,
-        [data-theme="light"] .prose h2,
-        [data-theme="light"] .prose h3,
-        [data-theme="light"] .prose h4,
-        [data-theme="light"] .prose h5,
-        [data-theme="light"] .prose h6,
-        [data-theme="light"] .prose ul,
-        [data-theme="light"] .prose ol,
-        [data-theme="light"] .prose li,
-        [data-theme="light"] .prose strong,
-        [data-theme="light"] .prose em {
-          color: #000000 !important;
-        }
-        [data-theme="light"] .prose a {
-          color: #0369a1 !important;
-        }
-        
-        /* Force all dark card backgrounds to have light text */
-        [data-theme="light"] .bg-slate-800,
-        [data-theme="light"] .bg-slate-800 *,
-        [data-theme="light"] .bg-slate-700,
-        [data-theme="light"] .bg-slate-700 *,
-        [data-theme="light"] .bg-gray-800,
-        [data-theme="light"] .bg-gray-800 *,
-        [data-theme="light"] .bg-gray-700,
-        [data-theme="light"] .bg-gray-700 * {
-          color: #ffffff !important;
-        }
-        
-        /* Force chat message backgrounds to be dark */
-        [data-theme="light"] [class*="bg-"][class*="tertiary"],
-        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] {
-          background-color: #334155 !important;
-          color: #ffffff !important;
-        }
-        
-        [data-theme="light"] [class*="bg-"][class*="tertiary"] *,
-        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] * {
-          color: #ffffff !important;
-        }
-        
-        /* Override muted text classes to be readable */
-        [data-theme="light"] .text-slate-400,
-        [data-theme="light"] .text-slate-500 {
-          color: #94a3b8 !important;
-        }
-        
-        [data-theme="light"] .text-slate-600,
-        [data-theme="light"] .text-gray-600 {
-          color: #64748b !important;
-        }
-        
-        /* Make sure tertiary text uses appropriate color based on background */
-        [data-theme="light"] .text-\\[var\\(--text-tertiary\\)\\] {
-          color: #64748b !important;
-        }
-        
-        /* On dark backgrounds, make tertiary text lighter */
-        [data-theme="light"] .bg-slate-800 .text-\\[var\\(--text-tertiary\\)\\],
-        [data-theme="light"] .bg-slate-700 .text-\\[var\\(--text-tertiary\\)\\],
-        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] .text-\\[var\\(--text-tertiary\\)\\] {
-          color: #cbd5e1 !important;
-        }
-        
-        /* Preserve status badges and accent colors */
-        [data-theme="light"] .bg-green-100,
-        [data-theme="light"] .bg-yellow-100,
-        [data-theme="light"] .bg-red-100,
-        [data-theme="light"] .bg-blue-100,
-        [data-theme="light"] .text-green-800,
-        [data-theme="light"] .text-yellow-800,
-        [data-theme="light"] .text-red-800,
-        [data-theme="light"] .text-blue-800,
-        [data-theme="light"] .text-cyan-400,
-        [data-theme="light"] .text-white {
-          color: inherit !important;
-        }
-        
-        /* Ensure buttons maintain proper colors */
-        [data-theme="light"] button,
-        [data-theme="light"] button *,
-        [data-theme="light"] a,
-        [data-theme="light"] .bg-cyan-600,
-        [data-theme="light"] .bg-cyan-600 * {
-          color: inherit !important;
-        }
-      `;
-    } else {
-      // Dark theme colors
-      root.style.setProperty('--bg-primary', '#0f172a');      
-      root.style.setProperty('--bg-secondary', '#1e293b');    
-      root.style.setProperty('--bg-tertiary', '#334155');     
-      root.style.setProperty('--text-primary', '#f8fafc');    
-      root.style.setProperty('--text-secondary', '#e2e8f0');  
-      root.style.setProperty('--text-tertiary', '#94a3b8');   
-      root.style.setProperty('--border-primary', '#475569');  
-      root.style.setProperty('--accent-primary', '#06b6d4');  
-      root.style.setProperty('--accent-secondary', '#0891b2'); 
-      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.3)');
       
-      // Reset prose colors for dark theme
-      document.body.style.color = '#f8fafc';
-      root.style.setProperty('--tw-prose-body', '#f8fafc');
-      root.style.setProperty('--tw-prose-headings', '#f8fafc');
-      root.style.setProperty('--tw-prose-lead', '#e2e8f0');
-      root.style.setProperty('--tw-prose-links', '#06b6d4');
-      root.style.setProperty('--tw-prose-bold', '#f8fafc');
-      root.style.setProperty('--tw-prose-counters', '#94a3b8');
-      root.style.setProperty('--tw-prose-bullets', '#475569');
-      root.style.setProperty('--tw-prose-hr', '#475569');
-      root.style.setProperty('--tw-prose-quotes', '#e2e8f0');
-      root.style.setProperty('--tw-prose-quote-borders', '#475569');
-      root.style.setProperty('--tw-prose-captions', '#94a3b8');
-      root.style.setProperty('--tw-prose-code', '#e2e8f0');
-      root.style.setProperty('--tw-prose-pre-code', '#94a3b8');
-      root.style.setProperty('--tw-prose-pre-bg', '#1e293b');
-      root.style.setProperty('--tw-prose-th-borders', '#475569');
-      root.style.setProperty('--tw-prose-td-borders', '#334155');
+      // Force body text color
+      document.body.style.color = '#000000';
+    } else {
+      // Dark theme
+      root.style.setProperty('--bg-primary', '#0f172a');
+      root.style.setProperty('--bg-secondary', '#1e293b');
+      root.style.setProperty('--bg-tertiary', '#334155');
+      root.style.setProperty('--text-primary', '#f8fafc');
+      root.style.setProperty('--text-secondary', '#e2e8f0');
+      root.style.setProperty('--text-tertiary', '#94a3b8');
+      root.style.setProperty('--border-primary', '#475569');
+      root.style.setProperty('--accent-primary', '#3b82f6');
+      root.style.setProperty('--accent-secondary', '#2563eb');
 
-      // Remove light theme CSS override
+      // Remove light theme overrides
       const lightThemeCSS = document.getElementById('light-theme-override');
       if (lightThemeCSS) {
         lightThemeCSS.remove();
       }
+      
+      document.body.style.color = '#f8fafc';
     }
 
-    // Save theme preference
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
@@ -218,7 +125,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   );
 };
 
-export const useTheme = (): ThemeContextType => {
+export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
