@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
+import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
 
 type AppState = 'login' | 'onboarding' | 'dashboard';
@@ -19,7 +20,7 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(() => {
     return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
   });
-  
+
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
     const savedData = localStorage.getItem('pimbot_onboardingData');
     return savedData ? JSON.parse(savedData) : defaultOnboardingData;
@@ -66,9 +67,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900 text-white min-h-screen">
-      {renderContent()}
-    </div>
+    <ThemeProvider>
+      <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300">
+        {renderContent()}
+      </div>
+    </ThemeProvider>
   );
 };
 
