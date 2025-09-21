@@ -1,7 +1,8 @@
 
 export enum SkillLevel {
+  NO_EXPERIENCE = 'No Experience',
   NOVICE = 'Novice',
-  INTERMEDIATE = 'Intermediate',
+  INTERMEDIATE = 'Intermediate', 
   EXPERIENCED = 'Experienced',
   EXPERT = 'Expert',
 }
@@ -77,7 +78,8 @@ export interface SearchResults {
 
 export enum CommunicationType {
   StatusUpdate = 'Project Status Update',
-  RiskEscalation = 'Risk Escalation',
-  StakeholderUpdate = 'Stakeholder Update',
-  MeetingFollowUp = 'Meeting Follow-Up',
+  StakeholderUpdate = 'Stakeholder Update', 
+  TeamAnnouncement = 'Team Announcement',
+  RiskAlert = 'Risk Alert',
+  MilestoneUpdate = 'Milestone Update'
 }

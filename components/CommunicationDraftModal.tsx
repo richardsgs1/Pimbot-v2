@@ -40,16 +40,34 @@ const CommunicationDraftModal: React.FC<CommunicationDraftModalProps> = ({ isOpe
     setDraft(null);
     setCopySuccess('');
     try {
-      const response = await fetch('/api/draft-communication', {
+      const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, communicationType, audience, keyPoints }),
+        body: JSON.stringify({ 
+          action: 'draft-communication',
+          type: communicationType,
+          context: `Project: ${project.name}\nKey Points: ${keyPoints}`,
+          recipient: audience,
+          project,
+          communicationType,
+          keyPoints
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Failed to generate draft.');
       }
-      setDraft(data.draft);
+      setDraft(data.communication); // Note: changed from data.draft to data.communication
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+});
+const data = await response.json();
+if (!response.ok) {
+  throw new Error(data.error || 'Failed to generate draft.');
+}
+setDraft(data.communication); // Note: changed from data.draft to data.communication
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
