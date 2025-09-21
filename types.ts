@@ -16,6 +16,7 @@ export enum ProjectStatus {
 }
 
 export enum Priority {
+  None = 'None',
   Low = 'Low',
   Medium = 'Medium',
   High = 'High',
@@ -50,7 +51,7 @@ export interface Project {
   progress: number;
   startDate?: string;    // Added for timeline support
   endDate: string;
-  dueDate?: string;      // Added to fix Home.tsx and ProjectList.tsx errors
+  dueDate: string;       // Made required to fix null/undefined issues
   priority: Priority;
   manager: string;
   teamSize: number;
@@ -61,6 +62,7 @@ export interface Project {
 }
 
 export interface OnboardingData {
+  id?: string;           // Added to fix App.tsx error
   skillLevel: SkillLevel | null;
   methodologies: string[];
   tools: string[];

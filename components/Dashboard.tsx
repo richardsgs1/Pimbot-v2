@@ -172,6 +172,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             onProjectCreated={(newProject: Project) => {
               setProjects(prev => [...prev, newProject]);
             }}
+            onClearFilter={() => setProjectFilter(null)}
           />
         );
 
