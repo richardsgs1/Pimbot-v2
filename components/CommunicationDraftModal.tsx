@@ -1,8 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Project } from '../types';
-import { CommunicationType } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
+
+export enum CommunicationType {
+  StatusUpdate = 'Project Status Update',
+  StakeholderUpdate = 'Stakeholder Update', 
+  TeamAnnouncement = 'Team Announcement',
+  RiskAlert = 'Risk Alert',
+  MilestoneUpdate = 'Milestone Update'
+}
 
 interface CommunicationDraftModalProps {
   isOpen: boolean;
@@ -39,6 +45,7 @@ const CommunicationDraftModal: React.FC<CommunicationDraftModalProps> = ({ isOpe
     setError(null);
     setDraft(null);
     setCopySuccess('');
+    
     try {
       const response = await fetch('/api/ai', {
         method: 'POST',
@@ -53,21 +60,12 @@ const CommunicationDraftModal: React.FC<CommunicationDraftModalProps> = ({ isOpe
           keyPoints
         }),
       });
+      
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Failed to generate draft.');
       }
-      setDraft(data.communication); // Note: changed from data.draft to data.communication
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-    } finally {
-      setIsLoading(false);
-});
-const data = await response.json();
-if (!response.ok) {
-  throw new Error(data.error || 'Failed to generate draft.');
-}
-setDraft(data.communication); // Note: changed from data.draft to data.communication
+      setDraft(data.communication);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
@@ -91,7 +89,9 @@ setDraft(data.communication); // Note: changed from data.draft to data.communica
         <header className="p-4 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
           <h2 id="comm-modal-title" className="text-xl font-bold">Draft Communication</h2>
           <button onClick={onClose} className="p-1 rounded-full text-slate-400 hover:bg-slate-700" aria-label="Close modal">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </header>
 
@@ -100,29 +100,55 @@ setDraft(data.communication); // Note: changed from data.draft to data.communica
             <div className="space-y-4">
               <div>
                 <label htmlFor="comm-type" className="block text-sm font-medium text-slate-300 mb-2">Communication Type</label>
-                <select id="comm-type" value={communicationType} onChange={(e) => setCommunicationType(e.target.value as CommunicationType)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5">
-                  {Object.values(CommunicationType).map(type => <option key={type} value={type}>{type}</option>)}
+                <select 
+                  id="comm-type" 
+                  value={communicationType} 
+                  onChange={(e) => setCommunicationType(e.target.value as CommunicationType)} 
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5"
+                >
+                  {Object.values(CommunicationType).map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label htmlFor="audience" className="block text-sm font-medium text-slate-300 mb-2">Audience</label>
-                <input type="text" id="audience" value={audience} onChange={(e) => setAudience(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" placeholder="e.g., Stakeholders, Development Team" />
+                <input 
+                  type="text" 
+                  id="audience" 
+                  value={audience} 
+                  onChange={(e) => setAudience(e.target.value)} 
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" 
+                  placeholder="e.g., Stakeholders, Development Team" 
+                />
               </div>
               <div>
                 <label htmlFor="key-points" className="block text-sm font-medium text-slate-300 mb-2">Key Points (one per line)</label>
-                <textarea id="key-points" rows={4} value={keyPoints} onChange={(e) => setKeyPoints(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" placeholder="- Project is on track for Q3 launch&#10;- Marketing assets have been approved&#10;- Blocked by legal review on ad copy"></textarea>
+                <textarea 
+                  id="key-points" 
+                  rows={4} 
+                  value={keyPoints} 
+                  onChange={(e) => setKeyPoints(e.target.value)} 
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2.5" 
+                  placeholder="- Project is on track for Q3 launch&#10;- Marketing assets have been approved&#10;- Blocked by legal review on ad copy"
+                />
               </div>
             </div>
           )}
 
           {isLoading && (
             <div className="flex flex-col items-center justify-center min-h-[200px]">
-              <svg className="animate-spin h-8 w-8 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <svg className="animate-spin h-8 w-8 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
               <p className="mt-4 text-slate-400">PiMbOt AI is drafting your message...</p>
             </div>
           )}
 
-          {error && <div className="bg-red-900/50 text-red-300 p-3 rounded-lg text-sm">{error}</div>}
+          {error && (
+            <div className="bg-red-900/50 text-red-300 p-3 rounded-lg text-sm">{error}</div>
+          )}
 
           {draft && (
             <div>
@@ -136,16 +162,26 @@ setDraft(data.communication); // Note: changed from data.draft to data.communica
         <footer className="p-4 border-t border-slate-700 flex justify-end items-center gap-4 flex-shrink-0">
           {draft && !isLoading && (
             <>
-              <button onClick={handleCopyToClipboard} className="relative bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition">
+              <button 
+                onClick={handleCopyToClipboard} 
+                className="relative bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
                 {copySuccess || 'Copy'}
               </button>
-              <button onClick={handleGenerateDraft} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition">
+              <button 
+                onClick={handleGenerateDraft} 
+                className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition"
+              >
                 Regenerate
               </button>
             </>
           )}
           {!draft && !isLoading && (
-             <button onClick={handleGenerateDraft} disabled={isLoading || !keyPoints.trim()} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-slate-600 disabled:cursor-not-allowed">
+             <button 
+               onClick={handleGenerateDraft} 
+               disabled={isLoading || !keyPoints.trim()} 
+               className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:bg-slate-600 disabled:cursor-not-allowed"
+             >
               Generate Draft
             </button>
           )}
