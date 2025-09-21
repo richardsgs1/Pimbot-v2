@@ -5,10 +5,11 @@ import MarkdownRenderer from './MarkdownRenderer';
 import Home from './Home';
 import ProjectList from './ProjectList';
 import ProjectDetails from './ProjectDetails';
-// import Chat from './Chat'; // Comment out until Chat component exists
+import Chat from './Chat';
 import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
+import TaskSuggestions from './TaskSuggestions';
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline';
 
@@ -262,6 +263,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                     ))}
                   </div>
                 </div>
+
+                {/* Task Suggestions */}
+                <TaskSuggestions
+                  userData={userData}
+                  project={selectedProject}
+                  onTaskAdd={(newTask) => {
+                    const updatedProject = {
+                      ...selectedProject,
+                      tasks: [
+                        ...selectedProject.tasks,
+                        {
+                          ...newTask,
+                          id: Date.now().toString()
+                        }
+                      ]
+                    };
+                    setProjects(prev => 
+                      prev.map(p => p.id === updatedProject.id ? updatedProject : p)
+                    );
+                    setSelectedProject(updatedProject);
+                  }}
+                />
               </div>
 
               {/* Sidebar */}
@@ -317,26 +340,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
       case 'chat':
         return (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-[var(--text-secondary)] mb-2">
-                Chat Feature Coming Soon
-              </h3>
-              <p className="text-[var(--text-tertiary)]">
-                AI Assistant functionality is being developed
-              </p>
-            </div>
-          </div>
-        );
-        {/* Temporarily disabled until Chat component exists
-        return (
           <Chat
             userData={userData}
             projects={projects}
             onMenuClick={() => setShowSidebar(true)}
           />
         );
-        */}
 
       case 'timeline':
         return (
