@@ -77,6 +77,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         document.head.appendChild(lightThemeCSS);
       }
       lightThemeCSS.textContent = `
+        /* Prose styling overrides */
         [data-theme="light"] .prose,
         [data-theme="light"] .prose *,
         [data-theme="light"] .prose p,
@@ -90,37 +91,57 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         [data-theme="light"] .prose ol,
         [data-theme="light"] .prose li,
         [data-theme="light"] .prose strong,
-        [data-theme="light"] .prose em,
-        [data-theme="light"] div,
-        [data-theme="light"] span,
-        [data-theme="light"] p {
+        [data-theme="light"] .prose em {
           color: #000000 !important;
         }
         [data-theme="light"] .prose a {
           color: #0369a1 !important;
         }
-        /* Ensure all text in light mode is black */
-        [data-theme="light"] * {
+        
+        /* Light backgrounds should have dark text */
+        [data-theme="light"] [class*="bg-white"] *,
+        [data-theme="light"] [class*="bg-slate-50"] *,
+        [data-theme="light"] [class*="bg-slate-100"] *,
+        [data-theme="light"] [class*="bg-gray-50"] *,
+        [data-theme="light"] [class*="bg-gray-100"] *,
+        [data-theme="light"] .bg-\\[var\\(--bg-primary\\)\\] *,
+        [data-theme="light"] .bg-\\[var\\(--bg-secondary\\)\\] *,
+        [data-theme="light"] .bg-\\[var\\(--bg-tertiary\\)\\] * {
           color: #000000 !important;
         }
-        /* Override specific component text colors */
-        [data-theme="light"] [class*="text-"],
+        
+        /* Override specific muted text classes on light backgrounds */
         [data-theme="light"] .text-slate-400,
         [data-theme="light"] .text-slate-500,
         [data-theme="light"] .text-slate-600,
         [data-theme="light"] .text-gray-400,
         [data-theme="light"] .text-gray-500,
-        [data-theme="light"] .text-gray-600 {
-          color: #000000 !important;
+        [data-theme="light"] .text-gray-600,
+        [data-theme="light"] .text-\\[var\\(--text-tertiary\\)\\] {
+          color: #475569 !important;
         }
-        /* Keep accent colors for links and buttons */
-        [data-theme="light"] a,
+        
+        /* Keep dark backgrounds with light text intact */
+        [data-theme="light"] [class*="bg-slate-800"],
+        [data-theme="light"] [class*="bg-slate-900"],
+        [data-theme="light"] [class*="bg-gray-800"],
+        [data-theme="light"] [class*="bg-gray-900"],
+        [data-theme="light"] [class*="bg-blue-"],
+        [data-theme="light"] [class*="bg-cyan-"],
+        [data-theme="light"] [class*="bg-green-"],
+        [data-theme="light"] [class*="bg-red-"],
+        [data-theme="light"] [class*="bg-yellow-"] {
+          color: inherit;
+        }
+        
+        /* Preserve button and accent colors */
         [data-theme="light"] button,
+        [data-theme="light"] a,
+        [data-theme="light"] .text-white,
         [data-theme="light"] .text-cyan-400,
         [data-theme="light"] .text-blue-400,
-        [data-theme="light"] .bg-cyan-600,
-        [data-theme="light"] .bg-blue-600 {
-          color: inherit;
+        [data-theme="light"] .text-green-400 {
+          color: inherit !important;
         }
       `;
     } else {
