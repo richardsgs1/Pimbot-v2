@@ -34,18 +34,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const root = document.documentElement;
     
+    // Set data attribute for theme
+    root.setAttribute('data-theme', theme);
+    
     if (theme === 'light') {
       // High contrast light theme - maximum readability
-      root.style.setProperty('--bg-primary', '#ffffff');      // Pure white background
-      root.style.setProperty('--bg-secondary', '#f8fafc');    // Slate-50 - cards background
-      root.style.setProperty('--bg-tertiary', '#f1f5f9');     // Slate-100 - hover states
-      root.style.setProperty('--text-primary', '#000000');    // Pure black - maximum contrast
-      root.style.setProperty('--text-secondary', '#1e293b');  // Slate-800 - dark secondary text
-      root.style.setProperty('--text-tertiary', '#475569');   // Slate-600 - muted but dark enough
-      root.style.setProperty('--border-primary', '#cbd5e1');  // Slate-300 - visible borders
-      root.style.setProperty('--accent-primary', '#0369a1');  // Blue-700 - strong accent
-      root.style.setProperty('--accent-secondary', '#0284c7'); // Sky-600 - hover state
-      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)'); // Standard shadow
+      root.style.setProperty('--bg-primary', '#ffffff');      
+      root.style.setProperty('--bg-secondary', '#f8fafc');    
+      root.style.setProperty('--bg-tertiary', '#f1f5f9');     
+      root.style.setProperty('--text-primary', '#000000');    
+      root.style.setProperty('--text-secondary', '#1e293b');  
+      root.style.setProperty('--text-tertiary', '#475569');   
+      root.style.setProperty('--border-primary', '#cbd5e1');  
+      root.style.setProperty('--accent-primary', '#0369a1');  
+      root.style.setProperty('--accent-secondary', '#0284c7'); 
+      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)');
       
       // Force text colors for common elements and prose
       document.body.style.color = '#000000';
@@ -65,18 +68,47 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.style.setProperty('--tw-prose-pre-bg', '#1f2937');
       root.style.setProperty('--tw-prose-th-borders', '#d1d5db');
       root.style.setProperty('--tw-prose-td-borders', '#e5e7eb');
+
+      // Inject aggressive CSS to override prose styling
+      let lightThemeCSS = document.getElementById('light-theme-override');
+      if (!lightThemeCSS) {
+        lightThemeCSS = document.createElement('style');
+        lightThemeCSS.id = 'light-theme-override';
+        document.head.appendChild(lightThemeCSS);
+      }
+      lightThemeCSS.textContent = `
+        [data-theme="light"] .prose,
+        [data-theme="light"] .prose *,
+        [data-theme="light"] .prose p,
+        [data-theme="light"] .prose h1,
+        [data-theme="light"] .prose h2,
+        [data-theme="light"] .prose h3,
+        [data-theme="light"] .prose h4,
+        [data-theme="light"] .prose h5,
+        [data-theme="light"] .prose h6,
+        [data-theme="light"] .prose ul,
+        [data-theme="light"] .prose ol,
+        [data-theme="light"] .prose li,
+        [data-theme="light"] .prose strong,
+        [data-theme="light"] .prose em {
+          color: #000000 !important;
+        }
+        [data-theme="light"] .prose a {
+          color: #0369a1 !important;
+        }
+      `;
     } else {
       // Dark theme colors
-      root.style.setProperty('--bg-primary', '#0f172a');      // Slate-900
-      root.style.setProperty('--bg-secondary', '#1e293b');    // Slate-800
-      root.style.setProperty('--bg-tertiary', '#334155');     // Slate-700
-      root.style.setProperty('--text-primary', '#f8fafc');    // Slate-50
-      root.style.setProperty('--text-secondary', '#e2e8f0');  // Slate-200
-      root.style.setProperty('--text-tertiary', '#94a3b8');   // Slate-400
-      root.style.setProperty('--border-primary', '#475569');  // Slate-600
-      root.style.setProperty('--accent-primary', '#06b6d4');  // Cyan-500
-      root.style.setProperty('--accent-secondary', '#0891b2'); // Cyan-600
-      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.3)'); // Dark shadow
+      root.style.setProperty('--bg-primary', '#0f172a');      
+      root.style.setProperty('--bg-secondary', '#1e293b');    
+      root.style.setProperty('--bg-tertiary', '#334155');     
+      root.style.setProperty('--text-primary', '#f8fafc');    
+      root.style.setProperty('--text-secondary', '#e2e8f0');  
+      root.style.setProperty('--text-tertiary', '#94a3b8');   
+      root.style.setProperty('--border-primary', '#475569');  
+      root.style.setProperty('--accent-primary', '#06b6d4');  
+      root.style.setProperty('--accent-secondary', '#0891b2'); 
+      root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.3)');
       
       // Reset prose colors for dark theme
       document.body.style.color = '#f8fafc';
@@ -96,6 +128,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       root.style.setProperty('--tw-prose-pre-bg', '#1e293b');
       root.style.setProperty('--tw-prose-th-borders', '#475569');
       root.style.setProperty('--tw-prose-td-borders', '#334155');
+
+      // Remove light theme CSS override
+      const lightThemeCSS = document.getElementById('light-theme-override');
+      if (lightThemeCSS) {
+        lightThemeCSS.remove();
+      }
     }
 
     // Save theme preference
