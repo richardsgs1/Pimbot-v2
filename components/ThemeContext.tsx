@@ -35,13 +35,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const root = document.documentElement;
     
     if (theme === 'light') {
-      // Muted blue-gray theme - comfortable and professional
-      root.style.setProperty('--bg-primary', '#f1f5f9');      // Slate-100 - neutral light background
-      root.style.setProperty('--bg-secondary', '#e2e8f0');    // Slate-200 - subtle depth
-      root.style.setProperty('--bg-tertiary', '#cbd5e1');     // Slate-300 - gentle contrast
-      root.style.setProperty('--text-primary', '#0f172a');    // Slate-900 - strong contrast
-      root.style.setProperty('--text-secondary', '#1e293b');  // Slate-800 - readable
-      root.style.setProperty('--text-tertiary', '#475569');   // Slate-600 - muted but visible
+      // Muted blue-gray theme with high contrast text
+      root.style.setProperty('--bg-primary', '#f8fafc');      // Slate-50 - very light background
+      root.style.setProperty('--bg-secondary', '#f1f5f9');    // Slate-100 - cards background
+      root.style.setProperty('--bg-tertiary', '#e2e8f0');     // Slate-200 - hover states
+      root.style.setProperty('--text-primary', '#020617');    // Slate-950 - very dark text
+      root.style.setProperty('--text-secondary', '#0f172a');  // Slate-900 - dark text
+      root.style.setProperty('--text-tertiary', '#334155');   // Slate-700 - readable muted text
       root.style.setProperty('--border-primary', '#94a3b8');  // Slate-400 - defined borders
       root.style.setProperty('--accent-primary', '#0369a1');  // Blue-700 - strong accent
       root.style.setProperty('--accent-secondary', '#0284c7'); // Sky-600 - hover state
