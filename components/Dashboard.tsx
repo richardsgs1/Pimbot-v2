@@ -20,6 +20,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -456,9 +457,30 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   const SidebarContent = ({ isMobile }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
-      <div className="p-6 border-b border-[var(--border-primary)]">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">PiMbOt AI</h1>
-        <p className="text-sm text-[var(--text-tertiary)] mt-1">Project Intelligence</p>
+      <div className={`p-6 border-b border-[var(--border-primary)] ${sidebarMinimized ? 'px-2' : ''}`}>
+        <div className="flex items-center justify-between">
+          {!sidebarMinimized && (
+            <div>
+              <h1 className="text-xl font-bold text-[var(--text-primary)]">PiMbOt AI</h1>
+              <p className="text-sm text-[var(--text-tertiary)] mt-1">Project Intelligence</p>
+            </div>
+          )}
+          {!isMobile && (
+            <button
+              onClick={() => setSidebarMinimized(!sidebarMinimized)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              title={sidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {sidebarMinimized ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                )}
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <nav className="flex-1 p-4">
@@ -466,102 +488,113 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           <li>
             <button 
               onClick={() => handleNavClick('home')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+              className={`w-full flex items-center ${sidebarMinimized ? 'justify-center' : ''} p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'home' 
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
+              title={sidebarMinimized ? "Home" : ""}
             >
               <SidebarIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               </SidebarIcon>
-              Home
+              {!sidebarMinimized && "Home"}
             </button>
           </li>
           <li>
             <button 
               onClick={() => handleNavClick('projectList')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+              className={`w-full flex items-center ${sidebarMinimized ? 'justify-center' : ''} p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'projectList' 
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
+              title={sidebarMinimized ? "Projects" : ""}
             >
               <SidebarIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </SidebarIcon>
-              Projects
+              {!sidebarMinimized && "Projects"}
             </button>
           </li>
           <li>
             <button 
               onClick={() => handleNavClick('timeline')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+              className={`w-full flex items-center ${sidebarMinimized ? 'justify-center' : ''} p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'timeline' 
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
+              title={sidebarMinimized ? "Timeline" : ""}
             >
               <SidebarIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </SidebarIcon>
-              Timeline
+              {!sidebarMinimized && "Timeline"}
             </button>
           </li>
           <li>
             <button 
               onClick={() => handleNavClick('chat')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+              className={`w-full flex items-center ${sidebarMinimized ? 'justify-center' : ''} p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'chat' 
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
+              title={sidebarMinimized ? "AI Assistant" : ""}
             >
               <SidebarIcon>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </SidebarIcon>
-              AI Assistant
+              {!sidebarMinimized && "AI Assistant"}
             </button>
           </li>
         </ul>
 
-        <div className="mt-8 pt-4 border-t border-[var(--border-primary)]">
+        <div className={`mt-8 pt-4 border-t border-[var(--border-primary)] ${sidebarMinimized ? 'text-center' : ''}`}>
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>
-            <ThemeToggle />
+            {!sidebarMinimized && <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>}
+            <div className={sidebarMinimized ? 'flex justify-center' : ''}>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </nav>
 
-      <div className="p-4 border-t border-[var(--border-primary)]">
-        <div className="flex items-center mb-3">
+      <div className={`p-4 border-t border-[var(--border-primary)] ${sidebarMinimized ? 'px-2' : ''}`}>
+        <div className={`flex items-center mb-3 ${sidebarMinimized ? 'justify-center' : ''}`}>
           <div className="w-8 h-8 bg-[var(--accent-primary)] rounded-full flex items-center justify-center mr-3">
             <span className="text-sm font-bold text-white">
               {userData.name.charAt(0).toUpperCase()}
             </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-              {userData.name}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)] truncate">
-              {userData.skillLevel}
-            </p>
-          </div>
+          {!sidebarMinimized && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                {userData.name}
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] truncate">
+                {userData.skillLevel}
+              </p>
+            </div>
+          )}
         </div>
         <button 
           onClick={onLogout}
-          className="w-full bg-[var(--bg-tertiary)] hover:bg-red-600/20 text-[var(--text-tertiary)] hover:text-red-400 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+          className={`w-full bg-[var(--bg-tertiary)] hover:bg-red-600/20 text-[var(--text-tertiary)] hover:text-red-400 font-medium py-2 px-4 rounded-lg transition-colors duration-200 ${
+            sidebarMinimized ? 'text-xs' : ''
+          }`}
+          title={sidebarMinimized ? "Sign Out" : ""}
         >
-          Sign Out
+          {sidebarMinimized ? "Out" : "Sign Out"}
         </button>
       </div>
     </div>
@@ -572,7 +605,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   return (
     <div className="flex h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 bg-[var(--bg-secondary)] border-r border-[var(--border-primary)]">
+      <div className={`hidden md:block ${sidebarMinimized ? 'w-16' : 'w-64'} bg-[var(--bg-secondary)] border-r border-[var(--border-primary)] transition-all duration-300`}>
         <SidebarContent />
       </div>
 
