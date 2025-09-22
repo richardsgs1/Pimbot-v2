@@ -36,18 +36,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     
     // Set data attribute for theme
     root.setAttribute('data-theme', theme);
-    
+
     // Softer light theme - comfortable readability
     if (theme === 'light') {
-      root.style.setProperty('--bg-primary', '#fafafa');
-      root.style.setProperty('--bg-secondary', '#f5f5f5');
-      root.style.setProperty('--bg-tertiary', '#eeeeee');
-      root.style.setProperty('--text-primary', '#1f2937');
-      root.style.setProperty('--text-secondary', '#374151');
-      root.style.setProperty('--text-tertiary', '#6b7280');
-      root.style.setProperty('--border-primary', '#d1d5db');
-      root.style.setProperty('--accent-primary', '#3b82f6');
-      root.style.setProperty('--accent-secondary', '#2563eb');
+      root.style.setProperty('--bg-primary', '#f8f9fa');
+      root.style.setProperty('--bg-secondary', '#f1f3f4');
+      root.style.setProperty('--bg-tertiary', '#e8eaed');
+      root.style.setProperty('--text-primary', '#202124');
+      root.style.setProperty('--text-secondary', '#3c4043');
+      root.style.setProperty('--text-tertiary', '#5f6368');
+      root.style.setProperty('--border-primary', '#dadce0');
+      root.style.setProperty('--accent-primary', '#1a73e8');
+      root.style.setProperty('--accent-secondary', '#1557b0');
       root.style.setProperty('--shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)');
       
       // Force text colors for common elements and prose
