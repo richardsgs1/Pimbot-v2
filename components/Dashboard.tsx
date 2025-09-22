@@ -587,7 +587,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   return (
     <div className="flex h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 bg-[var(--bg-secondary)] border-r border-[var(--border-primary)]">
+       <div className={`hidden md:block ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-[var(--bg-secondary)] border-r border-[var(--border-primary)] transition-all duration-300`}>
         <SidebarContent />
       </div>
 
