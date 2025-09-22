@@ -10,7 +10,7 @@ import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
 
-type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline';
+type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -557,7 +557,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         <div className="mt-8 pt-4 border-t border-[var(--border-primary)]">
           <div className="mb-4">
             {!sidebarCollapsed && <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>}
-            <ThemeToggle />
+           {!sidebarCollapsed && <ThemeToggle />}
           </div>
         </div>
       </nav>
