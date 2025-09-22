@@ -20,6 +20,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
