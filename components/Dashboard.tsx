@@ -457,9 +457,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   const SidebarContent = ({ isMobile }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
-      <div className="p-6 border-b border-[var(--border-primary)]">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">PiMbOt AI</h1>
-        <p className="text-sm text-[var(--text-tertiary)] mt-1">Project Intelligence</p>
+      <div className="p-6 border-b border-[var(--border-primary)] flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">PiMbOt AI</h1>
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">Project Intelligence</p>
+        </div>
+        {!isMobile && (
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d={sidebarCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
+            </svg>
+          </button>
+    )}
       </div>
 
       <nav className="flex-1 p-4">
