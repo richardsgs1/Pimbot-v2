@@ -170,29 +170,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         [data-theme="light"] .bg-cyan-600 * {
           color: inherit !important;
         }
-          /* Fix for AI Assistant chat messages */
-        [data-theme="light"] .prose p,
-        [data-theme="light"] .prose div,
-        [data-theme="light"] .prose span,
-        [data-theme="light"] .chat-message,
-        [data-theme="light"] .chat-content,
-        [data-theme="light"] .message-text {
+         /* Aggressive fix for ALL light text in AI Assistant */
+        [data-theme="light"] * {
           color: #1e3a8a !important;
         }
-
-        /* Specific fix for chat containers */
-        [data-theme="light"] .bg-gray-100,
-        [data-theme="light"] .bg-gray-200,
-        [data-theme="light"] .bg-slate-100,
-        [data-theme="light"] .bg-slate-200 {
-          color: #1e3a8a !important;
+        
+        /* Re-preserve dark cards after the global override */
+        [data-theme="light"] .bg-slate-800,
+        [data-theme="light"] .bg-slate-800 *,
+        [data-theme="light"] .bg-slate-700,
+        [data-theme="light"] .bg-slate-700 *,
+        [data-theme="light"] .bg-gray-800,
+        [data-theme="light"] .bg-gray-800 *,
+        [data-theme="light"] .bg-gray-900,
+        [data-theme="light"] .bg-gray-900 * {
+          color: #ffffff !important;
         }
-
-        [data-theme="light"] .bg-gray-100 *,
-        [data-theme="light"] .bg-gray-200 *,
-        [data-theme="light"] .bg-slate-100 *,
-        [data-theme="light"] .bg-slate-200 * {
-          color: #1e3a8a !important;
+        
+        /* Re-preserve status badges */
+        [data-theme="light"] .text-green-800,
+        [data-theme="light"] .text-yellow-800,
+        [data-theme="light"] .text-red-800,
+        [data-theme="light"] .text-blue-800 {
+          color: inherit !important;
         }
       `;
     } else {
