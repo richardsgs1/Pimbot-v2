@@ -170,6 +170,30 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         [data-theme="light"] .bg-cyan-600 * {
           color: inherit !important;
         }
+          /* Fix for AI Assistant chat messages */
+        [data-theme="light"] .prose p,
+        [data-theme="light"] .prose div,
+        [data-theme="light"] .prose span,
+        [data-theme="light"] .chat-message,
+        [data-theme="light"] .chat-content,
+        [data-theme="light"] .message-text {
+          color: #1e3a8a !important;
+        }
+
+        /* Specific fix for chat containers */
+        [data-theme="light"] .bg-gray-100,
+        [data-theme="light"] .bg-gray-200,
+        [data-theme="light"] .bg-slate-100,
+        [data-theme="light"] .bg-slate-200 {
+          color: #1e3a8a !important;
+        }
+
+        [data-theme="light"] .bg-gray-100 *,
+        [data-theme="light"] .bg-gray-200 *,
+        [data-theme="light"] .bg-slate-100 *,
+        [data-theme="light"] .bg-slate-200 * {
+          color: #1e3a8a !important;
+        }
       `;
     } else {
       // Dark theme colors
