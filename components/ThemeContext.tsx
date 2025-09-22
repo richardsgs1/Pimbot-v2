@@ -39,10 +39,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Softer light theme - comfortable readability
     if (theme === 'light') {
-      root.style.setProperty('--bg-primary', '#f8f9fa');
-      root.style.setProperty('--bg-secondary', '#f1f3f4');
-      root.style.setProperty('--bg-tertiary', '#e8eaed');
-      root.style.setProperty('--text-primary', '#202124');
+      root.style.setProperty('--bg-primary', '#f5f6f7');
+      root.style.setProperty('--bg-secondary', '#eef0f2');
+      root.style.setProperty('--bg-tertiary', '#e1e3e6');
+      root.style.setProperty('--text-primary', '#1e3a8a');
       root.style.setProperty('--text-secondary', '#3c4043');
       root.style.setProperty('--text-tertiary', '#5f6368');
       root.style.setProperty('--border-primary', '#dadce0');
@@ -77,6 +77,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         document.head.appendChild(lightThemeCSS);
       }
       lightThemeCSS.textContent = `
+        /* Enhanced form input overrides for better visibility */
+        [data-theme="light"] input,
+        [data-theme="light"] textarea,
+        [data-theme="light"] select {
+          color: #1e3a8a !important;
+          background-color: #ffffff !important;
+          border: 2px solid #d1d5db !important;
+        }
+        
+        [data-theme="light"] input::placeholder,
+        [data-theme="light"] textarea::placeholder {
+          color: #6b7280 !important;
+          opacity: 0.8 !important;
+        }
+        
+        [data-theme="light"] input:focus,
+        [data-theme="light"] textarea:focus {
+          border-color: #1a73e8 !important;
+          outline: none !important;
+          box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
+        }
+
         /* Prose styling overrides for light backgrounds */
         [data-theme="light"] .prose,
         [data-theme="light"] .prose *,
@@ -92,7 +114,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         [data-theme="light"] .prose li,
         [data-theme="light"] .prose strong,
         [data-theme="light"] .prose em {
-          color: #000000 !important;
+          color: #1e3a8a !important;
         }
         [data-theme="light"] .prose a {
           color: #0369a1 !important;
