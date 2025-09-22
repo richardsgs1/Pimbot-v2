@@ -556,7 +556,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
         <div className="mt-8 pt-4 border-t border-[var(--border-primary)]">
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>
+            {!sidebarCollapsed && <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>}
             <ThemeToggle />
           </div>
         </div>
@@ -569,20 +569,22 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               {userData.name.charAt(0).toUpperCase()}
             </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-              {userData.name}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)] truncate">
-              {userData.skillLevel}
-            </p>
-          </div>
+          {!sidebarCollapsed && (
+     <div className="flex-1 min-w-0">
+       <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+         {userData.name}
+       </p>
+       <p className="text-xs text-[var(--text-tertiary)] truncate">
+         {userData.skillLevel}
+       </p>
+     </div>
+   )}
         </div>
         <button 
           onClick={onLogout}
           className="w-full bg-[var(--bg-tertiary)] hover:bg-red-600/20 text-[var(--text-tertiary)] hover:text-red-400 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
         >
-          Sign Out
+          {!sidebarCollapsed ? "Sign Out" : ""}
         </button>
       </div>
     </div>
