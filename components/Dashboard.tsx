@@ -22,6 +22,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(userData.name);
+  const [localUserData, setLocalUserData] = useState(userData);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [projects, setProjects] = useState<Project[]>([
     {
@@ -448,55 +449,55 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
         <div className="space-y-4">
           <div>
-  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
-  {isEditingName ? (
-    <div className="flex gap-2">
-      <input 
-        type="text" 
-        value={editedName}
-        onChange={(e) => setEditedName(e.target.value)}
-        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-      />
-      <button 
-        onClick={() => {
-          // Here we would save the name change
-          setIsEditingName(false);
-        }}
-        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-      >
-        Save
-      </button>
-      <button 
-        onClick={() => {
-          setEditedName(userData.name);
-          setIsEditingName(false);
-        }}
-        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-      >
-        Cancel
-      </button>
-    </div>
-  ) : (
-    <div className="flex items-center justify-between">
-      <input 
-        type="text" 
-        value={userData.name}
-        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-        readOnly
-      />
-      <button 
-        onClick={() => setIsEditingName(true)}
-        className="ml-2 px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-      >
-        Edit
-      </button>
-    </div>
-  )}
-</div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
+            {isEditingName ? (
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                />
+                <button 
+                  onClick={() => {
+                    setLocalUserData(prev => ({ ...prev, name: editedName }));
+                    setIsEditingName(false);
+                  }}
+                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                >
+                  Save
+                </button>
+                <button 
+                  onClick={() => {
+                    setEditedName(localUserData.name);
+                    setIsEditingName(false);
+                  }}
+                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <input 
+                  type="text" 
+                  value={localUserData.name}
+                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                  readOnly
+                />
+                <button 
+                  onClick={() => setIsEditingName(true)}
+                  className="ml-2 px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+          </div>
           
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
-            <p className="text-[var(--text-primary)]">{userData.skillLevel}</p>
+            <p className="text-[var(--text-primary)]">{localUserData.skillLevel}</p>
           </div>
           
           <div className="pt-4 border-t border-[var(--border-primary)]">
