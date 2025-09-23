@@ -656,19 +656,19 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             title="Account Settings"
           >
             <span className="text-sm font-bold text-white">
-              {userData.name.charAt(0).toUpperCase()}
+              {localUserData.name.charAt(0).toUpperCase()}
             </span>
           </button>
           {!sidebarCollapsed && (
-     <div className="flex-1 min-w-0">
-       <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-         {userData.name}
-       </p>
-       <p className="text-xs text-[var(--text-tertiary)] truncate">
-         {userData.skillLevel}
-       </p>
-     </div>
-   )}
+  <div className="flex-1 min-w-0">
+    <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+      {localUserData.name}
+    </p>
+    <p className="text-xs text-[var(--text-tertiary)] truncate">
+      {localUserData.skillLevel}
+    </p>
+  </div>
+)}
         </div>
         <button 
           onClick={onLogout}
