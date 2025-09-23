@@ -428,39 +428,50 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         );
 
       case 'account':
-        return (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Account Settings</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
-                  <input 
-                    type="text" 
-                    value={userData.name}
-                    className="w-full p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                    readOnly
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
-                  <p className="text-[var(--text-primary)]">{userData.skillLevel}</p>
-                </div>
-                
-                <div className="pt-4 border-t border-[var(--border-primary)]">
-                  <button 
-                    onClick={onLogout}
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            </div>
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Back button header */}
+      <div className="flex items-center mb-4">
+        <button
+          onClick={() => setCurrentView('home')}
+          className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Account Settings</h2>
+      </div>
+
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
+            <input 
+              type="text" 
+              value={userData.name}
+              className="w-full p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+              readOnly
+            />
           </div>
-        );
+          
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
+            <p className="text-[var(--text-primary)]">{userData.skillLevel}</p>
+          </div>
+          
+          <div className="pt-4 border-t border-[var(--border-primary)]">
+            <button 
+              onClick={onLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
       default:
         return (
