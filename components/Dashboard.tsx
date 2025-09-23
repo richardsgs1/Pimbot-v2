@@ -564,11 +564,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
       <div className="p-4 border-t border-[var(--border-primary)]">
         <div className="flex items-center mb-3">
-          <div className="w-8 h-8 bg-[var(--accent-primary)] rounded-full flex items-center justify-center mr-3">
+          <button
+            onClick={() => handleNavClick('account')}
+            className="w-8 h-8 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] rounded-full flex items-center justify-center mr-3 transition-colors"
+            title="Account Settings"
+          >
             <span className="text-sm font-bold text-white">
               {userData.name.charAt(0).toUpperCase()}
             </span>
-          </div>
+          </button>
           {!sidebarCollapsed && (
      <div className="flex-1 min-w-0">
        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
