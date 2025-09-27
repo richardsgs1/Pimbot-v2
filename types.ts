@@ -98,3 +98,14 @@ export interface AIResponse {
   content: string;
   type: 'text' | 'markdown';
 }
+export interface SearchResultItem {
+  type: 'project' | 'task' | 'journal';
+  data: any;
+  project: Project;
+}
+
+export interface SearchResults {
+  projects: SearchResultItem[];
+  tasks: SearchResultItem[];
+  journal: SearchResultItem[];
+}

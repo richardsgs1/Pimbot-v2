@@ -24,6 +24,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedName, setEditedName] = useState(userData.name);
   const [localUserData, setLocalUserData] = useState(userData);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isEditingSkill, setIsEditingSkill] = useState(false);
+  const [editedSkillLevel, setEditedSkillLevel] = useState(localUserData.skillLevel);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -455,7 +457,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 <input 
                   type="text" 
                   value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
+                  onChange={(e) => setEditedSkillLevel(e.target.value as any)}
                   className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 />
                 <button 
@@ -467,6 +469,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 >
                   Save
                 </button>
+                <button 
+                  onClick={() => {
+                    setEditedName(localUserData.name);
+                    setIsEditingName(false);
+                  }}
+                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+  Save
+</button>
                 <button 
                   onClick={() => {
                     setEditedName(localUserData.name);
@@ -496,9 +508,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
-            <p className="text-[var(--text-primary)]">{localUserData.skillLevel}</p>
-          </div>
+  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
+  {isEditingSkill ? (
+    <div className="flex gap-2">
+      <select 
+        value={editedSkillLevel || ''}
+        onChange={(e) => setEditedSkillLevel(e.target.value as any)}
+        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+      >
+        <option value="No Experience">No Experience</option>
+        <option value="Novice">Novice</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Experienced">Experienced</option>
+        <option value="Expert">Expert</option>
+      </select>
+      <button 
+        onClick={() => {
+          setLocalUserData(prev => ({ ...prev, skillLevel: editedSkillLevel as any }));
+          setIsEditingSkill(false);
+  }}
+        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+      >
+        Save
+      </button>
+      <button 
+        onClick={() => {
+          setEditedSkillLevel(localUserData.skillLevel);
+          setIsEditingSkill(false);
+        }}
+        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between">
+      <p className="text-[var(--text-primary)] p-3">{localUserData.skillLevel}</p>
+      <button 
+        onClick={() => setIsEditingSkill(true)}
+        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+      >
+        Edit
+      </button>
+    </div>
+  )}
+</div>
           
           <div className="pt-4 border-t border-[var(--border-primary)]">
             <button 
