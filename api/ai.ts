@@ -96,8 +96,10 @@ Provide helpful, practical project management advice. Tailor your response to th
 
 // Daily briefing
 async function handleBriefing(req: VercelRequest, res: VercelResponse, data: any) {
+  console.log('Briefing function received data:', JSON.stringify(data, null, 2));
   const { userData, projects } = data;
-
+  // ... rest of function
+}
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
