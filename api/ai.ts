@@ -32,11 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'summarize-journal':
         return await handleSummarizeJournal(req, res, data);
       case 'daily-briefing':
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const result = await model.generateContent(data.prompt);
-        const response = await result.response;
-        const briefing = response.text();
-        return res.json({ briefing });
+        return await handleBriefing(req, res, data);
       default:
         return res.status(400).json({ error: 'Invalid action' });
     }
