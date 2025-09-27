@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
