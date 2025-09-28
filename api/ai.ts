@@ -101,14 +101,13 @@ async function handleBriefing(req: VercelRequest, res: VercelResponse, data: any
   console.log('Data parameter:', JSON.stringify(data, null, 2));
   console.log('=====================');
   
-  const { userData, projects } = data;
+  const { userData, projects, prompt } = data;
   
-  // Rest of your existing function...
-}
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const prompt = `Create a daily briefing for ${userData.name} (${userData.skillLevel} level PM).
+    // Use the prompt from DailyBriefing component if available, otherwise create one
+    const briefingPrompt = prompt || `Create a daily briefing for ${userData?.name} (${userData?.skillLevel} level PM).
     
 Projects: ${JSON.stringify(projects, null, 2)}
 
@@ -120,7 +119,7 @@ Provide a concise daily briefing with:
 
 Keep it under 200 words and actionable.`;
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(briefingPrompt);
     const response = await result.response;
     
     return res.json({ briefing: response.text() });
