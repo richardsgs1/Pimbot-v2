@@ -9,7 +9,6 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
-import { saveUserData } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -31,6 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
   const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
+  
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -282,9 +282,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               </div>
             </div>
             
-            {/* Project Details Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Project Info */}
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Project Overview</h3>
@@ -314,7 +312,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Tasks */}
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Tasks</h3>
                   <div className="space-y-3">
@@ -346,7 +343,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Task Suggestions */}
                 <TaskSuggestions
                   userData={userData}
                   project={selectedProject}
@@ -369,7 +365,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 />
               </div>
 
-              {/* Sidebar */}
               <div className="space-y-6">
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
                   <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Budget</h3>
@@ -429,7 +424,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           />
         );
 
-            case 'timeline':
+      case 'timeline':
         return (
           <TimelineView 
             projects={projects} 
@@ -438,262 +433,232 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         );
 
       case 'account':
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Back button header */}
-      <div className="flex items-center mb-4">
-        <button
-          onClick={() => setCurrentView('home')}
-          className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Account Settings</h2>
-      </div>
+        return (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => setCurrentView('home')}
+                className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Account Settings</h2>
+            </div>
 
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
-            {isEditingName ? (
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)} // Fixed
-                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                />
-                <button 
-                  onClick={async () => {
-                    console.log('Save button clicked!');
-                    
-                    // First check if we have user data with an ID
-                    if (!localUserData.id) {
-                      console.log('No user ID found, generating one...');
-                      // For now, we'll generate a temporary ID
-                      const tempId = crypto.randomUUID();
-                      localUserData.id = tempId;
-                    }
-                    
-                    const updatedUserData = { ...localUserData, name: editedName };
-                    setLocalUserData(updatedUserData);
-
-                    try {
-                      await saveUserData(updatedUserData);
-                      console.log('Name saved to database successfully!');
-                    } catch (error) {
-                      console.error('Failed to save name:', error);
-                    }
-
-                    setIsEditingName(false);
-                  }}
-                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-                >
-                  Save
-                </button>
-                <button 
-                  onClick={() => {
-                    setEditedName(localUserData.name);
-                    setIsEditingName(false);
-                  }}
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <input 
-                  type="text" 
-                  value={localUserData.name}
-                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                  readOnly
-                />
-                <button 
-                  onClick={() => setIsEditingName(true)}
-                  className="ml-2 px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-                >
-                  Edit
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
-            {isEditingSkill ? (
-          <div className="flex gap-2">
-            <select 
-               value={editedSkillLevel || ''}
-               onChange={(e) => setEditedSkillLevel(e.target.value as any)}
-              className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-      >
-        <option value="No Experience">No Experience</option>
-        <option value="Novice">Novice</option>
-        <option value="Intermediate">Intermediate</option>
-        <option value="Experienced">Experienced</option>
-        <option value="Expert">Expert</option>
-      </select>
-      <button 
-        // Skill level save button  
-        onClick={async () => {
-          const updatedUserData = { ...localUserData, skillLevel: editedSkillLevel as any };
-          setLocalUserData(updatedUserData);
-  
-          try {
-            await saveUserData(updatedUserData);
-            console.log('Skill level saved to database');
-          } catch (error) {
-            console.error('Failed to save skill level:', error);
-        }
-  
-          setIsEditingSkill(false);
-        }}
-        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-      >
-        Save
-      </button>
-      <button 
-        onClick={() => {
-          setEditedSkillLevel(localUserData.skillLevel);
-          setIsEditingSkill(false);
-        }}
-        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-      >
-        Cancel
-      </button>
-    </div>
-  ) : (
-    <div className="flex items-center justify-between">
-      <p className="text-[var(--text-primary)] p-3">{localUserData.skillLevel}</p>
-      <button 
-        onClick={() => setIsEditingSkill(true)}
-        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-      >
-        Edit
-      </button>
-    </div>
-  )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
-            {isEditingEmail ? (
-              <div className="flex gap-2">
-                <input 
-                  type="email" 
-                  value={editedEmail}
-                  onChange={(e) => setEditedEmail(e.target.value)}
-                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                  placeholder="Enter your email"
-                />
-                <button 
-                  onClick={() => {
-                    setLocalUserData(prev => ({ ...prev, email: editedEmail }));
-                    setIsEditingEmail(false);
-                  }}
-                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-                >
-                  Save
-                </button>
-                <button 
-                  onClick={() => {
-                    setEditedEmail(localUserData.email || '');
-                    setIsEditingEmail(false);
-                  }}
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <p className="text-[var(--text-primary)] p-3">{localUserData.email || 'No email set'}</p>
-                <button 
-                  onClick={() => setIsEditingEmail(true)}
-                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-                >
-                  Edit
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Methodologies</label>
-            {isEditingMethodologies ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean', 'Six Sigma'].map((methodology) => (
-                    <label key={methodology} className="flex items-center space-x-2 p-2 border border-[var(--border-primary)] rounded cursor-pointer hover:bg-[var(--bg-tertiary)]">
-                      <input
-                        type="checkbox"
-                        checked={editedMethodologies.includes(methodology)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setEditedMethodologies(prev => [...prev, methodology]);
-                          } else {
-                            setEditedMethodologies(prev => prev.filter(m => m !== methodology));
-                        }  
-                        }}
-                        className="rounded"
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
+                  {isEditingName ? (
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                       />
-                      <span className="text-sm text-[var(--text-primary)]">{methodology}</span>
-                    </label>
-              ))}
+                      <button 
+                        onClick={() => {
+                          setLocalUserData(prev => ({ ...prev, name: editedName }));
+                          setIsEditingName(false);
+                        }}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setEditedName(localUserData.name);
+                          setIsEditingName(false);
+                        }}
+                        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <input 
+                        type="text" 
+                        value={localUserData.name}
+                        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        readOnly
+                      />
+                      <button 
+                        onClick={() => setIsEditingName(true)}
+                        className="ml-2 px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2 pt-2">
-        <button 
-          onClick={() => {
-            setLocalUserData(prev => ({ ...prev, methodologies: editedMethodologies }));
-            setIsEditingMethodologies(false);
-          }}
-          className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-        >
-          Save
-        </button>
-        <button 
-          onClick={() => {
-            setEditedMethodologies(localUserData.methodologies || []);
-            setIsEditingMethodologies(false);
-          }}
-          className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  ) : (
-    <div className="flex items-center justify-between">
-      <p className="text-[var(--text-primary)] p-3">
-        {localUserData.methodologies?.length > 0 
-          ? localUserData.methodologies.join(', ') 
-          : 'No methodologies selected'}
-      </p>
-      <button 
-        onClick={() => setIsEditingMethodologies(true)}
-        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
-      >
-        Edit
-            </button>
-          </div>
-  )}
-          </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
+                  {isEditingSkill ? (
+                    <div className="flex gap-2">
+                      <select 
+                        value={editedSkillLevel || ''}
+                        onChange={(e) => setEditedSkillLevel(e.target.value as any)}
+                        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      >
+                        <option value="No Experience">No Experience</option>
+                        <option value="Novice">Novice</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Experienced">Experienced</option>
+                        <option value="Expert">Expert</option>
+                      </select>
+                      <button 
+                        onClick={() => {
+                          setLocalUserData(prev => ({ ...prev, skillLevel: editedSkillLevel as any }));
+                          setIsEditingSkill(false);
+                        }}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setEditedSkillLevel(localUserData.skillLevel);
+                          setIsEditingSkill(false);
+                        }}
+                        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[var(--text-primary)] p-3">{localUserData.skillLevel}</p>
+                      <button 
+                        onClick={() => setIsEditingSkill(true)}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-          <div className="pt-4 border-t border-[var(--border-primary)]">
-            <button 
-              onClick={onLogout}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              Sign Out
-            </button>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
+                  {isEditingEmail ? (
+                    <div className="flex gap-2">
+                      <input 
+                        type="email" 
+                        value={editedEmail}
+                        onChange={(e) => setEditedEmail(e.target.value)}
+                        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        placeholder="Enter your email"
+                      />
+                      <button 
+                        onClick={() => {
+                          setLocalUserData(prev => ({ ...prev, email: editedEmail }));
+                          setIsEditingEmail(false);
+                        }}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setEditedEmail(localUserData.email || '');
+                          setIsEditingEmail(false);
+                        }}
+                        className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[var(--text-primary)] p-3">{localUserData.email || 'No email set'}</p>
+                      <button 
+                        onClick={() => setIsEditingEmail(true)}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Methodologies</label>
+                  {isEditingMethodologies ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean', 'Six Sigma'].map((methodology) => (
+                          <label key={methodology} className="flex items-center space-x-2 p-2 border border-[var(--border-primary)] rounded cursor-pointer hover:bg-[var(--bg-tertiary)]">
+                            <input
+                              type="checkbox"
+                              checked={editedMethodologies.includes(methodology)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditedMethodologies(prev => [...prev, methodology]);
+                                } else {
+                                  setEditedMethodologies(prev => prev.filter(m => m !== methodology));
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <span className="text-sm text-[var(--text-primary)]">{methodology}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button 
+                          onClick={() => {
+                            setLocalUserData(prev => ({ ...prev, methodologies: editedMethodologies }));
+                            setIsEditingMethodologies(false);
+                          }}
+                          className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setEditedMethodologies(localUserData.methodologies || []);
+                            setIsEditingMethodologies(false);
+                          }}
+                          className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[var(--text-primary)] p-3">
+                        {localUserData.methodologies?.length > 0 
+                          ? localUserData.methodologies.join(', ') 
+                          : 'No methodologies selected'}
+                      </p>
+                      <button 
+                        onClick={() => setIsEditingMethodologies(true)}
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="pt-4 border-t border-[var(--border-primary)]">
+                  <button 
+                    onClick={onLogout}
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
+        );
 
       default:
         return (
@@ -732,14 +697,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
             <p className="text-sm text-[var(--text-tertiary)] mt-1">Project Intelligence</p>
           </div>
         ) : (
-    <div className="w-full text-center">
-      <span className="text-xl font-bold text-[var(--accent-primary)]">P</span>
-    </div>
-  )}
-  {!isMobile && (
-    <button
-      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-      className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+          <div className="w-full text-center">
+            <span className="text-xl font-bold text-[var(--accent-primary)]">P</span>
+          </div>
+        )}
+        {!isMobile && (
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition--colors"
       title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
