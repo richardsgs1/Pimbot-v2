@@ -457,7 +457,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 <input 
                   type="text" 
                   value={editedName}
-                  onChange={(e) => setEditedSkillLevel(e.target.value as any)}
+                  onChange={(e) => setEditedName(e.target.value)} // Fixed
                   className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 />
                 <button 
@@ -469,16 +469,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 >
                   Save
                 </button>
-                <button 
-                  onClick={() => {
-                    setEditedName(localUserData.name);
-                    setIsEditingName(false);
-                  }}
-                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-  Save
-</button>
                 <button 
                   onClick={() => {
                     setEditedName(localUserData.name);
@@ -508,13 +498,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           </div>
           
           <div>
-  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
-  {isEditingSkill ? (
-    <div className="flex gap-2">
-      <select 
-        value={editedSkillLevel || ''}
-        onChange={(e) => setEditedSkillLevel(e.target.value as any)}
-        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
+            {isEditingSkill ? (
+          <div className="flex gap-2">
+            <select 
+               value={editedSkillLevel || ''}
+               onChange={(e) => setEditedSkillLevel(e.target.value as any)}
+              className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
       >
         <option value="No Experience">No Experience</option>
         <option value="Novice">Novice</option>
