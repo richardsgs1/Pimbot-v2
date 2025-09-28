@@ -1,10 +1,7 @@
-// Option 1: Try this import first
-import { GoogleGenerativeAI } from '@google/generative-ai';
-// If that doesn't work, try: import { GoogleGenerativeAI } from '@google/genai';
-
+import { GoogleGenAI } from '@google/genai';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -44,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-// Generate chat responses (streaming)
+// Generate chat responses (streaming) - Note: This needs more complex changes for new library
 async function handleGenerate(req: VercelRequest, res: VercelResponse, data: any) {
   const { prompt, userData, history } = data;
 
@@ -53,8 +50,6 @@ async function handleGenerate(req: VercelRequest, res: VercelResponse, data: any
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const context = `You are PiMbOt AI, a project management assistant and teaching tool. 
 User Info: ${userData.name}, Skill Level: ${userData.skillLevel || 'Not specified'}
 Tools they use: ${userData.tools?.join(', ') || 'Not specified'}
@@ -62,32 +57,13 @@ Methodologies: ${userData.methodologies?.join(', ') || 'Not specified'}
 
 Provide helpful, practical project management advice. Tailor your response to their skill level.`;
 
-    // Build conversation history
-    const chatHistory = history?.map((msg: any) => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    })) || [];
-
-    const chat = model.startChat({
-      history: chatHistory,
-      generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.7,
-      },
+    // For now, use non-streaming version - streaming API is different in new library
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `${context}\n\nUser: ${prompt}`,
     });
 
-    const result = await chat.sendMessageStream(`${context}\n\nUser: ${prompt}`);
-
-    // Set up streaming response
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
-    }
-
-    res.end();
+    return res.json({ content: response.text });
   } catch (error) {
     console.error('Generate error:', error);
     return res.status(500).json({ error: 'Failed to generate response' });
@@ -104,8 +80,6 @@ async function handleBriefing(req: VercelRequest, res: VercelResponse, data: any
   const { userData, projects, prompt } = data;
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     // Use the prompt from DailyBriefing component if available, otherwise create one
     const briefingPrompt = prompt || `Create a daily briefing for ${userData?.name} (${userData?.skillLevel} level PM).
     
@@ -119,10 +93,12 @@ Provide a concise daily briefing with:
 
 Keep it under 200 words and actionable.`;
 
-    const result = await model.generateContent(briefingPrompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: briefingPrompt,
+    });
     
-    return res.json({ briefing: response.text() });
+    return res.json({ briefing: response.text });
   } catch (error) {
     console.error('Briefing error:', error);
     return res.status(500).json({ error: 'Failed to generate briefing' });
@@ -134,8 +110,6 @@ async function handlePortfolioSummary(req: VercelRequest, res: VercelResponse, d
   const { projects } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `Analyze this project portfolio and provide insights:
     
 ${JSON.stringify(projects, null, 2)}
@@ -148,10 +122,12 @@ Provide:
 
 Keep response under 300 words.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ summary: response.text() });
+    return res.json({ summary: response.text });
   } catch (error) {
     console.error('Portfolio summary error:', error);
     return res.status(500).json({ error: 'Failed to generate portfolio summary' });
@@ -163,8 +139,6 @@ async function handleHealthSummary(req: VercelRequest, res: VercelResponse, data
   const { project } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `Analyze project health and provide summary:
     
 Project: ${JSON.stringify(project, null, 2)}
@@ -177,10 +151,12 @@ Provide a brief health assessment focusing on:
 
 Keep under 150 words.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ healthSummary: response.text() });
+    return res.json({ healthSummary: response.text });
   } catch (error) {
     console.error('Health summary error:', error);
     return res.status(500).json({ error: 'Failed to generate health summary' });
@@ -192,8 +168,6 @@ async function handleDraftCommunication(req: VercelRequest, res: VercelResponse,
   const { type, context, recipient } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `Draft a ${type} communication for project management:
     
 Context: ${context}
@@ -201,10 +175,12 @@ Recipient: ${recipient}
 
 Create a professional, clear, and actionable ${type}.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ communication: response.text() });
+    return res.json({ communication: response.text });
   } catch (error) {
     console.error('Communication draft error:', error);
     return res.status(500).json({ error: 'Failed to draft communication' });
@@ -216,8 +192,6 @@ async function handleSummarizeSearch(req: VercelRequest, res: VercelResponse, da
   const { searchTerm, resultCounts } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `User searched for "${searchTerm}" and found:
 - ${resultCounts.projects} projects
 - ${resultCounts.tasks} tasks  
@@ -225,10 +199,12 @@ async function handleSummarizeSearch(req: VercelRequest, res: VercelResponse, da
 
 Provide a brief, helpful summary of what this search likely indicates and suggest next actions. Keep under 100 words.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ summary: response.text() });
+    return res.json({ summary: response.text });
   } catch (error) {
     console.error('Search summary error:', error);
     return res.status(500).json({ error: 'Failed to summarize search' });
@@ -240,18 +216,18 @@ async function handleSuggestTasks(req: VercelRequest, res: VercelResponse, data:
   const { project, userData } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `Suggest next tasks for this project based on user skill level (${userData.skillLevel}):
 
 Project: ${JSON.stringify(project, null, 2)}
 
 Suggest 3-5 specific, actionable tasks that would move this project forward. Consider current task dependencies and project status.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ suggestions: response.text() });
+    return res.json({ suggestions: response.text });
   } catch (error) {
     console.error('Task suggestion error:', error);
     return res.status(500).json({ error: 'Failed to suggest tasks' });
@@ -263,18 +239,18 @@ async function handleSummarizeJournal(req: VercelRequest, res: VercelResponse, d
   const { journalEntries, timeframe } = data;
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     const prompt = `Summarize these project journal entries from ${timeframe}:
 
 ${JSON.stringify(journalEntries, null, 2)}
 
 Provide key insights, patterns, and recommendations based on the journal activity.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
     
-    return res.json({ summary: response.text() });
+    return res.json({ summary: response.text });
   } catch (error) {
     console.error('Journal summary error:', error);
     return res.status(500).json({ error: 'Failed to summarize journal' });
