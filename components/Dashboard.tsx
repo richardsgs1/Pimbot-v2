@@ -26,6 +26,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditingSkill, setIsEditingSkill] = useState(false);
   const [editedSkillLevel, setEditedSkillLevel] = useState(localUserData.skillLevel);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -542,8 +544,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
       </button>
     </div>
   )}
-</div>
+          </div>
           
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
+            {isEditingEmail ? (
+              <div className="flex gap-2">
+                <input 
+                  type="email" 
+                  value={editedEmail}
+                  onChange={(e) => setEditedEmail(e.target.value)}
+                  className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                  placeholder="Enter your email"
+                />
+                <button 
+                  onClick={() => {
+                    setLocalUserData(prev => ({ ...prev, email: editedEmail }));
+                    setIsEditingEmail(false);
+                  }}
+                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                >
+                  Save
+                </button>
+                <button 
+                  onClick={() => {
+                    setEditedEmail(localUserData.email || '');
+                    setIsEditingEmail(false);
+                  }}
+                  className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-[var(--text-primary)] p-3">{localUserData.email || 'No email set'}</p>
+                <button 
+                  onClick={() => setIsEditingEmail(true)}
+                  className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="pt-4 border-t border-[var(--border-primary)]">
             <button 
               onClick={onLogout}

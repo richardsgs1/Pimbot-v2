@@ -77,6 +77,7 @@ export interface OnboardingData {
   methodologies: string[];
   tools: string[];
   name: string;
+  email?: string
 }
 
 export enum CommunicationType {
