@@ -9,6 +9,7 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
+import { saveUserData } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -465,10 +466,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                   className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 />
                 <button 
-                  onClick={() => {
-                    setLocalUserData(prev => ({ ...prev, name: editedName }));
+                  onClick={async () => {
+                    console.log('Save button clicked!', localUserData); // Add this line
+  
+                    const updatedUserData = { ...localUserData, name: editedName };
+                    setLocalUserData(updatedUserData);
+
+                    try {
+                      await saveUserData(updatedUserData);
+                      console.log('Name saved to database');
+                    } catch (error) {
+                      console.error('Failed to save name:', error);
+                    }
+
                     setIsEditingName(false);
-                  }}
+    }}
                   className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                 >
                   Save
@@ -517,10 +529,20 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         <option value="Expert">Expert</option>
       </select>
       <button 
-        onClick={() => {
-          setLocalUserData(prev => ({ ...prev, skillLevel: editedSkillLevel as any }));
+        // Skill level save button  
+        onClick={async () => {
+          const updatedUserData = { ...localUserData, skillLevel: editedSkillLevel as any };
+          setLocalUserData(updatedUserData);
+  
+          try {
+            await saveUserData(updatedUserData);
+            console.log('Skill level saved to database');
+          } catch (error) {
+            console.error('Failed to save skill level:', error);
+        }
+  
           setIsEditingSkill(false);
-  }}
+        }}
         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
       >
         Save
