@@ -28,6 +28,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedSkillLevel, setEditedSkillLevel] = useState(localUserData.skillLevel);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
+  const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
+  const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -545,7 +547,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     </div>
   )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Email</label>
             {isEditingEmail ? (
@@ -587,6 +589,128 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 </button>
               </div>
             )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Methodologies</label>
+            {isEditingMethodologies ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean', 'Six Sigma'].map((methodology) => (
+                    <label key={methodology} className="flex items-center space-x-2 p-2 border border-[var(--border-primary)] rounded cursor-pointer hover:bg-[var(--bg-tertiary)]">
+                      <input
+                        type="checkbox"
+                        checked={editedMethodologies.includes(methodology)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditedMethodologies(prev => [...prev, methodology]);
+                          } else {
+                            setEditedMethodologies(prev => prev.filter(m => m !== methodology));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-[var(--text-primary)]">{methodology}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-2">
+              <button 
+                onClick={() => {
+                  setLocalUserData(prev => ({ ...prev, methodologies: editedMethodologies }));
+                  setIsEditingMethodologies(false);
+                }}
+                className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => {
+                  setEditedMethodologies(localUserData.methodologies || []);
+                  setIsEditingMethodologies(false);
+                }}
+                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <p className="text-[var(--text-primary)] p-3">
+              {localUserData.methodologies?.length > 0 
+                ? localUserData.methodologies.join(', ') 
+                : 'No methodologies selected'}
+            </p>
+            <button 
+              onClick={() => setIsEditingMethodologies(true)}
+              className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+            >
+              Edit
+            </button>
+          </div>
+        )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Methodologies</label>
+            {isEditingMethodologies ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean', 'Six Sigma'].map((methodology) => (
+                    <label key={methodology} className="flex items-center space-x-2 p-2 border border-[var(--border-primary)] rounded cursor-pointer hover:bg-[var(--bg-tertiary)]">
+                      <input
+                        type="checkbox"
+                        checked={editedMethodologies.includes(methodology)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditedMethodologies(prev => [...prev, methodology]);
+                          } else {
+                            setEditedMethodologies(prev => prev.filter(m => m !== methodology));
+                        }  
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-[var(--text-primary)]">{methodology}</span>
+                    </label>
+              ))}
+                </div>
+                <div className="flex gap-2 pt-2">
+        <button 
+          onClick={() => {
+            setLocalUserData(prev => ({ ...prev, methodologies: editedMethodologies }));
+            setIsEditingMethodologies(false);
+          }}
+          className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+        >
+          Save
+        </button>
+        <button 
+          onClick={() => {
+            setEditedMethodologies(localUserData.methodologies || []);
+            setIsEditingMethodologies(false);
+          }}
+          className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between">
+      <p className="text-[var(--text-primary)] p-3">
+        {localUserData.methodologies?.length > 0 
+          ? localUserData.methodologies.join(', ') 
+          : 'No methodologies selected'}
+      </p>
+      <button 
+        onClick={() => setIsEditingMethodologies(true)}
+        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+      >
+        Edit
+            </button>
+          </div>
+  )}
           </div>
 
           <div className="pt-4 border-t border-[var(--border-primary)]">
