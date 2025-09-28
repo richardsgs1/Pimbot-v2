@@ -467,20 +467,28 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                 />
                 <button 
                   onClick={async () => {
-                    console.log('Save button clicked!', localUserData); // Add this line
-  
+                    console.log('Save button clicked!');
+                    
+                    // First check if we have user data with an ID
+                    if (!localUserData.id) {
+                      console.log('No user ID found, generating one...');
+                      // For now, we'll generate a temporary ID
+                      const tempId = crypto.randomUUID();
+                      localUserData.id = tempId;
+                    }
+                    
                     const updatedUserData = { ...localUserData, name: editedName };
                     setLocalUserData(updatedUserData);
 
                     try {
                       await saveUserData(updatedUserData);
-                      console.log('Name saved to database');
+                      console.log('Name saved to database successfully!');
                     } catch (error) {
                       console.error('Failed to save name:', error);
                     }
 
                     setIsEditingName(false);
-    }}
+                  }}
                   className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                 >
                   Save
