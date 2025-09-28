@@ -18,7 +18,12 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
+  // Temporary environment variable test
+  console.log('ENV TEST - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log('ENV TEST - Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Found' : 'Missing');
+  
   const [currentView, setCurrentView] = useState<View>('home');
+  // ... rest of your existing code stays the same
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
