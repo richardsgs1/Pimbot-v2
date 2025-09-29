@@ -9,6 +9,7 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
+import { saveUserData, getUserId } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -28,7 +29,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Move localUserData FIRST, before the others that depend on it
-  const [localUserData, setLocalUserData] = useState(userData);
+  const [localUserData, setLocalUserData] = useState(() => {
+  return {
+    ...userData,
+    id: userData.id || getUserId()
+  };
+});
   
   // Now these can safely reference localUserData
   const [isEditingName, setIsEditingName] = useState(false);

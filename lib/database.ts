@@ -1,16 +1,10 @@
-// lib/database.ts
 import { supabase } from './supabase'
 import type { OnboardingData } from '../types'
 
-// Enhanced user data type with required id
-interface UserData extends OnboardingData {
-  id: string; // Make sure id is always present
-}
-
 export const saveUserData = async (userData: Partial<OnboardingData> & { id?: string }): Promise<string> => {
   try {
-    // If no ID provided, this is a new user - insert
     if (!userData.id) {
+      // Insert new user
       const { data, error } = await supabase
         .from('users')
         .insert({
@@ -23,15 +17,11 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
         .select('id')
         .single()
 
-      if (error) {
-        console.error('Error creating user:', error)
-        throw error
-      }
-
+      if (error) throw error
       return data.id
     }
 
-    // If ID exists, update existing user
+    // Update existing user
     const { data, error } = await supabase
       .from('users')
       .update({
@@ -46,11 +36,7 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
       .select('id')
       .single()
 
-    if (error) {
-      console.error('Error updating user:', error)
-      throw error
-    }
-
+    if (error) throw error
     return data.id
   } catch (error) {
     console.error('Database operation failed:', error)
@@ -58,34 +44,6 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
   }
 }
 
-export const loadUserData = async (userId: string): Promise<UserData | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (error) {
-      console.error('Error loading user data:', error)
-      return null
-    }
-
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      skillLevel: data.skill_level,
-      methodologies: data.methodologies || [],
-      tools: data.tools || []
-    }
-  } catch (error) {
-    console.error('Failed to load user data:', error)
-    return null
-  }
-}
-
-// Helper function to get or create user ID from localStorage
 export const getUserId = (): string => {
   let userId = localStorage.getItem('user_id')
   
