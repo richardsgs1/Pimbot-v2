@@ -47,16 +47,12 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
   }
 }
 
-export const getUserId = (): string => {
-  if (typeof window === 'undefined') return 'temp-id';
+export const getUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
   
   let userId = localStorage.getItem('user_id')
   
-  if (!userId) {
-    // Fallback UUID generator that works everywhere
-    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('user_id', userId)
-  }
-  
-  return userId
+  // Return the stored ID if it exists, otherwise return null
+  // This forces the INSERT path which lets Supabase generate a proper UUID
+  return userId;
 }

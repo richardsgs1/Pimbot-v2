@@ -156,12 +156,12 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
-  // Initialize user ID after component mounts
   useEffect(() => {
-    if (!localUserData.id) {
-      const userId = getUserId();
+    const userId = getUserId();
+    if (userId) {
       setLocalUserData(prev => ({ ...prev, id: userId }));
     }
+    // If userId is null, localUserData.id stays undefined, triggering INSERT
   }, []);
 
   const handleNavClick = (view: View) => {
