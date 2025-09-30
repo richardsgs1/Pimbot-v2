@@ -9,7 +9,7 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
-import { saveUserData, getUserId } from '../lib/database'
+import { saveUserData, getUserId, loadUserData } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -160,12 +160,35 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
   useEffect(() => {
+  const loadUser = async () => {
     const userId = getUserId();
+    
     if (userId) {
-      setLocalUserData(prev => ({ ...prev, id: userId }));
+      // Try to load from database
+      console.log('Loading user data from database...');
+      const dbUserData = await loadUserData(userId);
+      
+      if (dbUserData) {
+        console.log('User data loaded from database');
+        setLocalUserData(dbUserData);
+        // Update edited fields with database values
+        setEditedName(dbUserData.name);
+        setEditedEmail(dbUserData.email || '');
+        setEditedSkillLevel(dbUserData.skillLevel);
+        setEditedMethodologies(dbUserData.methodologies || []);
+      } else {
+        // No database record, use prop data with the userId
+        console.log('No database record, using initial data');
+        setLocalUserData(prev => ({ ...prev, id: userId }));
+      }
+    } else {
+      // First time user, no ID yet
+      console.log('New user, no ID yet');
     }
-    // If userId is null, localUserData.id stays undefined, triggering INSERT
-  }, []);
+  };
+
+  loadUser();
+}, []);
 
   const handleNavClick = (view: View) => {
     setCurrentView(view);

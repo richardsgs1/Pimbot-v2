@@ -56,3 +56,30 @@ export const getUserId = (): string | null => {
   // This forces the INSERT path which lets Supabase generate a proper UUID
   return userId;
 }
+export const loadUserData = async (userId: string): Promise<OnboardingData | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Failed to load user data:', error)
+      return null
+    }
+
+    // Map database fields to OnboardingData format
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      skillLevel: data.skill_level,
+      methodologies: data.methodologies || [],
+      tools: data.tools || []
+    }
+  } catch (error) {
+    console.error('Error loading user data:', error)
+    return null
+  }
+}
