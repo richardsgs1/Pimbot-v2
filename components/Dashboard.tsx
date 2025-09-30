@@ -541,9 +541,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                         <option value="Expert">Expert</option>
                       </select>
                       <button 
-                        onClick={() => {
-                          setLocalUserData(prev => ({ ...prev, skillLevel: editedSkillLevel as any }));
-                          setIsEditingSkill(false);
+                        onClick={async () => {
+                          try {
+                            console.log('Saving skill level to database...');
+                            
+                            const updatedUserData = { 
+                              ...localUserData, 
+                              skillLevel: editedSkillLevel
+                            };
+                            
+                            setLocalUserData(updatedUserData);
+                            
+                            await saveUserData(updatedUserData);
+                            console.log('Skill level saved successfully!');
+                            setIsEditingSkill(false);
+                            
+                          } catch (error) {
+                            console.error('Failed to save skill level:', error);
+                            alert('Failed to save to database, but changes saved locally');
+                            setIsEditingSkill(false);
+                          }
                         }}
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
@@ -584,9 +601,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                         placeholder="Enter your email"
                       />
                       <button 
-                        onClick={() => {
-                          setLocalUserData(prev => ({ ...prev, email: editedEmail }));
-                          setIsEditingEmail(false);
+                        onClick={async () => {
+                          try {
+                            console.log('Saving email to database...');
+                            
+                            const updatedUserData = { 
+                              ...localUserData, 
+                              email: editedEmail
+                            };
+                            
+                            setLocalUserData(updatedUserData);
+                            
+                            await saveUserData(updatedUserData);
+                            console.log('Email saved successfully!');
+                            setIsEditingEmail(false);
+                            
+                          } catch (error) {
+                            console.error('Failed to save email:', error);
+                            alert('Failed to save to database, but changes saved locally');
+                            setIsEditingEmail(false);
+                          }
                         }}
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
@@ -640,9 +674,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                       </div>
                       <div className="flex gap-2 pt-2">
                         <button 
-                          onClick={() => {
-                            setLocalUserData(prev => ({ ...prev, methodologies: editedMethodologies }));
-                            setIsEditingMethodologies(false);
+                          onClick={async () => {
+                            try {
+                              console.log('Saving methodologies to database...');
+                              
+                              const updatedUserData = { 
+                                ...localUserData, 
+                                methodologies: editedMethodologies
+                              };
+                              
+                              setLocalUserData(updatedUserData);
+                              
+                              await saveUserData(updatedUserData);
+                              console.log('Methodologies saved successfully!');
+                              setIsEditingMethodologies(false);
+                              
+                            } catch (error) {
+                              console.error('Failed to save methodologies:', error);
+                              alert('Failed to save to database, but changes saved locally');
+                              setIsEditingMethodologies(false);
+                            }
                           }}
                           className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                         >
