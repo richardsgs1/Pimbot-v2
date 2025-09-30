@@ -9,7 +9,6 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
-import { saveUserData, getUserId } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -19,9 +18,6 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
-  // Temporary environment variable test
-  console.log('ENV TEST - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log('ENV TEST - Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Found' : 'Missing');
   
   const [currentView, setCurrentView] = useState<View>('home');
   // ... rest of your existing code stays the same
@@ -29,12 +25,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Move localUserData FIRST, before the others that depend on it
-  const [localUserData, setLocalUserData] = useState(() => {
-  return {
-    ...userData,
-    id: userData.id || getUserId()
-  };
-});
+  const [localUserData, setLocalUserData] = useState(userData);
   
   // Now these can safely reference localUserData
   const [isEditingName, setIsEditingName] = useState(false);
