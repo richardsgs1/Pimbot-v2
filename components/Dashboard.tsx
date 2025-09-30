@@ -23,7 +23,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [localUserData, setLocalUserData] = useState(userData);
+  const [localUserData, setLocalUserData] = useState(() => {
+  const { id, ...userDataWithoutId } = userData;
+  return userDataWithoutId as OnboardingData;
+ });
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(localUserData.name);
   const [isEditingSkill, setIsEditingSkill] = useState(false);
