@@ -45,10 +45,13 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
 }
 
 export const getUserId = (): string => {
+  if (typeof window === 'undefined') return 'temp-id';
+  
   let userId = localStorage.getItem('user_id')
   
   if (!userId) {
-    userId = crypto.randomUUID()
+    // Fallback UUID generator that works everywhere
+    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
     localStorage.setItem('user_id', userId)
   }
   
