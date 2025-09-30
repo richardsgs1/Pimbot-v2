@@ -9,7 +9,6 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
-import { saveUserData, getUserId } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -21,18 +20,9 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   
   const [currentView, setCurrentView] = useState<View>('home');
-  // ... rest of your existing code stays the same
   const [showSidebar, setShowSidebar] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
- const [localUserData, setLocalUserData] = useState(() => {
-  return {
-    ...userData,
-    id: userData.id || getUserId()
-   };
- });
-  
-  // Now these can safely reference localUserData
+  const [localUserData, setLocalUserData] = useState(userData);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(localUserData.name);
   const [isEditingSkill, setIsEditingSkill] = useState(false);
@@ -469,32 +459,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                         onChange={(e) => setEditedName(e.target.value)}
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                       />
-                     <button 
-                        onClick={async () => {
-                          try {
-                            console.log('Saving name to database...');
-                            
-                            const updatedUserData = { 
-                              ...localUserData, 
-                              name: editedName
-                            };
-                            
-                            setLocalUserData(updatedUserData);
-                            
-                            await saveUserData(updatedUserData);
-                            console.log('Name saved successfully!');
-                            setIsEditingName(false);
-                            
-                          } catch (error) {
-                            console.error('Failed to save name:', error);
-                            alert('Failed to save to database, but changes saved locally');
-                            setIsEditingName(false);
-                          }
+                      <button 
+                        onClick={() => {
+                          setLocalUserData(prev => ({ ...prev, name: editedName }));
+                          setIsEditingName(false);
                         }}
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
                         Save
-                      </button>                     
+                      </button>                  
                       <button 
                         onClick={() => {
                           setEditedName(localUserData.name);
