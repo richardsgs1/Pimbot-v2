@@ -4,7 +4,7 @@ import type { OnboardingData } from '../types'
 export const saveUserData = async (userData: Partial<OnboardingData> & { id?: string }): Promise<string> => {
   try {
     if (!userData.id) {
-      // Insert new user
+      // Insert new user - let Supabase generate the ID
       const { data, error } = await supabase
         .from('users')
         .insert({
@@ -18,6 +18,9 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
         .single()
 
       if (error) throw error
+      
+      // Store the Supabase-generated ID in localStorage
+      localStorage.setItem('user_id', data.id);
       return data.id
     }
 
