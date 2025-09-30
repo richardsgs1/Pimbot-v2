@@ -469,14 +469,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                       />
                       <button 
-                        onClick={() => {
-                          setLocalUserData(prev => ({ ...prev, name: editedName }));
-                          setIsEditingName(false);
+                        onClick={async () => {
+                          try {
+                            console.log('Saving name to database...');
+                            
+                            const updatedUserData = { 
+                              ...localUserData, 
+                              name: editedName
+                            };
+                            
+                            setLocalUserData(updatedUserData);
+                            
+                            await saveUserData(updatedUserData);
+                            console.log('Name saved successfully!');
+                            setIsEditingName(false);
+                            
+                          } catch (error) {
+                            console.error('Failed to save name:', error);
+                            alert('Failed to save to database, but changes saved locally');
+                            setIsEditingName(false);
+                          }
                         }}
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
                         Save
-                      </button>                  
+                      </button>                 
                       <button 
                         onClick={() => {
                           setEditedName(localUserData.name);
