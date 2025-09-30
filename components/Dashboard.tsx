@@ -9,6 +9,7 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
+import { saveUserData, getUserId } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -154,6 +155,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  // Initialize user ID after component mounts
+  useEffect(() => {
+    if (!localUserData.id) {
+      const userId = getUserId();
+      setLocalUserData(prev => ({ ...prev, id: userId }));
+    }
+  }, []);
 
   const handleNavClick = (view: View) => {
     setCurrentView(view);
