@@ -9,7 +9,7 @@ import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
 import TaskSuggestions from './TaskSuggestions';
-import { saveUserData, getUserId, loadUserData } from '../lib/database'
+import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
 
@@ -176,6 +176,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         setEditedEmail(dbUserData.email || '');
         setEditedSkillLevel(dbUserData.skillLevel);
         setEditedMethodologies(dbUserData.methodologies || []);
+        
+        // Load projects
+        console.log('Loading projects from database...');
+        const dbProjects = await loadProjects(userId);
+        if (dbProjects.length > 0) {
+          console.log(`Loaded ${dbProjects.length} projects from database`);
+          setProjects(dbProjects);
+        } else {
+          console.log('No projects found, using default projects');
+        }
       } else {
         // No database record, use prop data with the userId
         console.log('No database record, using initial data');
