@@ -99,13 +99,16 @@ export const saveProject = async (userId: string, project: Project): Promise<str
       team_size: project.teamSize,
       budget: project.budget,
       spent: project.spent,
-      tasks: project.tasks,
-      team_members: project.teamMembers,
-      journal: project.journal,
+      tasks: project.tasks || [],
+      team_members: project.teamMembers || [],
+      journal: project.journal || [],
       updated_at: new Date().toISOString()
     };
 
-    if (project.id && !project.id.startsWith('temp-')) {
+    // Check if project has a valid UUID (not temp IDs like "1", "2", "3")
+    const isValidUuid = project.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(project.id);
+
+    if (isValidUuid) {
       // Update existing project
       const { data, error } = await supabase
         .from('projects')
@@ -118,7 +121,7 @@ export const saveProject = async (userId: string, project: Project): Promise<str
       if (error) throw error;
       return data.id;
     } else {
-      // Insert new project
+      // Insert new project (let Supabase generate UUID)
       const { data, error } = await supabase
         .from('projects')
         .insert(projectData)
