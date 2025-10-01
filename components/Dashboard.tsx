@@ -200,6 +200,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   loadUser();
 }, []);
 
+// Auto-save projects to database
+const saveProjectsToDb = async (projectsToSave: Project[]) => {
+  const userId = localUserData.id;
+  if (!userId) {
+    console.log('No user ID, skipping project save');
+    return;
+  }
+
+  try {
+    console.log(`Saving ${projectsToSave.length} projects to database...`);
+    
+    for (const project of projectsToSave) {
+      await saveProject(userId, project);
+    }
+    
+    console.log('Projects saved successfully!');
+  } catch (error) {
+    console.error('Failed to save projects:', error);
+  }
+};
+
   const handleNavClick = (view: View) => {
     setCurrentView(view);
     setProjectFilter(null);
@@ -297,8 +318,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
               }
             }}
             onMenuClick={() => setShowSidebar(true)}
-            onProjectCreated={(newProject: Project) => {
-              setProjects(prev => [...prev, newProject]);
+            onProjectCreated={async (newProject: Project) => {
+              const updatedProjects = [...projects, newProject];
+              setProjects(updatedProjects);
+              await saveProjectsToDb(updatedProjects);
             }}
             onClearFilter={() => setProjectFilter(null)}
           />
