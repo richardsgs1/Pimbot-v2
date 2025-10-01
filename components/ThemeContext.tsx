@@ -77,124 +77,61 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         document.head.appendChild(lightThemeCSS);
       }
       lightThemeCSS.textContent = `
-        /* Enhanced form input overrides for better visibility */
-        [data-theme="light"] input,
-        [data-theme="light"] textarea,
-        [data-theme="light"] select {
-          color: #1e3a8a !important;
-          background-color: #ffffff !important;
-          border: 2px solid #d1d5db !important;
-        }
-        
-        [data-theme="light"] input::placeholder,
-        [data-theme="light"] textarea::placeholder {
-          color: #6b7280 !important;
-          opacity: 0.8 !important;
-        }
-        
-        [data-theme="light"] input:focus,
-        [data-theme="light"] textarea:focus {
-          border-color: #1a73e8 !important;
-          outline: none !important;
-          box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
-        }
-
-        /* Prose styling overrides for light backgrounds */
-        [data-theme="light"] .prose,
-        [data-theme="light"] .prose *,
-        [data-theme="light"] .prose p,
-        [data-theme="light"] .prose h1,
-        [data-theme="light"] .prose h2,
-        [data-theme="light"] .prose h3,
-        [data-theme="light"] .prose h4,
-        [data-theme="light"] .prose h5,
-        [data-theme="light"] .prose h6,
-        [data-theme="light"] .prose ul,
-        [data-theme="light"] .prose ol,
-        [data-theme="light"] .prose li,
-        [data-theme="light"] .prose strong,
-        [data-theme="light"] .prose em {
-          color: #1e3a8a !important;
-        }
-        [data-theme="light"] .prose a {
-          color: #0369a1 !important;
-        }
-        
-        /* Force dark cards to have light text */
-        [data-theme="light"] .bg-slate-800,
-        [data-theme="light"] .bg-slate-800 *,
-        [data-theme="light"] .bg-slate-800 h1,
-        [data-theme="light"] .bg-slate-800 h2,
-        [data-theme="light"] .bg-slate-800 h3,
-        [data-theme="light"] .bg-slate-800 p,
-        [data-theme="light"] .bg-slate-800 span,
-        [data-theme="light"] .bg-slate-800 div {
-          color: #ffffff !important;
-        }
-        
-        /* Override muted text classes to be readable on both backgrounds */
-        [data-theme="light"] .text-slate-400,
-        [data-theme="light"] .text-slate-500 {
-          color: #94a3b8 !important;
-        }
-        
-        [data-theme="light"] .text-slate-600,
-        [data-theme="light"] .text-gray-600 {
-          color: #64748b !important;
-        }
-        
-        /* Make sure tertiary text uses our CSS variable properly */
-        [data-theme="light"] .text-\\[var\\(--text-tertiary\\)\\] {
-          color: var(--text-tertiary) !important;
-        }
-        
-        /* Preserve status badges and accent colors */
-        [data-theme="light"] .bg-green-100,
-        [data-theme="light"] .bg-yellow-100,
-        [data-theme="light"] .bg-red-100,
-        [data-theme="light"] .bg-blue-100,
-        [data-theme="light"] .text-green-800,
-        [data-theme="light"] .text-yellow-800,
-        [data-theme="light"] .text-red-800,
-        [data-theme="light"] .text-blue-800,
-        [data-theme="light"] .text-cyan-400,
-        [data-theme="light"] .text-white {
-          color: inherit !important;
-        }
-        
-        /* Ensure buttons maintain proper colors */
-        [data-theme="light"] button,
-        [data-theme="light"] button *,
-        [data-theme="light"] a,
-        [data-theme="light"] .bg-cyan-600,
-        [data-theme="light"] .bg-cyan-600 * {
-          color: inherit !important;
-        }
-         /* Aggressive fix for ALL light text in AI Assistant */
-        [data-theme="light"] * {
-          color: #1e3a8a !important;
-        }
-        
-        /* Re-preserve dark cards after the global override */
-        [data-theme="light"] .bg-slate-800,
-        [data-theme="light"] .bg-slate-800 *,
-        [data-theme="light"] .bg-slate-700,
-        [data-theme="light"] .bg-slate-700 *,
-        [data-theme="light"] .bg-gray-800,
-        [data-theme="light"] .bg-gray-800 *,
-        [data-theme="light"] .bg-gray-900,
-        [data-theme="light"] .bg-gray-900 * {
-          color: #ffffff !important;
-        }
-        
-        /* Re-preserve status badges */
-        [data-theme="light"] .text-green-800,
-        [data-theme="light"] .text-yellow-800,
-        [data-theme="light"] .text-red-800,
-        [data-theme="light"] .text-blue-800 {
-          color: inherit !important;
-        }
-      `;
+  /* Form inputs */
+  [data-theme="light"] input,
+  [data-theme="light"] textarea,
+  [data-theme="light"] select {
+    color: #1e3a8a !important;
+    background-color: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+  }
+  
+  [data-theme="light"] input::placeholder,
+  [data-theme="light"] textarea::placeholder {
+    color: #6b7280 !important;
+    opacity: 0.8 !important;
+  }
+  
+  /* Default text on light backgrounds */
+  [data-theme="light"] body,
+  [data-theme="light"] p,
+  [data-theme="light"] span,
+  [data-theme="light"] div,
+  [data-theme="light"] h1,
+  [data-theme="light"] h2,
+  [data-theme="light"] h3,
+  [data-theme="light"] h4,
+  [data-theme="light"] h5,
+  [data-theme="light"] h6 {
+    color: #1e3a8a;
+  }
+  
+  /* Dark cards keep white text */
+  [data-theme="light"] .bg-slate-800,
+  [data-theme="light"] .bg-slate-800 *,
+  [data-theme="light"] .bg-slate-700,
+  [data-theme="light"] .bg-slate-700 *,
+  [data-theme="light"] [class*="bg-gray-8"],
+  [data-theme="light"] [class*="bg-gray-8"] *,
+  [data-theme="light"] [class*="bg-gray-9"],
+  [data-theme="light"] [class*="bg-gray-9"] * {
+    color: #ffffff !important;
+  }
+  
+  /* Preserve status badge colors */
+  [data-theme="light"] .text-green-800,
+  [data-theme="light"] .text-yellow-800,
+  [data-theme="light"] .text-red-800,
+  [data-theme="light"] .text-blue-800,
+  [data-theme="light"] .text-white {
+    color: inherit !important;
+  }
+  
+  /* Button text stays as designed */
+  [data-theme="light"] button {
+    color: inherit !important;
+  }
+`;
     } else {
       // Dark theme colors
       root.style.setProperty('--bg-primary', '#0f172a');      

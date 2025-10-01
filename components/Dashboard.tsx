@@ -411,10 +411,78 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                   </div>
                 </div>
 
+                {/* Manual Task Creation */}
+                <div className="mt-4 p-4 bg-[var(--bg-tertiary)] rounded-lg">
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Add Custom Task</h4>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Task name"
+                      className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      id="new-task-name"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        className="flex-1 p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        id="new-task-date"
+                      />
+                      <select
+                        className="p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        id="new-task-priority"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const nameInput = document.getElementById('new-task-name') as HTMLInputElement;
+                        const dateInput = document.getElementById('new-task-date') as HTMLInputElement;
+                        const priorityInput = document.getElementById('new-task-priority') as HTMLSelectElement;
+                        
+                        if (!nameInput.value) {
+                          alert('Please enter a task name');
+                          return;
+                        }
+                        
+                        const newTask = {
+                          id: Date.now().toString(),
+                          name: nameInput.value,
+                          completed: false,
+                          priority: priorityInput.value as any,
+                          dueDate: dateInput.value || new Date().toISOString().split('T')[0],
+                          startDate: new Date().toISOString().split('T')[0],
+                          duration: 1
+                        };
+                        
+                        const updatedProject = {
+                          ...selectedProject,
+                          tasks: [...selectedProject.tasks, newTask]
+                        };
+                        
+                        const updatedProjects = projects.map(p => p.id === updatedProject.id ? updatedProject : p);
+                        setProjects(updatedProjects);
+                        setSelectedProject(updatedProject);
+                        await saveProjectsToDb(updatedProjects);
+                        
+                        // Clear inputs
+                        nameInput.value = '';
+                        dateInput.value = '';
+                        priorityInput.value = 'Low';
+                      }}
+                      className="w-full bg-[var(--accent-primary)] text-white py-2 px-4 rounded hover:bg-[var(--accent-secondary)] transition-colors"
+                    >
+                      Add Task
+                    </button>
+                  </div>
+                </div>
+
                 <TaskSuggestions
                   userData={userData}
                   project={selectedProject}
-                  onTaskAdd={(newTask) => {
+                  onTaskAdd={async (newTask) => {
                     const updatedProject = {
                       ...selectedProject,
                       tasks: [
@@ -425,10 +493,10 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                         }
                       ]
                     };
-                    setProjects(prev => 
-                      prev.map(p => p.id === updatedProject.id ? updatedProject : p)
-                    );
+                    const updatedProjects = projects.map(p => p.id === updatedProject.id ? updatedProject : p);
+                    setProjects(updatedProjects);
                     setSelectedProject(updatedProject);
+                    await saveProjectsToDb(updatedProjects);
                   }}
                 />
               </div>
