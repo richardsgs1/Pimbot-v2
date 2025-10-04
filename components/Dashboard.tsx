@@ -33,8 +33,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedSkillLevel, setEditedSkillLevel] = useState(localUserData.skillLevel);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
+  const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
   const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [editedProject, setEditedProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
@@ -348,8 +351,175 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                   <p className="text-[var(--text-tertiary)]">{selectedProject.description}</p>
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setEditedProject({ ...selectedProject });
+                  setIsEditingProject(true);
+                }}
+                className="bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Project
+              </button>
             </div>
             
+            {/* Edit Project Modal */}
+            {isEditingProject && editedProject && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">Edit Project</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Project Name</label>
+                      <input
+                        type="text"
+                        value={editedProject.name}
+                        onChange={(e) => setEditedProject({ ...editedProject, name: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Description</label>
+                      <textarea
+                        value={editedProject.description}
+                        onChange={(e) => setEditedProject({ ...editedProject, description: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Start Date</label>
+                      <input
+                        type="date"
+                        value={editedProject.startDate}
+                        onChange={(e) => setEditedProject({ ...editedProject, startDate: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">End Date</label>
+                      <input
+                        type="date"
+                        value={editedProject.endDate}
+                        onChange={(e) => setEditedProject({ ...editedProject, endDate: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Due Date</label>
+                      <input
+                        type="date"
+                        value={editedProject.dueDate}
+                        onChange={(e) => setEditedProject({ ...editedProject, dueDate: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Priority</label>
+                      <select
+                        value={editedProject.priority}
+                        onChange={(e) => setEditedProject({ ...editedProject, priority: e.target.value as any })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Status</label>
+                      <select
+                        value={editedProject.status}
+                        onChange={(e) => setEditedProject({ ...editedProject, status: e.target.value as any })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      >
+                        <option value={ProjectStatus.OnTrack}>On Track</option>
+                        <option value={ProjectStatus.AtRisk}>At Risk</option>
+                        <option value={ProjectStatus.OffTrack}>Off Track</option>
+                        <option value={ProjectStatus.Completed}>Completed</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Manager</label>
+                      <input
+                        type="text"
+                        value={editedProject.manager}
+                        onChange={(e) => setEditedProject({ ...editedProject, manager: e.target.value })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Budget ($)</label>
+                      <input
+                        type="number"
+                        value={editedProject.budget || 0}
+                        onChange={(e) => setEditedProject({ ...editedProject, budget: parseInt(e.target.value) || 0 })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Spent ($)</label>
+                      <input
+                        type="number"
+                        value={editedProject.spent || 0}
+                        onChange={(e) => setEditedProject({ ...editedProject, spent: parseInt(e.target.value) || 0 })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Progress (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editedProject.progress}
+                        onChange={(e) => setEditedProject({ ...editedProject, progress: parseInt(e.target.value) || 0 })}
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      onClick={async () => {
+                        const updatedProjects = projects.map(p => p.id === editedProject.id ? editedProject : p);
+                        setProjects(updatedProjects);
+                        setSelectedProject(editedProject);
+                        await saveProjectsToDb(updatedProjects);
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                      }}
+                      className="bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                      }}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
@@ -411,7 +581,6 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                   </div>
                 </div>
 
-                {/* Manual Task Creation */}
                 <div className="mt-4 p-4 bg-[var(--bg-tertiary)] rounded-lg">
                   <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Add Custom Task</h4>
                   <div className="space-y-3">
@@ -467,7 +636,6 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                         setSelectedProject(updatedProject);
                         await saveProjectsToDb(updatedProjects);
                         
-                        // Clear inputs
                         nameInput.value = '';
                         dateInput.value = '';
                         priorityInput.value = 'Low';
@@ -523,10 +691,125 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                 </div>
 
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Team</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Team</h3>
+                    <button
+                      onClick={() => setIsAddingTeamMember(!isAddingTeamMember)}
+                      className="text-sm bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-3 py-1 rounded transition-colors"
+                    >
+                      {isAddingTeamMember ? 'Cancel' : '+ Add Member'}
+                    </button>
+                  </div>
+
+                  {isAddingTeamMember && (
+                    <div className="mb-4 p-4 bg-[var(--bg-tertiary)] rounded-lg space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        id="new-member-name"
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Role"
+                        id="new-member-role"
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        id="new-member-email"
+                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                      />
+                      <button
+                        onClick={async () => {
+                          const nameInput = document.getElementById('new-member-name') as HTMLInputElement;
+                          const roleInput = document.getElementById('new-member-role') as HTMLInputElement;
+                          const emailInput = document.getElementById('new-member-email') as HTMLInputElement;
+                          
+                          if (!nameInput.value || !roleInput.value) {
+                            alert('Please enter name and role');
+                            return;
+                          }
+                          
+                          const newMember = {
+                            id: Date.now().toString(),
+                            name: nameInput.value,
+                            role: roleInput.value,
+                            email: emailInput.value,
+                            avatarColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                          };
+                          
+                          const currentMembers = selectedProject.teamMembers || [];
+                          const updatedProject = {
+                            ...selectedProject,
+                            teamMembers: [...currentMembers, newMember],
+                            teamSize: currentMembers.length + 1
+                          };
+                          
+                          const updatedProjects = projects.map(p => p.id === updatedProject.id ? updatedProject : p);
+                          setProjects(updatedProjects);
+                          setSelectedProject(updatedProject);
+                          await saveProjectsToDb(updatedProjects);
+                          
+                          nameInput.value = '';
+                          roleInput.value = '';
+                          emailInput.value = '';
+                          setIsAddingTeamMember(false);
+                        }}
+                        className="w-full bg-[var(--accent-primary)] text-white py-2 rounded hover:bg-[var(--accent-secondary)] transition-colors"
+                      >
+                        Add Team Member
+                      </button>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <p className="text-[var(--text-tertiary)]">Team Size: {selectedProject.teamSize}</p>
-                    <p className="text-[var(--text-tertiary)]">Manager: {selectedProject.manager}</p>
+                    <p className="text-[var(--text-tertiary)] text-sm">Team Size: {selectedProject.teamSize}</p>
+                    {selectedProject.teamMembers && selectedProject.teamMembers.length > 0 ? (
+                      <div className="space-y-2 mt-3">
+                        {selectedProject.teamMembers.map((member) => (
+                          <div key={member.id} className="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded">
+                            <div className="flex items-center">
+                              <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold mr-3"
+                                style={{ backgroundColor: member.avatarColor }}
+                              >
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-medium text-[var(--text-primary)]">{member.name}</p>
+                                <p className="text-sm text-[var(--text-tertiary)]">{member.role}</p>
+                                {member.email && <p className="text-xs text-[var(--text-tertiary)]">{member.email}</p>}
+                              </div>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Remove ${member.name} from team?`)) return;
+                                
+                                const currentMembers = selectedProject.teamMembers || [];
+                                const updatedProject = {
+                                  ...selectedProject,
+                                  teamMembers: currentMembers.filter(m => m.id !== member.id),
+                                  teamSize: currentMembers.length - 1
+                                };
+                                
+                                const updatedProjects = projects.map(p => p.id === updatedProject.id ? updatedProject : p);
+                                setProjects(updatedProjects);
+                                setSelectedProject(updatedProject);
+                                await saveProjectsToDb(updatedProjects);
+                              }}
+                              className="text-red-400 hover:text-red-300 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[var(--text-tertiary)] text-sm mt-2">No team members added yet</p>
+                    )}
+                    <p className="text-[var(--text-tertiary)] text-sm">Manager: {selectedProject.manager || 'Not assigned'}</p>
                   </div>
                 </div>
               </div>
