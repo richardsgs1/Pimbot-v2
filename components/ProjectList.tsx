@@ -23,7 +23,14 @@ const ProjectList: React.FC<ProjectListProps> = ({
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
-    dueDate: ''
+    startDate: '',
+    endDate: '',
+    dueDate: '',
+    priority: 'Medium',
+    manager: '',
+    teamSize: 0,
+    budget: 0,
+    spent: 0
   });
 
   const getFilteredProjects = () => {
@@ -61,21 +68,40 @@ const ProjectList: React.FC<ProjectListProps> = ({
   };
 
   const handleCreateProject = () => {
-    if (!newProject.name.trim()) return;
+    if (!newProject.name.trim() || !newProject.dueDate) return;
     
     const projectData = {
       id: `project-${Date.now()}`,
       name: newProject.name,
       description: newProject.description,
       status: ProjectStatus.OnTrack,
+      startDate: newProject.startDate || new Date().toISOString().split('T')[0],
+      endDate: newProject.endDate || newProject.dueDate,
       dueDate: newProject.dueDate,
+      priority: newProject.priority,
+      manager: newProject.manager,
+      teamSize: newProject.teamSize || 1,
+      budget: newProject.budget || 0,
+      spent: newProject.spent || 0,
       progress: 0,
       tasks: [],
+      teamMembers: [],
       journal: []
     };
     
     onProjectCreated(projectData);
-    setNewProject({ name: '', description: '', dueDate: '' });
+    setNewProject({ 
+      name: '', 
+      description: '', 
+      startDate: '',
+      endDate: '',
+      dueDate: '',
+      priority: 'Medium',
+      manager: '',
+      teamSize: 0,
+      budget: 0,
+      spent: 0
+    });
     setShowCreateForm(false);
   };
 
@@ -144,44 +170,146 @@ const ProjectList: React.FC<ProjectListProps> = ({
       )}
 
       {showCreateForm && (
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-4">
-          <h3 className="text-lg font-semibold mb-3">Create New Project</h3>
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="Project name"
-              value={newProject.name}
-              onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            />
-            <textarea
-              placeholder="Project description"
-              value={newProject.description}
-              onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              rows={3}
-            />
-            <input
-              type="date"
-              value={newProject.dueDate}
-              onChange={(e) => setNewProject(prev => ({ ...prev, dueDate: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            />
-            <div className="flex gap-2">
-              <button 
-                onClick={handleCreateProject}
-                disabled={!newProject.name.trim()}
-                className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Create Project
-              </button>
-              <button 
-                onClick={() => setShowCreateForm(false)}
-                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-4">
+          <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Project Name */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">Project Name *</label>
+              <input
+                type="text"
+                placeholder="Enter project name"
+                value={newProject.name}
+                onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
             </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+              <textarea
+                placeholder="Enter project description"
+                value={newProject.description}
+                onChange={(e) => setNewProject(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                rows={3}
+              />
+            </div>
+
+            {/* Start Date */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+              <input
+                type="date"
+                value={newProject.startDate}
+                onChange={(e) => setNewProject(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+              <input
+                type="date"
+                value={newProject.endDate}
+                onChange={(e) => setNewProject(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Due Date *</label>
+              <input
+                type="date"
+                value={newProject.dueDate}
+                onChange={(e) => setNewProject(prev => ({ ...prev, dueDate: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
+              <select
+                value={newProject.priority}
+                onChange={(e) => setNewProject(prev => ({ ...prev, priority: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            {/* Manager */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Project Manager</label>
+              <input
+                type="text"
+                placeholder="Manager name"
+                value={newProject.manager}
+                onChange={(e) => setNewProject(prev => ({ ...prev, manager: e.target.value }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* Team Size */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Team Size</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="5"
+                value={newProject.teamSize}
+                onChange={(e) => setNewProject(prev => ({ ...prev, teamSize: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* Budget */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Budget ($)</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="50000"
+                value={newProject.budget}
+                onChange={(e) => setNewProject(prev => ({ ...prev, budget: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+
+            {/* Spent */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Amount Spent ($)</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={newProject.spent}
+                onChange={(e) => setNewProject(prev => ({ ...prev, spent: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <button 
+              onClick={handleCreateProject}
+              disabled={!newProject.name.trim() || !newProject.dueDate}
+              className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
+              Create Project
+            </button>
+            <button 
+              onClick={() => setShowCreateForm(false)}
+              className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
