@@ -69,6 +69,7 @@ export interface Project {
   spent?: number;
   teamMembers?: TeamMember[];
   journal?: JournalEntry[];  // Add this property
+  archived?: boolean;
 }
 
 export interface OnboardingData {

@@ -58,6 +58,13 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
             <p className="text-3xl font-bold text-green-400 group-hover:text-green-300 transition-colors">{onTrackCount}</p>
             <div className="mt-2 text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Click to filter</div>
           </div>
+          <div 
+            onClick={() => onMenuClick('projects-archived')}
+            className="bg-slate-800 border border-slate-700 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors"
+          >
+            <p className="text-slate-400 text-sm">Archived Projects</p>
+            <p className="text-2xl font-bold mt-2">{projects.filter(p => p.archived).length}</p>
+          </div>
           
           <div 
             onClick={() => handleStatusClick('at-risk')}

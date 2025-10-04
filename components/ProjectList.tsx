@@ -34,23 +34,28 @@ const ProjectList: React.FC<ProjectListProps> = ({
   });
 
   const getFilteredProjects = () => {
-    if (!projectFilter || projectFilter === 'all') {
-      return projects;
-    }
-    
-    switch (projectFilter) {
-      case 'on-track':
-        return projects.filter(p => p.status === ProjectStatus.OnTrack);
-      case 'at-risk':
-        return projects.filter(p => p.status === ProjectStatus.AtRisk);
-      case 'off-track':
-        return projects.filter(p => p.status === ProjectStatus.OffTrack);
-      case 'completed':
-        return projects.filter(p => p.status === ProjectStatus.Completed);
-      default:
-        return projects;
-    }
-  };
+  // Filter out archived projects first
+  const activeProjects = projects.filter(p => !p.archived);
+  
+  if (!projectFilter || projectFilter === 'all') {
+    return activeProjects;
+  }
+  
+  switch (projectFilter) {
+    case 'on-track':
+      return activeProjects.filter(p => p.status === ProjectStatus.OnTrack);
+    case 'at-risk':
+      return activeProjects.filter(p => p.status === ProjectStatus.AtRisk);
+    case 'off-track':
+      return activeProjects.filter(p => p.status === ProjectStatus.OffTrack);
+    case 'completed':
+      return activeProjects.filter(p => p.status === ProjectStatus.Completed);
+    case 'archived':
+      return projects.filter(p => p.archived === true);
+    default:
+      return activeProjects;
+  }
+};
 
   const getFilterTitle = () => {
     if (!projectFilter || projectFilter === 'all') {

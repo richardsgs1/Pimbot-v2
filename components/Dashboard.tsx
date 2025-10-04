@@ -507,6 +507,41 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                       Save Changes
                     </button>
                     <button
+                      onClick={async () => {
+                        if (!confirm(`Are you sure you want to archive "${editedProject.name}"? You can unarchive it later.`)) return;
+                        
+                        const archivedProject = { ...editedProject, archived: true };
+                        const updatedProjects = projects.map(p => p.id === archivedProject.id ? archivedProject : p);
+                        setProjects(updatedProjects);
+                        await saveProjectsToDb(updatedProjects);
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                        setCurrentView('projectList');
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Archive
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Are you sure you want to permanently delete "${editedProject.name}"? This cannot be undone.`)) return;
+                        
+                        const userId = localUserData.id;
+                        if (userId) {
+                          await deleteProject(userId, editedProject.id);
+                        }
+                        
+                        const updatedProjects = projects.filter(p => p.id !== editedProject.id);
+                        setProjects(updatedProjects);
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                        setCurrentView('projectList');
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
                       onClick={() => {
                         setIsEditingProject(false);
                         setEditedProject(null);
