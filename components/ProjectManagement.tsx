@@ -222,7 +222,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
           {activeProjects.map((project) => (
             <div
               key={project.id}
-              className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6 hover:border-[var(--accent-primary)] transition-colors cursor-pointer"
+              className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6 hover:border-[var(--accent-primary)] transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-xl font-semibold text-[var(--text-primary)]">{project.name}</h3>
@@ -254,7 +254,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Edit clicked for project:', project.name);
                     setEditedProject(project);
                     setIsEditingProject(true);
                   }}
@@ -276,6 +275,391 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
             >
               Create Your First Project
             </button>
+          </div>
+        )}
+
+        {/* Project Creation Modal */}
+        {isCreatingProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Create New Project</h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  
+                  const newProject: Project = {
+                    id: crypto.randomUUID(),
+                    name: formData.get('name') as string,
+                    description: formData.get('description') as string,
+                    client: formData.get('client') as string,
+                    status: formData.get('status') as Project['status'],
+                    startDate: formData.get('startDate') as string,
+                    endDate: formData.get('endDate') as string,
+                    budget: Number(formData.get('budget')),
+                    teamMembers: [],
+                    archived: false,
+                  };
+
+                  const updatedProjects = [...projects, newProject];
+                  setProjects(updatedProjects);
+                  await saveProjectsToDb(updatedProjects);
+                  setIsCreatingProject(false);
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Project Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Client *
+                  </label>
+                  <input
+                    type="text"
+                    name="client"
+                    required
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Status *
+                  </label>
+                  <select
+                    name="status"
+                    required
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  >
+                    <option value="planning">Planning</option>
+                    <option value="active">Active</option>
+                    <option value="on-hold">On Hold</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      required
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      required
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Budget ($) *
+                  </label>
+                  <input
+                    type="number"
+                    name="budget"
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Create Project
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingProject(false)}
+                    className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Project Edit Modal */}
+        {isEditingProject && editedProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Edit Project</h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  
+                  const updatedProject: Project = {
+                    ...editedProject,
+                    name: formData.get('name') as string,
+                    description: formData.get('description') as string,
+                    client: formData.get('client') as string,
+                    status: formData.get('status') as Project['status'],
+                    startDate: formData.get('startDate') as string,
+                    endDate: formData.get('endDate') as string,
+                    budget: Number(formData.get('budget')),
+                  };
+
+                  const updatedProjects = projects.map(p => 
+                    p.id === updatedProject.id ? updatedProject : p
+                  );
+                  setProjects(updatedProjects);
+                  await saveProjectsToDb(updatedProjects);
+                  setIsEditingProject(false);
+                  setEditedProject(null);
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Project Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    defaultValue={editedProject.name}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    defaultValue={editedProject.description}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Client *
+                  </label>
+                  <input
+                    type="text"
+                    name="client"
+                    required
+                    defaultValue={editedProject.client}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Status *
+                  </label>
+                  <select
+                    name="status"
+                    required
+                    defaultValue={editedProject.status}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  >
+                    <option value="planning">Planning</option>
+                    <option value="active">Active</option>
+                    <option value="on-hold">On Hold</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      required
+                      defaultValue={editedProject.startDate}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      required
+                      defaultValue={editedProject.endDate}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Budget ($) *
+                  </label>
+                  <input
+                    type="number"
+                    name="budget"
+                    required
+                    min="0"
+                    step="0.01"
+                    defaultValue={editedProject.budget}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Team Members
+                  </label>
+                  <div className="space-y-2">
+                    {editedProject.teamMembers.map((member, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={member}
+                          onChange={(e) => {
+                            const newMembers = [...editedProject.teamMembers];
+                            newMembers[index] = e.target.value;
+                            setEditedProject({ ...editedProject, teamMembers: newMembers });
+                          }}
+                          className="flex-1 px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMembers = editedProject.teamMembers.filter((_, i) => i !== index);
+                            setEditedProject({ ...editedProject, teamMembers: newMembers });
+                          }}
+                          className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditedProject({ 
+                          ...editedProject, 
+                          teamMembers: [...editedProject.teamMembers, ''] 
+                        });
+                      }}
+                      className="w-full px-3 py-2 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)]"
+                    >
+                      + Add Team Member
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                  {editedProject.archived ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const unarchivedProject = { ...editedProject, archived: false };
+                        const updatedProjects = projects.map(p => p.id === unarchivedProject.id ? unarchivedProject : p);
+                        setProjects(updatedProjects);
+                        await saveProjectsToDb(updatedProjects);
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Unarchive
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(`Archive "${editedProject.name}"?`)) return;
+                        
+                        const archivedProject = { ...editedProject, archived: true };
+                        const updatedProjects = projects.map(p => p.id === archivedProject.id ? archivedProject : p);
+                        setProjects(updatedProjects);
+                        await saveProjectsToDb(updatedProjects);
+                        setIsEditingProject(false);
+                        setEditedProject(null);
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm(`Permanently delete "${editedProject.name}"?`)) return;
+                      
+                      const updatedProjects = projects.filter(p => p.id !== editedProject.id);
+                      setProjects(updatedProjects);
+                      await deleteProjectFromDb(editedProject.id);
+                      setIsEditingProject(false);
+                      setEditedProject(null);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingProject(false);
+                      setEditedProject(null);
+                    }}
+                    className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
@@ -307,590 +691,212 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
             onClick={() => setIsCreatingTask(true)}
             className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
           >
-            + New Task
+            Add Task
           </button>
         </div>
 
-        <KanbanBoard 
-          tasks={projectTasks}
+        <KanbanBoard
           project={selectedProject}
+          tasks={projectTasks}
           onTaskAssignmentChange={handleTaskAssignmentChange}
           onEditTask={handleEditTask}
         />
-      </div>
-    );
-  }
 
-  return (
-    <div className="max-w-6xl mx-auto">
-      {/* Task Creation/Edit Modal */}
-      {(isCreatingTask || editingTask) && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
-              {editingTask ? 'Edit Task' : 'Create New Task'}
-            </h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                
-                const taskData = {
-                  id: editingTask?.id || crypto.randomUUID(),
-                  projectId: selectedProject.id,
-                  title: formData.get('title') as string,
-                  description: formData.get('description') as string,
-                  assignedTo: formData.get('assignedTo') as string,
-                  status: (formData.get('status') as Task['status']) || 'todo',
-                  priority: (formData.get('priority') as Task['priority']) || 'medium',
-                  dueDate: formData.get('dueDate') as string,
-                  estimatedHours: Number(formData.get('estimatedHours')) || 0,
-                  actualHours: editingTask?.actualHours || 0,
-                  createdAt: editingTask?.createdAt || new Date().toISOString(),
-                };
+        {/* Task Creation/Edit Modal */}
+        {(isCreatingTask || editingTask) && selectedProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+                {editingTask ? 'Edit Task' : 'Create New Task'}
+              </h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  
+                  if (editingTask) {
+                    const updatedTask: Task = {
+                      ...editingTask,
+                      title: formData.get('title') as string,
+                      description: formData.get('description') as string,
+                      assignedTo: formData.get('assignedTo') as string,
+                      status: formData.get('status') as Task['status'],
+                      priority: formData.get('priority') as Task['priority'],
+                      dueDate: formData.get('dueDate') as string,
+                      estimatedHours: Number(formData.get('estimatedHours')),
+                    };
 
-                if (editingTask) {
-                  const updatedTasks = tasks.map(t => t.id === taskData.id ? taskData : t);
-                  setTasks(updatedTasks);
-                  await saveTasksToDb(updatedTasks);
-                } else {
-                  const updatedTasks = [...tasks, taskData];
-                  setTasks(updatedTasks);
-                  await saveTasksToDb(updatedTasks);
-                }
+                    const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+                    setTasks(updatedTasks);
+                    await saveTasksToDb(updatedTasks);
+                    setEditingTask(null);
+                  } else {
+                    const newTask: Task = {
+                      id: crypto.randomUUID(),
+                      projectId: selectedProject.id,
+                      title: formData.get('title') as string,
+                      description: formData.get('description') as string,
+                      assignedTo: formData.get('assignedTo') as string,
+                      status: formData.get('status') as Task['status'],
+                      priority: formData.get('priority') as Task['priority'],
+                      dueDate: formData.get('dueDate') as string,
+                      estimatedHours: Number(formData.get('estimatedHours')),
+                      actualHours: 0,
+                      createdAt: new Date().toISOString(),
+                    };
 
-                setIsCreatingTask(false);
-                setEditingTask(null);
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  defaultValue={editingTask?.title}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
+                    const updatedTasks = [...tasks, newTask];
+                    setTasks(updatedTasks);
+                    await saveTasksToDb(updatedTasks);
+                    setIsCreatingTask(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Task Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    required
+                    defaultValue={editingTask?.title || ''}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  defaultValue={editingTask?.description}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={3}
+                    defaultValue={editingTask?.description || ''}
+                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                     Assigned To
                   </label>
-                  <select
+                  <input
+                    type="text"
                     name="assignedTo"
                     defaultValue={editingTask?.assignedTo || ''}
                     className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  >
-                    <option value="">Unassigned</option>
-                    {selectedProject.teamMembers.map(member => (
-                      <option key={member} value={member}>{member}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    defaultValue={editingTask?.status || 'todo'}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="blocked">Blocked</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Priority
-                  </label>
-                  <select
-                    name="priority"
-                    defaultValue={editingTask?.priority || 'medium'}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    name="dueDate"
-                    defaultValue={editingTask?.dueDate}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Estimated Hours
-                </label>
-                <input
-                  type="number"
-                  name="estimatedHours"
-                  min="0"
-                  step="0.5"
-                  defaultValue={editingTask?.estimatedHours || 0}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Status *
+                    </label>
+                    <select
+                      name="status"
+                      required
+                      defaultValue={editingTask?.status || 'todo'}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="done">Done</option>
+                      <option value="blocked">Blocked</option>
+                    </select>
+                  </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  {editingTask ? 'Save Changes' : 'Create Task'}
-                </button>
-                {editingTask && (
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Priority *
+                    </label>
+                    <select
+                      name="priority"
+                      required
+                      defaultValue={editingTask?.priority || 'medium'}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Due Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      required
+                      defaultValue={editingTask?.dueDate || ''}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                      Estimated Hours
+                    </label>
+                    <input
+                      type="number"
+                      name="estimatedHours"
+                      min="0"
+                      step="0.5"
+                      defaultValue={editingTask?.estimatedHours || 0}
+                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
                   <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm(`Delete task "${editingTask.title}"?`)) return;
-                      const updatedTasks = tasks.filter(t => t.id !== editingTask.id);
-                      setTasks(updatedTasks);
-                      await deleteTaskFromDb(editingTask.id);
-                      setEditingTask(null);
-                    }}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    type="submit"
+                    className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
                   >
-                    Delete
+                    {editingTask ? 'Save Changes' : 'Create Task'}
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreatingTask(false);
-                    setEditingTask(null);
-                  }}
-                  className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Project Creation Modal */}
-      {isCreatingProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Create New Project</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                
-                const newProject: Project = {
-                  id: crypto.randomUUID(),
-                  name: formData.get('name') as string,
-                  description: formData.get('description') as string,
-                  client: formData.get('client') as string,
-                  status: formData.get('status') as Project['status'],
-                  startDate: formData.get('startDate') as string,
-                  endDate: formData.get('endDate') as string,
-                  budget: Number(formData.get('budget')),
-                  teamMembers: [],
-                  archived: false,
-                };
-
-                const updatedProjects = [...projects, newProject];
-                setProjects(updatedProjects);
-                await saveProjectsToDb(updatedProjects);
-                setIsCreatingProject(false);
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Client *
-                </label>
-                <input
-                  type="text"
-                  name="client"
-                  required
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Status *
-                </label>
-                <select
-                  name="status"
-                  required
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                >
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    required
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    required
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Budget ($) *
-                </label>
-                <input
-                  type="number"
-                  name="budget"
-                  required
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Create Project
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreatingProject(false)}
-                  className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Project Edit Modal */}
-      {isEditingProject && editedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Edit Project</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                
-                const updatedProject: Project = {
-                  ...editedProject,
-                  name: formData.get('name') as string,
-                  description: formData.get('description') as string,
-                  client: formData.get('client') as string,
-                  status: formData.get('status') as Project['status'],
-                  startDate: formData.get('startDate') as string,
-                  endDate: formData.get('endDate') as string,
-                  budget: Number(formData.get('budget')),
-                };
-
-                const updatedProjects = projects.map(p => 
-                  p.id === updatedProject.id ? updatedProject : p
-                );
-                setProjects(updatedProjects);
-                await saveProjectsToDb(updatedProjects);
-                setIsEditingProject(false);
-                setEditedProject(null);
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  defaultValue={editedProject.name}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  rows={3}
-                  defaultValue={editedProject.description}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Client *
-                </label>
-                <input
-                  type="text"
-                  name="client"
-                  required
-                  defaultValue={editedProject.client}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Status *
-                </label>
-                <select
-                  name="status"
-                  required
-                  defaultValue={editedProject.status}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                >
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    required
-                    defaultValue={editedProject.startDate}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    required
-                    defaultValue={editedProject.endDate}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Budget ($) *
-                </label>
-                <input
-                  type="number"
-                  name="budget"
-                  required
-                  min="0"
-                  step="0.01"
-                  defaultValue={editedProject.budget}
-                  className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  Team Members
-                </label>
-                <div className="space-y-2">
-                  {editedProject.teamMembers.map((member, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={member}
-                        onChange={(e) => {
-                          const newMembers = [...editedProject.teamMembers];
-                          newMembers[index] = e.target.value;
-                          setEditedProject({ ...editedProject, teamMembers: newMembers });
-                        }}
-                        className="flex-1 px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMembers = editedProject.teamMembers.filter((_, i) => i !== index);
-                          setEditedProject({ ...editedProject, teamMembers: newMembers });
-                        }}
-                        className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+                  {editingTask && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(`Delete task "${editingTask.title}"?`)) return;
+                        const updatedTasks = tasks.filter(t => t.id !== editingTask.id);
+                        setTasks(updatedTasks);
+                        await deleteTaskFromDb(editingTask.id);
+                        setEditingTask(null);
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
-                      setEditedProject({ 
-                        ...editedProject, 
-                        teamMembers: [...editedProject.teamMembers, ''] 
-                      });
+                      setIsCreatingTask(false);
+                      setEditingTask(null);
                     }}
-                    className="w-full px-3 py-2 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)]"
+                    className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                   >
-                    + Add Team Member
+                    Cancel
                   </button>
                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Save Changes
-                </button>
-                {editedProject.archived ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const unarchivedProject = { ...editedProject, archived: false };
-                      const updatedProjects = projects.map(p => p.id === unarchivedProject.id ? unarchivedProject : p);
-                      setProjects(updatedProjects);
-                      await saveProjectsToDb(updatedProjects);
-                      setIsEditingProject(false);
-                      setEditedProject(null);
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Unarchive
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm(`Archive "${editedProject.name}"?`)) return;
-                      
-                      const archivedProject = { ...editedProject, archived: true };
-                      const updatedProjects = projects.map(p => p.id === archivedProject.id ? archivedProject : p);
-                      setProjects(updatedProjects);
-                      await saveProjectsToDb(updatedProjects);
-                      setIsEditingProject(false);
-                      setEditedProject(null);
-                    }}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Archive
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm(`Permanently delete "${editedProject.name}"?`)) return;
-                    
-                    const updatedProjects = projects.filter(p => p.id !== editedProject.id);
-                    setProjects(updatedProjects);
-                    await deleteProjectFromDb(editedProject.id);
-                    setIsEditingProject(false);
-                    setEditedProject(null);
-                  }}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditingProject(false);
-                    setEditedProject(null);
-                  }}
-                  className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default ProjectManagement;
