@@ -53,7 +53,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const blockedTasks = tasks.filter(t => t.status === 'blocked');
   const doneTasks = tasks.filter(t => t.status === 'done');
 
-  const TaskCard = ({ task }: { task: Task }) => {
+ const TaskCard = ({ task }: { task: Task }) => {
   const priorityColors = {
     low: 'bg-gray-100 text-gray-700 border-gray-300',
     medium: 'bg-blue-100 text-blue-700 border-blue-300',
