@@ -254,6 +254,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log('Edit clicked for project:', project.name);
                     setEditedProject(project);
                     setIsEditingProject(true);
                   }}
