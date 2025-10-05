@@ -288,7 +288,7 @@ function App() {
                 <p className="text-gray-600 text-sm mb-4">{project.description}</p>
                 <div className="space-y-2 text-sm">
                   <p><span className="font-medium">Client:</span> {project.client}</p>
-                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}
+                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}</p>
                 </div>
               </div>
             ))}
