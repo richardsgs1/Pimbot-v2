@@ -344,7 +344,7 @@ function App() {
                 <p className="text-gray-600 text-sm mb-4">{project.description}</p>
                 <div className="space-y-2 text-sm mb-4">
                   <p><span className="font-medium">Client:</span> {project.client}</p>
-                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}
+                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}</p>
                   <p><span className="font-medium">Team:</span> {project.teamMembers.length} member(s)</p>
                 </div>
                 <div className="flex gap-2">
