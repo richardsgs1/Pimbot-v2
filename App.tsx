@@ -63,7 +63,7 @@ function App() {
         status: p.status,
         start_date: p.startDate,
         end_date: p.endDate,
-        budget: p.budget,
+        budget: p.budget || 0,
         team_members: p.teamMembers,
         archived: p.archived,
       })));
@@ -137,7 +137,7 @@ function App() {
           status: p.status,
           startDate: p.start_date,
           endDate: p.end_date,
-          budget: p.budget,
+          budget: p.budget || 0,
           teamMembers: p.team_members || [],
           archived: p.archived || false,
         })));
@@ -288,7 +288,7 @@ function App() {
                 <p className="text-gray-600 text-sm mb-4">{project.description}</p>
                 <div className="space-y-2 text-sm">
                   <p><span className="font-medium">Client:</span> {project.client}</p>
-                  <p><span className="font-medium">Budget:</span> ${project.budget.toLocaleString()}</p>
+                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}
                 </div>
               </div>
             ))}
@@ -344,7 +344,7 @@ function App() {
                 <p className="text-gray-600 text-sm mb-4">{project.description}</p>
                 <div className="space-y-2 text-sm mb-4">
                   <p><span className="font-medium">Client:</span> {project.client}</p>
-                  <p><span className="font-medium">Budget:</span> ${project.budget.toLocaleString()}</p>
+                  <p><span className="font-medium">Budget:</span> ${project.budget?.toLocaleString() ?? 'N/A'}
                   <p><span className="font-medium">Team:</span> {project.teamMembers.length} member(s)</p>
                 </div>
                 <div className="flex gap-2">
