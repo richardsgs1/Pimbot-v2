@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import KanbanBoard from './KanbanBoard';
 
+type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  avatarColor: string;
+};
+
 type Project = {
   id: string;
   name: string;
@@ -11,7 +19,7 @@ type Project = {
   startDate: string;
   endDate: string;
   budget: number;
-  teamMembers: string[];
+  teamMembers: TeamMember[];
   archived: boolean;
 };
 
@@ -69,7 +77,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
         start_date: p.startDate,
         end_date: p.endDate,
         budget: p.budget || 0,
-        team_members: p.teamMembers,
+        team_members: p.teamMembers ||[],
         archived: p.archived,
       })));
     
@@ -554,43 +562,75 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
                   </label>
                   <div className="space-y-2">
                     {editedProject.teamMembers.map((member, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={member.id} className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
-                          value={member}
+                          value={member.name}
                           onChange={(e) => {
                             const newMembers = [...editedProject.teamMembers];
-                            newMembers[index] = e.target.value;
+                            newMembers[index] = { ...member, name: e.target.value };
                             setEditedProject({ ...editedProject, teamMembers: newMembers });
-                          }}
-                          className="flex-1 px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                        />
+                        }}
+                        placeholder="Name"
+                        className="px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                    <input
+                        type="text"
+                        value={member.email}
+                        onChange={(e) => {
+                          const newMembers = [...editedProject.teamMembers];
+                          newMembers[index] = { ...member, email: e.target.value };
+                          setEditedProject({ ...editedProject, teamMembers: newMembers });
+                         }}
+                         placeholder="Email"
+                         className="px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
+                    <input
+                        type="text"
+                        value={member.role}
+                        onChange={(e) => {
+                            const newMembers = [...editedProject.teamMembers];
+                            newMembers[index] = { ...member, role: e.target.value };
+                            setEditedProject({ ...editedProject, teamMembers: newMembers });
+                    }}
+                            placeholder="Role"
+                            className="px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    />
                         <button
-                          type="button"
-                          onClick={() => {
+                         type="button"
+                         onClick={() => {
                             const newMembers = editedProject.teamMembers.filter((_, i) => i !== index);
                             setEditedProject({ ...editedProject, teamMembers: newMembers });
-                          }}
-                          className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditedProject({ 
-                          ...editedProject, 
-                          teamMembers: [...editedProject.teamMembers, ''] 
-                        });
-                      }}
-                      className="w-full px-3 py-2 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)]"
-                    >
-                      + Add Team Member
+                        }}
+                        className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                 >
+                        Remove
                     </button>
-                  </div>
-                </div>
+                    </div>
+     ))}
+                        <button
+                        type="button"
+                        onClick={() => {
+                            setEditedProject({ 
+                            ...editedProject, 
+                            teamMembers: [
+                                ...editedProject.teamMembers, 
+                                {
+                                id: crypto.randomUUID(),
+                                name: '',
+                                role: '',
+                                email: '',
+                                avatarColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                                }
+                            ] 
+                            });
+                        }}
+                        className="w-full px-3 py-2 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)]"
+                        >
+                        + Add Team Member
+                        </button>
+                    </div>
+                    </div>
 
                 <div className="flex gap-3 pt-4">
                   <button

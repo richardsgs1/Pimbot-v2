@@ -14,6 +14,14 @@ type Task = {
   createdAt: string;
 };
 
+type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  avatarColor: string;
+};
+
 type Project = {
   id: string;
   name: string;
@@ -23,7 +31,7 @@ type Project = {
   startDate: string;
   endDate: string;
   budget: number;
-  teamMembers: string[];
+  teamMembers: TeamMember[]; 
   archived: boolean;
 };
 
@@ -70,12 +78,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onChange={(e) => onTaskAssignmentChange(task.id, e.target.value)}
             className="text-gray-700 border border-gray-300 rounded px-2 py-1 text-xs"
             onClick={(e) => e.stopPropagation()}
-          >
+        >
             <option value="">Unassigned</option>
             {project.teamMembers.map(member => (
-              <option key={member} value={member}>{member}</option>
+                <option key={member.id} value={member.name}>{member.name}</option>
             ))}
-          </select>
+         </select>
           {task.dueDate && (
             <span className="text-gray-500 text-xs">
               Due: {new Date(task.dueDate).toLocaleDateString()}
