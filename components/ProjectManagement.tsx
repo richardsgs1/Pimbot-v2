@@ -143,19 +143,30 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
       
       if (projectData) {
         setProjects(projectData.map(p => ({
-          id: p.id,
-          name: p.name,
-          description: p.description,
-          client: p.client,
-          status: p.status,
-          startDate: p.start_date,
-          endDate: p.end_date,
-          budget: p.budget || 0,
-          teamMembers: p.team_members || [],
-          archived: p.archived || false,
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            client: p.client,
+            status: p.status,
+            startDate: p.start_date,
+            endDate: p.end_date,
+            budget: p.budget || 0,
+            teamMembers: Array.isArray(p.team_members) 
+                ? p.team_members.map((member: any) =>  // Add : any here
+                    typeof member === 'string' 
+                    ? {
+                        id: crypto.randomUUID(),
+                        name: member,
+                        role: '',
+                        email: '',
+                        avatarColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                    }
+        : member
+    )
+  : [],
+            archived: p.archived || false,
         })));
-      }
-
+    }
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .select('*');
