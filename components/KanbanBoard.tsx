@@ -40,6 +40,7 @@ interface KanbanBoardProps {
   project: Project;
   onTaskAssignmentChange: (taskId: string, assignedTo: string) => void;
   onEditTask: (task: Task) => void;
+  onLogTime: (task: Task) => void;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({

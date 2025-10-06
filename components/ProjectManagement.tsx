@@ -37,6 +37,15 @@ type Task = {
   createdAt: string;
 };
 
+type TimeEntry = {
+  id: string;
+  taskId: string;
+  userName: string;
+  hours: number;
+  date: string;
+  notes: string;
+  createdAt: string;
+};
 interface ProjectManagementProps {
   onMenuClick: () => void;
 }
@@ -52,6 +61,9 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
   const [editedProject, setEditedProject] = useState<Project | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [isLoggingTime, setIsLoggingTime] = useState(false);
+  const [timeLogTask, setTimeLogTask] = useState<Task | null>(null);
 
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -128,73 +140,124 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
     if (error) console.error('Error deleting project:', error);
   };
 
+  const saveTimeEntriesToDb = async (entriesToSave: TimeEntry[]) => {
+  if (!supabase) return;
+  
+  const { error } = await supabase
+    .from('time_entries')
+    .upsert(entriesToSave.map(e => ({
+      id: e.id,
+      task_id: e.taskId,
+      user_name: e.userName,
+      hours: e.hours,
+      date: e.date,
+      notes: e.notes,
+      created_at: e.createdAt,
+    })));
+  
+  if (error) console.error('Error saving time entries:', error);
+};
+
+const deleteTimeEntryFromDb = async (entryId: string) => {
+  if (!supabase) return;
+  
+  const { error } = await supabase
+    .from('time_entries')
+    .delete()
+    .eq('id', entryId);
+  
+  if (error) console.error('Error deleting time entry:', error);
+};
+
   useEffect(() => {
-    const loadData = async () => {
-      if (!supabase) return;
-      
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*');
-      
-      if (projectError) {
-        console.error('Error loading projects:', projectError);
-        return;
-      }
-      
-      if (projectData) {
-        setProjects(projectData.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description,
-            client: p.client,
-            status: p.status,
-            startDate: p.start_date,
-            endDate: p.end_date,
-            budget: p.budget || 0,
-            teamMembers: Array.isArray(p.team_members) 
-                ? p.team_members.map((member: any) =>  // Add : any here
-                    typeof member === 'string' 
-                    ? {
-                        id: crypto.randomUUID(),
-                        name: member,
-                        role: '',
-                        email: '',
-                        avatarColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
-                    }
-        : member
-    )
-  : [],
-            archived: p.archived || false,
-        })));
-    }
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('*');
-      
-      if (taskError) {
-        console.error('Error loading tasks:', taskError);
-        return;
-      }
-      
-      if (taskData) {
-        setTasks(taskData.map(t => ({
-          id: t.id,
-          projectId: t.project_id,
-          title: t.title,
-          description: t.description,
-          assignedTo: t.assigned_to,
-          status: t.status,
-          priority: t.priority,
-          dueDate: t.due_date,
-          estimatedHours: t.estimated_hours,
-          actualHours: t.actual_hours,
-          createdAt: t.created_at,
-        })));
-      }
-    };
+  const loadData = async () => {
+    if (!supabase) return;
     
-    loadData();
-  }, [supabase]);
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('*');
+    
+    if (projectError) {
+      console.error('Error loading projects:', projectError);
+      return;
+    }
+    
+    if (projectData) {
+      setProjects(projectData.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        client: p.client,
+        status: p.status,
+        startDate: p.start_date,
+        endDate: p.end_date,
+        budget: p.budget || 0,
+        teamMembers: Array.isArray(p.team_members) 
+          ? p.team_members.map((member: any) => 
+              typeof member === 'string' 
+                ? {
+                    id: crypto.randomUUID(),
+                    name: member,
+                    role: '',
+                    email: '',
+                    avatarColor: `#${Math.floor(Math.random()*16777215).toString(16)}`
+                  }
+                : member
+            )
+          : [],
+        archived: p.archived || false,
+      })));
+    }
+
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('*');
+    
+    if (taskError) {
+      console.error('Error loading tasks:', taskError);
+      return;
+    }
+    
+    if (taskData) {
+      setTasks(taskData.map(t => ({
+        id: t.id,
+        projectId: t.project_id,
+        title: t.title,
+        description: t.description,
+        assignedTo: t.assigned_to,
+        status: t.status,
+        priority: t.priority,
+        dueDate: t.due_date,
+        estimatedHours: t.estimated_hours,
+        actualHours: t.actual_hours,
+        createdAt: t.created_at,
+      })));
+    }
+
+    const { data: timeEntryData, error: timeEntryError } = await supabase
+      .from('time_entries')
+      .select('*');
+
+    if (timeEntryError) {
+      console.error('Error loading time entries:', timeEntryError);
+      return;
+    }
+
+    if (timeEntryData) {
+      setTimeEntries(timeEntryData.map(e => ({
+        id: e.id,
+        taskId: e.task_id,
+        userName: e.user_name,
+        hours: e.hours,
+        date: e.date,
+        notes: e.notes || '',
+        createdAt: e.created_at,
+      })));
+    }
+  };
+  
+  loadData();
+}, [supabase]);
 
   const activeProjects = projects.filter(p => !p.archived);
 
@@ -751,7 +814,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
           tasks={projectTasks}
           onTaskAssignmentChange={handleTaskAssignmentChange}
           onEditTask={handleEditTask}
-        />
+          onLogTime={(task) => {
+            setTimeLogTask(task);
+            setIsLoggingTime(true);
+        }}
+    />
 
         {/* Task Creation/Edit Modal */}
         {(isCreatingTask || editingTask) && selectedProject && (
@@ -859,6 +926,164 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
                     </select>
                   </div>
 
+    {/* Time Logging Modal */}
+    {isLoggingTime && timeLogTask && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+            Log Time - {timeLogTask.title}
+        </h2>
+        
+        <form
+            onSubmit={async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            
+            const newEntry: TimeEntry = {
+                id: crypto.randomUUID(),
+                taskId: timeLogTask.id,
+                userName: formData.get('userName') as string,
+                hours: Number(formData.get('hours')),
+                date: formData.get('date') as string,
+                notes: formData.get('notes') as string || '',
+                createdAt: new Date().toISOString(),
+            };
+
+            const updatedEntries = [...timeEntries, newEntry];
+            setTimeEntries(updatedEntries);
+            await saveTimeEntriesToDb(updatedEntries);
+            
+            // Update task actual hours
+            const taskEntries = updatedEntries.filter(e => e.taskId === timeLogTask.id);
+            const totalHours = taskEntries.reduce((sum, e) => sum + e.hours, 0);
+            const updatedTasks = tasks.map(t => 
+                t.id === timeLogTask.id ? { ...t, actualHours: totalHours } : t
+            );
+            setTasks(updatedTasks);
+            await saveTasksToDb(updatedTasks);
+            
+            setIsLoggingTime(false);
+            setTimeLogTask(null);
+            }}
+            className="space-y-4"
+        >
+            <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Your Name *
+            </label>
+            <input
+                type="text"
+                name="userName"
+                required
+                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+            </div>
+
+            <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Hours Worked *
+            </label>
+            <input
+                type="number"
+                name="hours"
+                required
+                min="0.1"
+                step="0.1"
+                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+            </div>
+
+            <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Date *
+            </label>
+            <input
+                type="date"
+                name="date"
+                required
+                defaultValue={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+            </div>
+
+            <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Notes
+            </label>
+            <textarea
+                name="notes"
+                rows={3}
+                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+            </div>
+
+        {/* Show existing time entries for this task */}
+        {timeEntries.filter(e => e.taskId === timeLogTask.id).length > 0 && (
+          <div className="mt-6">
+            <h3 className="font-medium text-[var(--text-primary)] mb-3">Previous Time Logs</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {timeEntries
+                .filter(e => e.taskId === timeLogTask.id)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map(entry => (
+                  <div key={entry.id} className="bg-[var(--bg-tertiary)] p-3 rounded-lg text-sm">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-[var(--text-primary)]">{entry.userName}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const updatedEntries = timeEntries.filter(e => e.id !== entry.id);
+                          setTimeEntries(updatedEntries);
+                          await deleteTimeEntryFromDb(entry.id);
+                          
+                          // Recalculate task actual hours
+                          const taskEntries = updatedEntries.filter(e => e.taskId === timeLogTask.id);
+                          const totalHours = taskEntries.reduce((sum, e) => sum + e.hours, 0);
+                          const updatedTasks = tasks.map(t => 
+                            t.id === timeLogTask.id ? { ...t, actualHours: totalHours } : t
+                          );
+                          setTasks(updatedTasks);
+                          await saveTasksToDb(updatedTasks);
+                        }}
+                        className="text-red-600 hover:text-red-800 text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <div className="text-[var(--text-secondary)]">
+                      {entry.hours}h on {new Date(entry.date).toLocaleDateString()}
+                    </div>
+                    {entry.notes && (
+                      <p className="text-[var(--text-tertiary)] mt-1">{entry.notes}</p>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Log Time
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoggingTime(false);
+              setTimeLogTask(null);
+            }}
+            className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                       Priority *
