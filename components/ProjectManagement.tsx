@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import KanbanBoard from './KanbanBoard';
+import ProjectAnalytics from './ProjectAnalytics';
 
 type TeamMember = {
   id: string;
@@ -54,7 +55,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
+  const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics'>('list');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -284,18 +285,24 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsCreatingProject(true)}
-              className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
+                onClick={() => setCurrentView('analytics')}
+                className="px-4 py-2 border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
             >
-              + New Project
+                Analytics
             </button>
             <button
-              onClick={onMenuClick}
-              className="md:hidden p-2 rounded-lg hover:bg-[var(--bg-tertiary)]"
+                onClick={() => setIsCreatingProject(true)}
+                className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                + New Project
+            </button>
+            <button
+                onClick={onMenuClick}
+                className="md:hidden p-2 rounded-lg hover:bg-[var(--bg-tertiary)]"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+                </svg>
             </button>
           </div>
         </div>
@@ -1170,6 +1177,18 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
   </div>
 )}
       </div>
+    );
+  }
+
+  // Analytics View
+  if (currentView === 'analytics') {
+    return (
+      <ProjectAnalytics
+        projects={projects}
+        tasks={tasks}
+        timeEntries={timeEntries}
+        onBack={() => setCurrentView('list')}
+      />
     );
   }
 
