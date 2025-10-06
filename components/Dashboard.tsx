@@ -1285,23 +1285,6 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
           </li>
           <li>
             <button 
-              onClick={() => handleNavClick('projectList')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'projectList' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
-                  : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
-              }`}
-            >
-              <SidebarIcon>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </SidebarIcon>
-              {!sidebarCollapsed && "Projects"}
-            </button>
-          </li>
-          <li>
-            <button 
               onClick={() => handleNavClick('projectManagement')} 
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'projectManagement' 
@@ -1319,7 +1302,7 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
           </li>
           <li>
             <button 
-              onClick={() => handleNavClick('timeline')} 
+              onClick={() => handleNavClick('chat')} 
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'chat' 
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
