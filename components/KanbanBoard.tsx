@@ -48,6 +48,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   project,
   onTaskAssignmentChange,
   onEditTask,
+  onLogTime,
 }) => {
   const todoTasks = tasks.filter(t => t.status === 'todo');
   const inProgressTasks = tasks.filter(t => t.status === 'in-progress');
@@ -134,13 +135,22 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           </div>
           <button
             onClick={(e) => {
-              e.stopPropagation();
-              onEditTask(task);
+            e.stopPropagation();
+            onLogTime(task);
+            }}
+            className="text-green-600 hover:text-green-800 font-medium"
+        >
+            Log Time
+        </button>
+        <button
+            onClick={(e) => {
+            e.stopPropagation();
+            onEditTask(task);
             }}
             className="text-blue-600 hover:text-blue-800 font-medium"
-          >
+        >
             Edit
-          </button>
+        </button>
         </div>
       </div>
     </div>
