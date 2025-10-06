@@ -810,212 +810,297 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
         </div>
 
         <KanbanBoard
-          project={selectedProject}
-          tasks={projectTasks}
-          onTaskAssignmentChange={handleTaskAssignmentChange}
-          onEditTask={handleEditTask}
-          onLogTime={(task) => {
-            setTimeLogTask(task);
-            setIsLoggingTime(true);
-        }}
-    />
+  project={selectedProject}
+  tasks={projectTasks}
+  onTaskAssignmentChange={handleTaskAssignmentChange}
+  onEditTask={handleEditTask}
+  onLogTime={(task) => {
+    setTimeLogTask(task);
+    setIsLoggingTime(true);
+  }}
+/>
 
-        {/* Task Creation/Edit Modal */}
-        {(isCreatingTask || editingTask) && selectedProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
-                {editingTask ? 'Edit Task' : 'Create New Task'}
-              </h2>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  
-                  if (editingTask) {
-                    const updatedTask: Task = {
-                      ...editingTask,
-                      title: formData.get('title') as string,
-                      description: formData.get('description') as string,
-                      assignedTo: formData.get('assignedTo') as string,
-                      status: formData.get('status') as Task['status'],
-                      priority: formData.get('priority') as Task['priority'],
-                      dueDate: formData.get('dueDate') as string,
-                      estimatedHours: Number(formData.get('estimatedHours')),
-                    };
-
-                    const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-                    setTasks(updatedTasks);
-                    await saveTasksToDb(updatedTasks);
-                    setEditingTask(null);
-                  } else {
-                    const newTask: Task = {
-                      id: crypto.randomUUID(),
-                      projectId: selectedProject.id,
-                      title: formData.get('title') as string,
-                      description: formData.get('description') as string,
-                      assignedTo: formData.get('assignedTo') as string,
-                      status: formData.get('status') as Task['status'],
-                      priority: formData.get('priority') as Task['priority'],
-                      dueDate: formData.get('dueDate') as string,
-                      estimatedHours: Number(formData.get('estimatedHours')),
-                      actualHours: 0,
-                      createdAt: new Date().toISOString(),
-                    };
-
-                    const updatedTasks = [...tasks, newTask];
-                    setTasks(updatedTasks);
-                    await saveTasksToDb(updatedTasks);
-                    setIsCreatingTask(false);
-                  }
-                }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Task Title *
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    required
-                    defaultValue={editingTask?.title || ''}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={3}
-                    defaultValue={editingTask?.description || ''}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    Assigned To
-                  </label>
-                  <input
-                    type="text"
-                    name="assignedTo"
-                    defaultValue={editingTask?.assignedTo || ''}
-                    className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                      Status *
-                    </label>
-                    <select
-                      name="status"
-                      required
-                      defaultValue={editingTask?.status || 'todo'}
-                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                    >
-                      <option value="todo">To Do</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="done">Done</option>
-                      <option value="blocked">Blocked</option>
-                    </select>
-                  </div>
-
-    {/* Time Logging Modal */}
-    {isLoggingTime && timeLogTask && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
-            Log Time - {timeLogTask.title}
-        </h2>
-        
-        <form
-            onSubmit={async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            
-            const newEntry: TimeEntry = {
-                id: crypto.randomUUID(),
-                taskId: timeLogTask.id,
-                userName: formData.get('userName') as string,
-                hours: Number(formData.get('hours')),
-                date: formData.get('date') as string,
-                notes: formData.get('notes') as string || '',
-                createdAt: new Date().toISOString(),
+{/* Task Creation/Edit Modal */}
+{(isCreatingTask || editingTask) && selectedProject && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+        {editingTask ? 'Edit Task' : 'Create New Task'}
+      </h2>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          
+          if (editingTask) {
+            const updatedTask: Task = {
+              ...editingTask,
+              title: formData.get('title') as string,
+              description: formData.get('description') as string,
+              assignedTo: formData.get('assignedTo') as string,
+              status: formData.get('status') as Task['status'],
+              priority: formData.get('priority') as Task['priority'],
+              dueDate: formData.get('dueDate') as string,
+              estimatedHours: Number(formData.get('estimatedHours')),
             };
 
-            const updatedEntries = [...timeEntries, newEntry];
-            setTimeEntries(updatedEntries);
-            await saveTimeEntriesToDb(updatedEntries);
-            
-            // Update task actual hours
-            const taskEntries = updatedEntries.filter(e => e.taskId === timeLogTask.id);
-            const totalHours = taskEntries.reduce((sum, e) => sum + e.hours, 0);
-            const updatedTasks = tasks.map(t => 
-                t.id === timeLogTask.id ? { ...t, actualHours: totalHours } : t
-            );
+            const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
             setTasks(updatedTasks);
             await saveTasksToDb(updatedTasks);
-            
-            setIsLoggingTime(false);
-            setTimeLogTask(null);
+            setEditingTask(null);
+          } else {
+            const newTask: Task = {
+              id: crypto.randomUUID(),
+              projectId: selectedProject.id,
+              title: formData.get('title') as string,
+              description: formData.get('description') as string,
+              assignedTo: formData.get('assignedTo') as string,
+              status: formData.get('status') as Task['status'],
+              priority: formData.get('priority') as Task['priority'],
+              dueDate: formData.get('dueDate') as string,
+              estimatedHours: Number(formData.get('estimatedHours')),
+              actualHours: 0,
+              createdAt: new Date().toISOString(),
+            };
+
+            const updatedTasks = [...tasks, newTask];
+            setTasks(updatedTasks);
+            await saveTasksToDb(updatedTasks);
+            setIsCreatingTask(false);
+          }
+        }}
+        className="space-y-4"
+      >
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Task Title *
+          </label>
+          <input
+            type="text"
+            name="title"
+            required
+            defaultValue={editingTask?.title || ''}
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Description
+          </label>
+          <textarea
+            name="description"
+            rows={3}
+            defaultValue={editingTask?.description || ''}
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Assigned To
+          </label>
+          <input
+            type="text"
+            name="assignedTo"
+            defaultValue={editingTask?.assignedTo || ''}
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Status *
+            </label>
+            <select
+              name="status"
+              required
+              defaultValue={editingTask?.status || 'todo'}
+              className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            >
+              <option value="todo">To Do</option>
+              <option value="in-progress">In Progress</option>
+              <option value="done">Done</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Priority *
+            </label>
+            <select
+              name="priority"
+              required
+              defaultValue={editingTask?.priority || 'medium'}
+              className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Due Date *
+            </label>
+            <input
+              type="date"
+              name="dueDate"
+              required
+              defaultValue={editingTask?.dueDate || ''}
+              className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Estimated Hours
+            </label>
+            <input
+              type="number"
+              name="estimatedHours"
+              min="0"
+              step="0.5"
+              defaultValue={editingTask?.estimatedHours || 0}
+              className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            {editingTask ? 'Save Changes' : 'Create Task'}
+          </button>
+          {editingTask && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm(`Delete task "${editingTask.title}"?`)) return;
+                const updatedTasks = tasks.filter(t => t.id !== editingTask.id);
+                setTasks(updatedTasks);
+                await deleteTaskFromDb(editingTask.id);
+                setEditingTask(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Delete
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setIsCreatingTask(false);
+              setEditingTask(null);
             }}
-            className="space-y-4"
-        >
-            <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                Your Name *
-            </label>
-            <input
-                type="text"
-                name="userName"
-                required
-                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-            />
-            </div>
+            className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
 
-            <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                Hours Worked *
-            </label>
-            <input
-                type="number"
-                name="hours"
-                required
-                min="0.1"
-                step="0.1"
-                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-            />
-            </div>
+{/* Time Logging Modal - NOW PROPERLY POSITIONED AS SIBLING */}
+{isLoggingTime && timeLogTask && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+        Log Time - {timeLogTask.title}
+      </h2>
+      
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          
+          const newEntry: TimeEntry = {
+            id: crypto.randomUUID(),
+            taskId: timeLogTask.id,
+            userName: formData.get('userName') as string,
+            hours: Number(formData.get('hours')),
+            date: formData.get('date') as string,
+            notes: formData.get('notes') as string || '',
+            createdAt: new Date().toISOString(),
+          };
 
-            <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                Date *
-            </label>
-            <input
-                type="date"
-                name="date"
-                required
-                defaultValue={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-            />
-            </div>
+          const updatedEntries = [...timeEntries, newEntry];
+          setTimeEntries(updatedEntries);
+          await saveTimeEntriesToDb(updatedEntries);
+          
+          // Update task actual hours
+          const taskEntries = updatedEntries.filter(e => e.taskId === timeLogTask.id);
+          const totalHours = taskEntries.reduce((sum, e) => sum + e.hours, 0);
+          const updatedTasks = tasks.map(t => 
+            t.id === timeLogTask.id ? { ...t, actualHours: totalHours } : t
+          );
+          setTasks(updatedTasks);
+          await saveTasksToDb(updatedTasks);
+          
+          setIsLoggingTime(false);
+          setTimeLogTask(null);
+        }}
+        className="space-y-4"
+      >
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Your Name *
+          </label>
+          <input
+            type="text"
+            name="userName"
+            required
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
 
-            <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                Notes
-            </label>
-            <textarea
-                name="notes"
-                rows={3}
-                className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-            />
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Hours Worked *
+          </label>
+          <input
+            type="number"
+            name="hours"
+            required
+            min="0.1"
+            step="0.1"
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Date *
+          </label>
+          <input
+            type="date"
+            name="date"
+            required
+            defaultValue={new Date().toISOString().split('T')[0]}
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+            Notes
+          </label>
+          <textarea
+            name="notes"
+            rows={3}
+            className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          />
+        </div>
 
         {/* Show existing time entries for this task */}
         {timeEntries.filter(e => e.taskId === timeLogTask.id).length > 0 && (
@@ -1084,90 +1169,6 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
     </div>
   </div>
 )}
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                      Priority *
-                    </label>
-                    <select
-                      name="priority"
-                      required
-                      defaultValue={editingTask?.priority || 'medium'}
-                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="critical">Critical</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                      Due Date *
-                    </label>
-                    <input
-                      type="date"
-                      name="dueDate"
-                      required
-                      defaultValue={editingTask?.dueDate || ''}
-                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                      Estimated Hours
-                    </label>
-                    <input
-                      type="number"
-                      name="estimatedHours"
-                      min="0"
-                      step="0.5"
-                      defaultValue={editingTask?.estimatedHours || 0}
-                      className="w-full px-3 py-2 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
-                  >
-                    {editingTask ? 'Save Changes' : 'Create Task'}
-                  </button>
-                  {editingTask && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(`Delete task "${editingTask.title}"?`)) return;
-                        const updatedTasks = tasks.filter(t => t.id !== editingTask.id);
-                        setTasks(updatedTasks);
-                        await deleteTaskFromDb(editingTask.id);
-                        setEditingTask(null);
-                      }}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                    >
-                      Delete
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCreatingTask(false);
-                      setEditingTask(null);
-                    }}
-                    className="px-4 py-2 border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
