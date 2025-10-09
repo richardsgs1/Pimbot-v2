@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import KanbanBoard from './KanbanBoard';
+import TemplateSelector from './TemplateSelector';
+import { createProjectFromTemplate } from './ProjectTemplates';
 import ProjectAnalytics from './ProjectAnalytics';
 
 type TeamMember = {
@@ -56,6 +58,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics'>('list');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -291,7 +294,7 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
                 Analytics
             </button>
             <button
-                onClick={() => setIsCreatingProject(true)}
+                onClick={() => setShowTemplateSelector(true)}
                 className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
             >
                 + New Project
@@ -359,11 +362,11 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
           <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
             <p className="text-[var(--text-tertiary)] mb-4">No projects yet</p>
             <button
-              onClick={() => setIsCreatingProject(true)}
-              className="px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
-            >
-              Create Your First Project
-            </button>
+                onClick={() => setShowTemplateSelector(true)}
+                className="px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
+              >
+                Create Your First Project
+              </button>
           </div>
         )}
 
@@ -508,6 +511,33 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
           </div>
         )}
 
+{/* Template Selector Modal */}
+        {showTemplateSelector && (
+          <TemplateSelector
+            onSelect={(projectData) => {
+              // Convert template data to match our Project type
+              const newProject: Project = {
+                id: crypto.randomUUID(),
+                name: projectData.name || 'New Project',
+                description: projectData.description || '',
+                client: 'TBD', // User can edit this later
+                status: 'planning',
+                startDate: projectData.startDate || new Date().toISOString().split('T')[0],
+                endDate: projectData.endDate || new Date().toISOString().split('T')[0],
+                budget: projectData.budget || 0,
+                teamMembers: [],
+                archived: false,
+              };
+              
+              const updatedProjects = [...projects, newProject];
+              setProjects(updatedProjects);
+              saveProjectsToDb(updatedProjects);
+              setShowTemplateSelector(false);
+            }}
+            onClose={() => setShowTemplateSelector(false)}
+          />
+        )}
+        
         {/* Project Edit Modal */}
         {isEditingProject && editedProject && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
