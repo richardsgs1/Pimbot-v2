@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { OnboardingData, Project, ChatMessage, Task } from '../types';
 import { SkillLevel, ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
+import TimelineGenerator from './TimelineGenerator';
+import TeamCapacityAnalysis from './TeamCapacityAnalysis';
+import RiskReport from './RiskReport';
 
 interface ChatProps {
   userData: OnboardingData;
