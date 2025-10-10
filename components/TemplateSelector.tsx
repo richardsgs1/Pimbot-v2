@@ -200,8 +200,17 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onSelect, onClose }
                 )}
               </div>
 
-              {/* Project Stats */}
-              {selectedTemplate && (
+              {/* Project Stats or Blank Message */}
+              {selectedTemplate && selectedTemplate.id === 'blank' ? (
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-6 text-center">
+                  <p className="text-[var(--text-secondary)] mb-2">
+                    ✨ Create your custom project from scratch
+                  </p>
+                  <p className="text-sm text-[var(--text-tertiary)]">
+                    Click "Create Project" to start, then add tasks, team members, and details in the project editor
+                  </p>
+                </div>
+              ) : selectedTemplate && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-center">
                     <p className="text-2xl font-bold text-[var(--accent-primary)]">
