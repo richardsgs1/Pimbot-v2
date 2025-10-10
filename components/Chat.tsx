@@ -43,6 +43,9 @@ const Chat: React.FC<ChatProps> = ({
   const [currentResponse, setCurrentResponse] = useState('');
   const [showContextPanel, setShowContextPanel] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [showTeamAnalysis, setShowTeamAnalysis] = useState(false);
+  const [showRiskReport, setShowRiskReport] = useState(false);
   const [taskForm, setTaskForm] = useState<TaskCreationForm>({
     name: '',
     projectId: projects[0]?.id || '',
@@ -85,10 +88,31 @@ const Chat: React.FC<ChatProps> = ({
       condition: () => projects.length > 0
     },
     {
-      id: 'review-risks',
-      label: 'Review Risks',
+      id: 'timeline',
+      label: 'Generate Timeline',
+      icon: '📅',
+      action: () => setShowTimeline(true),
+      condition: () => projects.length > 0
+    },
+    {
+      id: 'team-analysis',
+      label: 'Team Capacity',
+      icon: '👥',
+      action: () => setShowTeamAnalysis(true),
+      condition: () => projects.some(p => p.teamMembers && p.teamMembers.length > 0)
+    },
+    {
+      id: 'risk-report',
+      label: 'Risk Report',
       icon: '⚠️',
-      action: () => handleQuickPrompt('What are the main risks across my projects and how should I address them?'),
+      action: () => setShowRiskReport(true),
+      condition: () => contextInsights.atRiskProjects > 0 || contextInsights.overdueTasks > 0
+    },
+    {
+      id: 'review-risks',
+      label: 'AI Risk Analysis',
+      icon: '🔍',
+      action: () => handleQuickPrompt('Analyze the risks across my projects in detail and provide mitigation strategies'),
       condition: () => contextInsights.atRiskProjects > 0
     },
     {
@@ -107,9 +131,9 @@ const Chat: React.FC<ChatProps> = ({
     },
     {
       id: 'generate-report',
-      label: 'Generate Report',
+      label: 'Status Report',
       icon: '📊',
-      action: () => handleQuickPrompt('Generate a status report for all my active projects'),
+      action: () => handleQuickPrompt('Generate a comprehensive status report for all my active projects'),
       condition: () => contextInsights.activeProjects > 0
     },
     {
@@ -240,10 +264,12 @@ Provide helpful, context-aware advice based on their current portfolio status an
       }
 
       const data = await response.json();
+      
+      // Handle the response - Gemini returns direct content, not streaming
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.content || 'Sorry, I couldn\'t generate a response.',
+        content: data.content || data.briefing || 'Sorry, I couldn\'t generate a response.',
         timestamp: new Date().toISOString()
       };
 
@@ -541,6 +567,31 @@ Provide helpful, context-aware advice based on their current portfolio status an
             </div>
           </div>
         </div>
+      )}
+
+      {/* Timeline Generator Modal */}
+      {showTimeline && (
+        <TimelineGenerator
+          projects={projects}
+          onClose={() => setShowTimeline(false)}
+        />
+      )}
+
+      {/* Team Capacity Analysis Modal */}
+      {showTeamAnalysis && (
+        <TeamCapacityAnalysis
+          projects={projects}
+          onClose={() => setShowTeamAnalysis(false)}
+        />
+      )}
+
+      {/* Risk Report Modal */}
+      {showRiskReport && (
+        <RiskReport
+          projects={projects}
+          userData={userData}
+          onClose={() => setShowRiskReport(false)}
+        />
       )}
     </div>
   );
