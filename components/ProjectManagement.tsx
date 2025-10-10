@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import KanbanBoard from './KanbanBoard';
 import TemplateSelector from './TemplateSelector';
 import { createProjectFromTemplate } from './ProjectTemplates';
+import { useCustomTemplates } from './useCustomTemplates';
 import ProjectAnalytics from './ProjectAnalytics';
 
 type TeamMember = {
@@ -59,6 +60,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({ onMenuClick }) =>
   const [tasks, setTasks] = useState<Task[]>([]);
   const [currentView, setCurrentView] = useState<'list' | 'detail' | 'analytics'>('list');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const { customTemplates, saveAsTemplate, deleteTemplate } = useCustomTemplates(supabase);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -511,16 +513,15 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
           </div>
         )}
 
-{/* Template Selector Modal */}
-        {showTemplateSelector && (
+        {/* Template Selector Modal */}
+                {showTemplateSelector && (
           <TemplateSelector
             onSelect={(projectData) => {
-              // Convert template data to match our Project type
               const newProject: Project = {
                 id: crypto.randomUUID(),
                 name: projectData.name || 'New Project',
                 description: projectData.description || '',
-                client: 'TBD', // User can edit this later
+                client: 'TBD',
                 status: 'planning',
                 startDate: projectData.startDate || new Date().toISOString().split('T')[0],
                 endDate: projectData.endDate || new Date().toISOString().split('T')[0],
@@ -535,9 +536,11 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
               setShowTemplateSelector(false);
             }}
             onClose={() => setShowTemplateSelector(false)}
+            customTemplates={customTemplates}
+            onDeleteTemplate={deleteTemplate}
           />
         )}
-        
+
         {/* Project Edit Modal */}
         {isEditingProject && editedProject && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -749,6 +752,30 @@ const deleteTimeEntryFromDb = async (entryId: string) => {
                     className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded-lg transition-colors"
                   >
                     Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const templateName = prompt('Template name:', `${editedProject.name} Template`);
+                      if (!templateName) return;
+                      
+                      const templateDescription = prompt('Template description (optional):', editedProject.description);
+                      
+                      const success = await saveAsTemplate(
+                        editedProject,
+                        templateName,
+                        templateDescription || ''
+                      );
+                      
+                      if (success) {
+                        alert('Template saved successfully!');
+                      } else {
+                        alert('Failed to save template');
+                      }
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Save as Template
                   </button>
                   {editedProject.archived ? (
                     <button

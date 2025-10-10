@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { projectTemplates, ProjectTemplate, createProjectFromTemplate } from './ProjectTemplates';
+import { CustomTemplate } from './useCustomTemplates';
 import { Project } from '../types';
 
 interface TemplateSelectorProps {
   onSelect: (project: Partial<Project>) => void;
   onClose: () => void;
+  customTemplates?: CustomTemplate[];
+  onDeleteTemplate?: (templateId: string) => void;
 }
 
 const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onSelect, onClose }) => {
