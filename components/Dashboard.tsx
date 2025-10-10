@@ -9,6 +9,8 @@ import ProjectManagement from './ProjectManagement';
 import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
+import NotificationCenter, { Notification } from './NotificationCenter';
+import ToastNotification, { Toast } from './ToastNotification';
 import TaskSuggestions from './TaskSuggestions';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
@@ -35,6 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
   const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -162,6 +165,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  // ADD THESE TOAST HELPER FUNCTIONS HERE:
+  const addToast = (toast: Omit<Toast, 'id'>) => {
+    const newToast: Toast = {
+      ...toast,
+      id: Date.now().toString()
+    };
+    setToasts(prev => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.projectId) {
+      const project = projects.find(p => p.id === notification.projectId);
+      if (project) {
+        setSelectedProject(project);
+        setCurrentView('projectDetails');
+      }
+    }
+  };
 
   // Handler for creating tasks from AI chat
   const handleTaskCreateFromChat = async (projectId: string, task: Omit<Task, 'id'>) => {
@@ -405,15 +431,6 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
             onMenuClick={() => setShowSidebar(true)}
             onTaskCreate={handleTaskCreateFromChat}
             onProjectUpdate={handleProjectUpdateFromChat}
-          />
-        );
-
-      case 'chat':
-        return (
-          <Chat
-            userData={userData}
-            projects={projects}
-            onMenuClick={() => setShowSidebar(true)}
           />
         );
 
@@ -916,6 +933,12 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                 <p className="text-sm text-[var(--text-tertiary)]">{subtitle}</p>
               </div>
             </div>
+            
+            {/* ADD NOTIFICATION CENTER HERE */}
+            <NotificationCenter 
+              projects={projects} 
+              onNotificationClick={handleNotificationClick}
+            />
           </div>
         </header>
 
@@ -924,6 +947,9 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
           {renderViewContent()}
         </main>
       </div>
+      
+      {/* ADD TOAST NOTIFICATIONS HERE */}
+      <ToastNotification toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 };
