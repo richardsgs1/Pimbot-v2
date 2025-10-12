@@ -170,6 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  
 
   // ADD THESE TOAST HELPER FUNCTIONS HERE:
   const addToast = (toast: Omit<Toast, 'id'>) => {
@@ -233,25 +234,38 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
-   // Generate smart notifications
-        const generateSmartNotifications = useCallback(() => {
-          const engine = new SmartNotificationEngine(projects);
-          const notifications = engine.generateNotifications();
-          setSmartNotifications(notifications);
-          
-          // Show toast for critical notifications
-         const criticalNotifications = engine.getNotificationsBySeverity('critical');
-         if (criticalNotifications.length > 0) {
-            criticalNotifications.slice(0, 3).forEach(notification => {
-              addToast({
-                type: 'error',
-                title: 'Critical Alert',  // ADD THIS
-                message: notification.title,
-                duration: 8000
-              });
-            });
-          }
-        }, [projects]);
+   // Track which notifications we've already shown
+const [shownNotificationIds, setShownNotificationIds] = useState<Set<string>>(new Set());
+
+// Generate smart notifications
+const generateSmartNotifications = useCallback(() => {
+  const engine = new SmartNotificationEngine(projects);
+  const notifications = engine.generateNotifications();
+  setSmartNotifications(notifications);
+  
+  // Show ONE summary toast for critical notifications (only new ones)
+  const criticalNotifications = engine.getNotificationsBySeverity('critical');
+  
+  // Filter out notifications we've already shown
+  const newCritical = criticalNotifications.filter(n => !shownNotificationIds.has(n.id));
+  
+  if (newCritical.length > 0) {
+    // Show a single summary toast
+    addToast({
+      type: 'error',
+      title: 'Critical Alerts',
+      message: `${newCritical.length} critical ${newCritical.length === 1 ? 'issue requires' : 'issues require'} immediate attention`,
+      duration: 6000
+    });
+    
+    // Mark these as shown
+    setShownNotificationIds(prev => {
+      const updated = new Set(prev);
+      newCritical.forEach(n => updated.add(n.id));
+      return updated;
+    });
+  }
+}, [projects, shownNotificationIds]);
 
   useEffect(() => {
   const loadUser = async () => {
