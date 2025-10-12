@@ -316,3 +316,60 @@ export const AutoSuggestions: React.FC<SuggestionsProps> = ({ projects, onSugges
     </div>
   );
 };
+
+interface IntentActionFormsProps {
+  detectedIntent: DetectedIntent | null;
+  projects: Project[];
+  showStatusForm: boolean;
+  showProgressForm: boolean;
+  showAssignForm: boolean;
+  onStatusUpdate: (projectId: string, status: string) => void;
+  onProgressUpdate: (projectId: string, progress: number) => void;
+  onTaskAssign: (taskName: string, assignee: string, projectId?: string) => void;
+  onClose: () => void;
+}
+
+const IntentActionForms: React.FC<IntentActionFormsProps> = ({
+  detectedIntent,
+  projects,
+  showStatusForm,
+  showProgressForm,
+  showAssignForm,
+  onStatusUpdate,
+  onProgressUpdate,
+  onTaskAssign,
+  onClose
+}) => {
+  return (
+    <>
+      {showStatusForm && (
+        <StatusUpdateForm
+          detectedIntent={detectedIntent}
+          projects={projects}
+          onConfirm={onStatusUpdate}
+          onCancel={onClose}
+        />
+      )}
+
+      {showProgressForm && (
+        <ProgressUpdateForm
+          detectedIntent={detectedIntent}
+          projects={projects}
+          onConfirm={onProgressUpdate}
+          onCancel={onClose}
+        />
+      )}
+
+      {showAssignForm && (
+        <AssignTaskForm
+          detectedIntent={detectedIntent}
+          projects={projects}
+          onConfirm={(projectId, taskName, assignee) => onTaskAssign(taskName, assignee, projectId)}
+          onCancel={onClose}
+        />
+      )}
+    </>
+  );
+};
+
+export default IntentActionForms;

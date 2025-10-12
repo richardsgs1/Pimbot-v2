@@ -6,6 +6,7 @@ import TimelineGenerator from './TimelineGenerator';
 import TeamCapacityAnalysis from './TeamCapacityAnalysis';
 import RiskReport from './RiskReport';
 import { IntentDetector } from '@/lib/IntentDetector';
+import IntentActionForms from './IntentActionForms';
 
 interface ChatProps {
   userData: OnboardingData;
@@ -47,6 +48,10 @@ const Chat: React.FC<ChatProps> = ({
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTeamAnalysis, setShowTeamAnalysis] = useState(false);
   const [showRiskReport, setShowRiskReport] = useState(false);
+  const [detectedIntent, setDetectedIntent] = useState<any>(null);
+  const [showStatusForm, setShowStatusForm] = useState(false);
+  const [showProgressForm, setShowProgressForm] = useState(false);
+  const [showAssignForm, setShowAssignForm] = useState(false);
   const [taskForm, setTaskForm] = useState<TaskCreationForm>({
     name: '',
     projectId: projects[0]?.id || '',
@@ -225,9 +230,32 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const messageToSend = overrideMessage || inputMessage;
     if (!messageToSend.trim() || isStreaming) return;
 
+    // NEW Intent Detection for advanced features
+    // NEW Intent Detection for advanced features
+    const detector = new IntentDetector(projects);
+    const detectedIntentResult = detector.detect(messageToSend);
+
+    if (detectedIntentResult && detectedIntentResult.confidence > 0.7) {
+      setDetectedIntent(detectedIntentResult);
+      
+      if (detectedIntentResult.type === 'update-status') {
+        setShowStatusForm(true);
+        setInputMessage('');
+        return;
+      } else if (detectedIntentResult.type === 'update-progress') {
+        setShowProgressForm(true);
+        setInputMessage('');
+        return;
+      } else if (detectedIntentResult.type === 'assign-task') {
+        setShowAssignForm(true);
+        setInputMessage('');
+        return;
+      }
+    }
+
+    // OLD Intent detection for task creation
     const intent = detectIntent(messageToSend);
     
-    // If intent detected, show form instead of sending to AI
     if (intent === 'create-task') {
       setShowTaskForm(true);
       setInputMessage('');
@@ -266,7 +294,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
       const data = await response.json();
       
-      // Handle the response - Gemini returns direct content, not streaming
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -305,7 +332,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
     onTaskCreate(taskForm.projectId, newTask);
     
-    // Add confirmation message
     const confirmMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'assistant',
@@ -314,7 +340,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
     };
     setMessages(prev => [...prev, confirmMessage]);
 
-    // Reset form
     setTaskForm({
       name: '',
       projectId: projects[0]?.id || '',
@@ -329,6 +354,34 @@ Provide helpful, context-aware advice based on their current portfolio status an
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleStatusUpdate = (projectId: string, status: string) => {
+    if (onProjectUpdate) {
+      onProjectUpdate(projectId, { status: status as any });
+    }
+    setShowStatusForm(false);
+    setDetectedIntent(null);
+  };
+
+  const handleProgressUpdate = (projectId: string, progress: number) => {
+    if (onProjectUpdate) {
+      onProjectUpdate(projectId, { progress });
+    }
+    setShowProgressForm(false);
+    setDetectedIntent(null);
+  };
+
+  const handleTaskAssign = (taskName: string, assignee: string, projectId?: string) => {
+    const assistantMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `I've noted that "${taskName}" should be assigned to ${assignee}${projectId ? ` in project ${projects.find(p => p.id === projectId)?.name}` : ''}.`,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+    setShowAssignForm(false);
+    setDetectedIntent(null);
   };
 
   return (
@@ -594,6 +647,24 @@ Provide helpful, context-aware advice based on their current portfolio status an
           onClose={() => setShowRiskReport(false)}
         />
       )}
+
+      {/* Intent Action Forms */}
+      <IntentActionForms
+        detectedIntent={detectedIntent}
+        projects={projects}
+        showStatusForm={showStatusForm}
+        showProgressForm={showProgressForm}
+        showAssignForm={showAssignForm}
+        onStatusUpdate={handleStatusUpdate}
+        onProgressUpdate={handleProgressUpdate}
+        onTaskAssign={handleTaskAssign}
+        onClose={() => {
+          setShowStatusForm(false);
+          setShowProgressForm(false);
+          setShowAssignForm(false);
+          setDetectedIntent(null);
+        }}
+      />
     </div>
   );
 };
