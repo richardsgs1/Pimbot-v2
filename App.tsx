@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';

@@ -444,12 +444,12 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
           />
         );
 
+      case 'projectManagement':
         return (
           <ProjectManagement 
             onMenuClick={() => setShowSidebar(true)}
           />
         );
-        case 'projectManagement':
 
       case 'account':
         return (
