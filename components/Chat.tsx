@@ -7,6 +7,8 @@ import TeamCapacityAnalysis from './TeamCapacityAnalysis';
 import RiskReport from './RiskReport';
 import { IntentDetector } from '@/lib/IntentDetector';
 import IntentActionForms from './IntentActionForms';
+import { TaskMetadataExtractor } from '@/lib/TaskMetadataExtractor';
+import type { ExtractedTaskData } from '@/lib/TaskMetadataExtractor';
 
 interface ChatProps {
   userData: OnboardingData;
@@ -52,6 +54,8 @@ const Chat: React.FC<ChatProps> = ({
   const [showStatusForm, setShowStatusForm] = useState(false);
   const [showProgressForm, setShowProgressForm] = useState(false);
   const [showAssignForm, setShowAssignForm] = useState(false);
+  const [nlTaskData, setNlTaskData] = useState<ExtractedTaskData | null>(null);
+  const [showNLTaskPreview, setShowNLTaskPreview] = useState(false);
   const [taskForm, setTaskForm] = useState<TaskCreationForm>({
     name: '',
     projectId: projects[0]?.id || '',
@@ -209,8 +213,13 @@ User message: ${userMessage}
 Provide helpful, context-aware advice based on their current portfolio status and skill level.`;
   };
 
-  const detectIntent = (message: string): 'create-task' | 'update-status' | 'none' => {
+  const detectIntent = (message: string): 'create-task' | 'update-status' | 'nl-task' | 'none' => {
     const lowerMsg = message.toLowerCase();
+  
+    // Check for natural language task creation
+    if (TaskMetadataExtractor.isTaskCreationIntent(message)) {
+      return 'nl-task';
+    }
     
     const taskKeywords = ['create task', 'add task', 'new task', 'make a task', 'add a todo'];
     const statusKeywords = ['update status', 'change status', 'mark as', 'set status'];
@@ -230,7 +239,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const messageToSend = overrideMessage || inputMessage;
     if (!messageToSend.trim() || isStreaming) return;
 
-    // NEW Intent Detection for advanced features
     // NEW Intent Detection for advanced features
     const detector = new IntentDetector(projects);
     const detectedIntentResult = detector.detect(messageToSend);
@@ -255,6 +263,14 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
     // OLD Intent detection for task creation
     const intent = detectIntent(messageToSend);
+    
+    if (intent === 'nl-task') {
+      const extracted = TaskMetadataExtractor.extract(messageToSend, projects);
+      setNlTaskData(extracted);
+      setShowNLTaskPreview(true);
+      setInputMessage('');
+      return;
+    }
     
     if (intent === 'create-task') {
       setShowTaskForm(true);
@@ -354,6 +370,47 @@ Provide helpful, context-aware advice based on their current portfolio status an
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleNLTaskConfirm = () => {
+  if (!nlTaskData || !onTaskCreate) return;
+
+  // Find project by name or use first project
+  let targetProjectId = projects[0]?.id || '';
+  
+  if (nlTaskData.projectName) {
+    const matchedProject = projects.find(p => 
+      p.name.toLowerCase() === nlTaskData.projectName?.toLowerCase()
+    );
+    if (matchedProject) {
+      targetProjectId = matchedProject.id;
+    }
+  }
+
+    const newTask = {
+    name: nlTaskData.taskName,
+    completed: false,
+    priority: nlTaskData.priority,
+    dueDate: nlTaskData.dueDate || new Date().toISOString().split('T')[0],
+    startDate: new Date().toISOString().split('T')[0],
+    duration: 1,
+    assigneeId: nlTaskData.assignee ?? undefined
+  };
+
+  onTaskCreate(targetProjectId, newTask);
+  
+  // Add confirmation message
+  const confirmMessage: ChatMessage = {
+    id: Date.now().toString(),
+    role: 'assistant',
+    content: `✅ Task "${nlTaskData.taskName}" created successfully!\n\n${TaskMetadataExtractor.generatePreview(nlTaskData)}`,
+    timestamp: new Date().toISOString()
+  };
+  setMessages(prev => [...prev, confirmMessage]);
+
+  // Reset
+  setNlTaskData(null);
+  setShowNLTaskPreview(false);
   };
 
   const handleStatusUpdate = (projectId: string, status: string) => {
@@ -618,6 +675,86 @@ Provide helpful, context-aware advice based on their current portfolio status an
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+{/* Natural Language Task Preview Modal - ADD THIS ENTIRE BLOCK */}
+      {showNLTaskPreview && nlTaskData && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[var(--accent-primary)]/20 rounded-full flex items-center justify-center">
+                <span className="text-xl">🤖</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">AI Extracted Task</h3>
+                <p className="text-sm text-[var(--text-tertiary)]">
+                  Confidence: {Math.round(nlTaskData.confidence * 100)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-[var(--bg-tertiary)] rounded-lg space-y-2 text-sm">
+              <div>
+                <span className="font-semibold text-[var(--text-secondary)]">Task Name:</span>
+                <p className="text-[var(--text-primary)]">{nlTaskData.taskName}</p>
+              </div>
+              <div>
+                <span className="font-semibold text-[var(--text-secondary)]">Priority:</span>
+                <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                  nlTaskData.priority === 'Critical' ? 'bg-red-500/20 text-red-400' :
+                  nlTaskData.priority === 'High' ? 'bg-orange-500/20 text-orange-400' :
+                  nlTaskData.priority === 'Medium' ? 'bg-blue-500/20 text-blue-400' :
+                  'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {nlTaskData.priority}
+                </span>
+              </div>
+              {nlTaskData.dueDate && (
+                <div>
+                  <span className="font-semibold text-[var(--text-secondary)]">Due Date:</span>
+                  <p className="text-[var(--text-primary)]">
+                    {new Date(nlTaskData.dueDate).toLocaleDateString('en-US', { 
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              )}
+              {nlTaskData.assignee && (
+                <div>
+                  <span className="font-semibold text-[var(--text-secondary)]">Assignee:</span>
+                  <p className="text-[var(--text-primary)]">{nlTaskData.assignee}</p>
+                </div>
+              )}
+              {nlTaskData.projectName && (
+                <div>
+                  <span className="font-semibold text-[var(--text-secondary)]">Project:</span>
+                  <p className="text-[var(--text-primary)]">{nlTaskData.projectName}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleNLTaskConfirm}
+                className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white py-2 rounded-lg transition-colors"
+              >
+                ✓ Create Task
+              </button>
+              <button
+                onClick={() => {
+                  setShowNLTaskPreview(false);
+                  setNlTaskData(null);
+                }}
+                className="px-4 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
