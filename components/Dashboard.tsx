@@ -12,6 +12,7 @@ import ThemeToggle from './ThemeToggle';
 import NotificationCenter, { Notification } from './NotificationCenter';
 import ToastNotification, { Toast } from './ToastNotification';
 import TaskSuggestions from './TaskSuggestions';
+import ExportCenter from './ExportCenter';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement';
@@ -38,6 +39,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedEmail, setEditedEmail] = useState(localUserData.email || '');
   const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [showExportCenter, setShowExportCenter] = useState(false);
   const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -442,12 +444,12 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
           />
         );
 
-        case 'projectManagement':
         return (
           <ProjectManagement 
             onMenuClick={() => setShowSidebar(true)}
           />
         );
+        case 'projectManagement':
 
       case 'account':
         return (
@@ -928,17 +930,31 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div>
+              <div>     
                 <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{title}</h1>
                 <p className="text-sm text-[var(--text-tertiary)]">{subtitle}</p>
               </div>
             </div>
             
+            {/* ADD EXPORT BUTTON AND NOTIFICATION CENTER */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowExportCenter(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
+              title="Export Reports"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+
             {/* ADD NOTIFICATION CENTER HERE */}
             <NotificationCenter 
               projects={projects} 
               onNotificationClick={handleNotificationClick}
             />
+            </div>
           </div>
         </header>
 
@@ -948,6 +964,15 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
         </main>
       </div>
       
+      {/* Export Center Modal */}
+      {showExportCenter && (
+        <ExportCenter
+          projects={projects}
+          userData={userData}
+          onClose={() => setShowExportCenter(false)}
+        />
+      )}
+
       {/* ADD TOAST NOTIFICATIONS HERE */}
       <ToastNotification toasts={toasts} onDismiss={removeToast} />
     </div>
