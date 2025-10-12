@@ -125,7 +125,7 @@ ${project.teamMembers && project.teamMembers.length > 0 ? `Team: ${project.teamM
 
   const generateBudgetReport = () => {
     const filteredProjects = projects.filter(p => selectedProjects.includes(p.id));
-    
+
     const totalBudget = filteredProjects.reduce((acc, p) => acc + (p.budget || 0), 0);
     const totalSpent = filteredProjects.reduce((acc, p) => acc + (p.spent || 0), 0);
     const utilization = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : '0';
@@ -328,200 +328,205 @@ ${critical.length > 0
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-[var(--border-primary)] flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)]">Export & Reporting</h2>
-            <p className="text-sm text-[var(--text-tertiary)] mt-1">
-              Generate and export project reports
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Report Selection */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Report Types */}
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Select Report Type</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {reportTypes.map(report => (
-                    <button
-                      key={report.id}
-                      onClick={() => {
-                        setSelectedReport(report.id);
-                        setSelectedFormat(report.formats[0] as ExportFormat);
-                      }}
-                      className={`p-4 border-2 rounded-lg text-left transition-all ${
-                        selectedReport === report.id
-                          ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
-                          : 'border-[var(--border-primary)] hover:border-[var(--accent-primary)]/50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-3xl">{report.icon}</span>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-[var(--text-primary)]">{report.name}</h4>
-                          <p className="text-sm text-[var(--text-tertiary)] mt-1">{report.description}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+                {/* Header - MOBILE OPTIMIZED */}
+                <div className="p-4 sm:p-6 border-b border-[var(--border-primary)] flex items-center justify-between">
+                <div className="flex-1 min-w-0 pr-2">
+                    <h2 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)] truncate">Export & Reporting</h2>
+                    <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mt-1">
+                    Generate and export project reports
+                    </p>
                 </div>
-              </div>
-
-              {/* Export Format */}
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Export Format</h3>
-                <div className="flex flex-wrap gap-3">
-                  {selectedReportInfo?.formats.map(format => (
-                    <button
-                      key={format}
-                      onClick={() => setSelectedFormat(format as ExportFormat)}
-                      className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                        selectedFormat === format
-                          ? 'bg-[var(--accent-primary)] text-white'
-                          : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                      }`}
-                    >
-                      {format.toUpperCase()}
-                    </button>
-                  ))}
+                <button
+                    onClick={onClose}
+                    className="flex-shrink-0 p-2 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
                 </div>
-              </div>
 
-              {/* Date Range */}
-              {(selectedReport === 'time-tracking' || selectedReport === 'budget') && (
+                {/* Content - MOBILE SCROLLING */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+                {/* Left Column - Report Selection */}
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                {/* Report Types - MOBILE GRID */}
                 <div>
-                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Date Range</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Start Date</label>
-                      <input
-                        type="date"
-                        value={dateRange.start}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">End Date</label>
-                      <input
-                        type="date"
-                        value={dateRange.end}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Project Selection */}
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-                  Select Projects ({selectedProjects.length}/{projects.length})
-                </h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setSelectedProjects(
-                      selectedProjects.length === projects.length ? [] : projects.map(p => p.id)
-                    )}
-                    className="text-sm text-[var(--accent-primary)] hover:text-[var(--accent-secondary)]"
-                  >
-                    {selectedProjects.length === projects.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                    {projects.map(project => (
-                      <label
-                        key={project.id}
-                        className="flex items-center p-3 border border-[var(--border-primary)] rounded-lg cursor-pointer hover:bg-[var(--bg-tertiary)]"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedProjects.includes(project.id)}
-                          onChange={() => toggleProject(project.id)}
-                          className="mr-3"
-                        />
-                        <div className="flex-1">
-                          <span className="font-medium text-[var(--text-primary)]">{project.name}</span>
-                          <span className="text-sm text-[var(--text-tertiary)] ml-2">• {project.status}</span>
+                    <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">Select Report Type</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {reportTypes.map(report => (
+                        <button
+                        key={report.id}
+                        onClick={() => {
+                            setSelectedReport(report.id);
+                            setSelectedFormat(report.formats[0] as ExportFormat);
+                        }}
+                        className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-all active:scale-95 ${
+                            selectedReport === report.id
+                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
+                            : 'border-[var(--border-primary)] hover:border-[var(--accent-primary)]/50'
+                        }`}
+                        >
+                        <div className="flex items-start gap-2 sm:gap-3">
+                            <span className="text-2xl sm:text-3xl flex-shrink-0">{report.icon}</span>
+                            <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">{report.name}</h4>
+                            <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mt-1">{report.description}</p>
+                            </div>
                         </div>
-                      </label>
+                        </button>
                     ))}
-                  </div>
+                    </div>
                 </div>
-              </div>
+
+                {/* Export Format - MOBILE BUTTONS */}
+                <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">Export Format</h3>
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {selectedReportInfo?.formats.map(format => (
+                        <button
+                        key={format}
+                        onClick={() => setSelectedFormat(format as ExportFormat)}
+                        className={`flex-1 sm:flex-none min-w-[80px] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium transition-colors active:scale-95 ${
+                            selectedFormat === format
+                            ? 'bg-[var(--accent-primary)] text-white'
+                            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                        }`}
+                        >
+                        {format.toUpperCase()}
+                        </button>
+                    ))}
+                    </div>
+                </div>
+
+                {/* Date Range - MOBILE RESPONSIVE GRID */}
+                {(selectedReport === 'time-tracking' || selectedReport === 'budget') && (
+                    <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">Date Range</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Start Date</label>
+                        <input
+                            type="date"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                            className="w-full p-2.5 sm:p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        />
+                        </div>
+                        <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">End Date</label>
+                        <input
+                            type="date"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                            className="w-full p-2.5 sm:p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                        />
+                        </div>
+                    </div>
+                    </div>
+                )}
+
+                {/* Project Selection - MOBILE COMPACT */}
+                <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">
+                    Select Projects ({selectedProjects.length}/{projects.length})
+                    </h3>
+                    <div className="space-y-2">
+                    <button
+                        onClick={() => setSelectedProjects(
+                        selectedProjects.length === projects.length ? [] : projects.map(p => p.id)
+                        )}
+                        className="text-sm text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] font-medium"
+                    >
+                        {selectedProjects.length === projects.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <div className="grid grid-cols-1 gap-2 max-h-48 sm:max-h-60 overflow-y-auto">
+                        {projects.map(project => (
+                        <label
+                            key={project.id}
+                            className="flex items-center p-2.5 sm:p-3 border border-[var(--border-primary)] rounded-lg cursor-pointer hover:bg-[var(--bg-tertiary)] active:bg-[var(--bg-tertiary)]"
+                        >
+                            <input
+                            type="checkbox"
+                            checked={selectedProjects.includes(project.id)}
+                            onChange={() => toggleProject(project.id)}
+                            className="mr-2 sm:mr-3 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                            <span className="font-medium text-sm text-[var(--text-primary)] block truncate">{project.name}</span>
+                            <span className="text-xs text-[var(--text-tertiary)]">• {project.status}</span>
+                            </div>
+                        </label>
+                        ))}
+                    </div>
+                    </div>
+                </div>
+                </div>
+
+                {/* Right Column - Actions - MOBILE STACKED */}
+                <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-[var(--text-primary)] mb-3">Export Actions</h4>
+                    
+                    <button
+                    onClick={handleExport}
+                    disabled={isGenerating || selectedProjects.length === 0}
+                    className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg transition-colors font-semibold mb-3 active:scale-95 text-sm sm:text-base"
+                    >
+                    {isGenerating ? 'Generating...' : `Export as ${selectedFormat.toUpperCase()}`}
+                    </button>
+
+                    <button
+                    onClick={copyShareLink}
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 active:scale-95 text-sm sm:text-base"
+                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                    <span className="hidden sm:inline">Copy Dashboard Link</span>
+                    <span className="sm:hidden">Share Link</span>
+                    </button>
+                </div>
+
+                <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Report Info
+                    </h4>
+                    <div className="text-xs sm:text-sm text-[var(--text-secondary)] space-y-1.5 sm:space-y-2">
+                    <p><strong>Report:</strong> {selectedReportInfo?.name}</p>
+                    <p><strong>Format:</strong> {selectedFormat.toUpperCase()}</p>
+                    <p><strong>Projects:</strong> {selectedProjects.length} selected</p>
+                    {(selectedReport === 'time-tracking' || selectedReport === 'budget') && (
+                        <p className="break-words"><strong>Period:</strong> {dateRange.start} to {dateRange.end}</p>
+                    )}
+                    </div>
+                </div>
+
+                <div className="text-xs text-[var(--text-tertiary)] space-y-1 hidden sm:block">
+                    <p>💡 <strong>Tip:</strong> Select multiple projects for comparative analysis</p>
+                    <p>📊 Charts and visualizations work best in PDF format</p>
+                    <p>🔗 Share links require dashboard access permissions</p>
+                </div>
+                </div>
+            </div>
             </div>
 
-            {/* Right Column - Actions */}
-            <div className="space-y-4">
-              <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
-                <h4 className="font-semibold text-[var(--text-primary)] mb-3">Export Actions</h4>
-                
-                <button
-                  onClick={handleExport}
-                  disabled={isGenerating || selectedProjects.length === 0}
-                  className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg transition-colors font-semibold mb-3"
-                >
-                  {isGenerating ? 'Generating...' : `Export as ${selectedFormat.toUpperCase()}`}
-                </button>
-
-                <button
-                  onClick={copyShareLink}
-                  className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  Copy Dashboard Link
-                </button>
-              </div>
-
-              <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-lg p-4">
-                <h4 className="font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Report Info
-                </h4>
-                <div className="text-sm text-[var(--text-secondary)] space-y-2">
-                  <p><strong>Report:</strong> {selectedReportInfo?.name}</p>
-                  <p><strong>Format:</strong> {selectedFormat.toUpperCase()}</p>
-                  <p><strong>Projects:</strong> {selectedProjects.length} selected</p>
-                  {(selectedReport === 'time-tracking' || selectedReport === 'budget') && (
-                    <p><strong>Period:</strong> {dateRange.start} to {dateRange.end}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-xs text-[var(--text-tertiary)] space-y-1">
-                <p>💡 <strong>Tip:</strong> Select multiple projects for comparative analysis</p>
-                <p>📊 Charts and visualizations work best in PDF format</p>
-                <p>🔗 Share links require dashboard access permissions</p>
-              </div>
+            {/* Footer - MOBILE SAFE AREA */}
+            <div className="p-3 sm:p-6 pb-safe border-t border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+            <button
+                onClick={onClose}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors active:scale-95"
+            >
+                Close
+            </button>
             </div>
-          </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-[var(--border-primary)] bg-[var(--bg-secondary)]">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

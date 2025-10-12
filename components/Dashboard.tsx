@@ -13,6 +13,8 @@ import NotificationCenter, { Notification } from './NotificationCenter';
 import ToastNotification, { Toast } from './ToastNotification';
 import TaskSuggestions from './TaskSuggestions';
 import ExportCenter from './ExportCenter';
+import { SmartNotificationEngine } from '../lib/SmartNotificationEngine';
+import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement';
@@ -40,6 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [showExportCenter, setShowExportCenter] = useState(false);
+  const [smartNotifications, setSmartNotifications] = useState<SmartNotification[]>([]);
   const [isEditingMethodologies, setIsEditingMethodologies] = useState(false);
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
   const [isEditingProject, setIsEditingProject] = useState(false);
@@ -230,6 +233,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
+   // Generate smart notifications
+        const generateSmartNotifications = useCallback(() => {
+          const engine = new SmartNotificationEngine(projects);
+          const notifications = engine.generateNotifications();
+          setSmartNotifications(notifications);
+          
+          // Show toast for critical notifications
+         const criticalNotifications = engine.getNotificationsBySeverity('critical');
+         if (criticalNotifications.length > 0) {
+            criticalNotifications.slice(0, 3).forEach(notification => {
+              addToast({
+                type: 'error',
+                title: 'Critical Alert',  // ADD THIS
+                message: notification.title,
+                duration: 8000
+              });
+            });
+          }
+        }, [projects]);
+
   useEffect(() => {
   const loadUser = async () => {
     const userId = getUserId();
@@ -302,20 +325,33 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
   };
 
   // Handle browser back/forward buttons
-  useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      if (event.state?.view) {
-        setCurrentView(event.state.view);
-        setProjectFilter(null);
-      }
-    };
+  // Handle browser back/forward buttons
+useEffect(() => {
+  const handlePopState = (event: PopStateEvent) => {
+    if (event.state?.view) {
+      setCurrentView(event.state.view);
+      setProjectFilter(null);
+    }
+  };
 
-    // Set initial URL
-    window.history.replaceState({ view: currentView }, '', `#${currentView}`);
+  // Set initial URL
+  window.history.replaceState({ view: currentView }, '', `#${currentView}`);
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  window.addEventListener('popstate', handlePopState);
+  return () => window.removeEventListener('popstate', handlePopState);
+}, [currentView]);
+
+// Auto-generate smart notifications when projects change
+useEffect(() => {
+  generateSmartNotifications();
+    
+  // Set up periodic check (every 5 minutes)
+  const interval = setInterval(() => {
+    generateSmartNotifications();
+  }, 5 * 60 * 1000);
+    
+  return () => clearInterval(interval);
+}, [projects, generateSmartNotifications]);
 
   // Update history when view changes programmatically
   useEffect(() => {
@@ -951,7 +987,8 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
 
             {/* ADD NOTIFICATION CENTER HERE */}
             <NotificationCenter 
-              projects={projects} 
+              projects={projects}
+              smartNotifications={smartNotifications}
               onNotificationClick={handleNotificationClick}
             />
             </div>
