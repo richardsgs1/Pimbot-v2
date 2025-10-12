@@ -5,7 +5,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import TimelineGenerator from './TimelineGenerator';
 import TeamCapacityAnalysis from './TeamCapacityAnalysis';
 import RiskReport from './RiskReport';
-import ExportCenter from './ExportCenter'; 
+import { IntentDetector } from '@/lib/IntentDetector';
 
 interface ChatProps {
   userData: OnboardingData;
@@ -47,7 +47,6 @@ const Chat: React.FC<ChatProps> = ({
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTeamAnalysis, setShowTeamAnalysis] = useState(false);
   const [showRiskReport, setShowRiskReport] = useState(false);
-  const [showExportCenter, setShowExportCenter] = useState(false); 
   const [taskForm, setTaskForm] = useState<TaskCreationForm>({
     name: '',
     projectId: projects[0]?.id || '',
@@ -109,13 +108,6 @@ const Chat: React.FC<ChatProps> = ({
       icon: '⚠️',
       action: () => setShowRiskReport(true),
       condition: () => contextInsights.atRiskProjects > 0 || contextInsights.overdueTasks > 0
-    },
-    {
-      id: 'export',  // ADD THIS ENTIRE OBJECT
-      label: 'Export Reports',
-      icon: '📥',
-      action: () => setShowExportCenter(true),
-      condition: () => projects.length > 0
     },
     {
       id: 'review-risks',
@@ -600,15 +592,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
           projects={projects}
           userData={userData}
           onClose={() => setShowRiskReport(false)}
-        />
-      )}
-
-      {/* Export Center Modal - ADD THIS */}
-      {showExportCenter && (
-        <ExportCenter
-          projects={projects}
-          userData={userData}
-          onClose={() => setShowExportCenter(false)}
         />
       )}
     </div>
