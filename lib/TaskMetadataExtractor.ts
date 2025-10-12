@@ -244,10 +244,10 @@ export class TaskMetadataExtractor {
     const lowerInput = input.toLowerCase();
     
     const triggers = [
-      /^create\s+(?:a\s+)?(?:new\s+)?task/,
-      /^add\s+(?:a\s+)?(?:new\s+)?task/,
-      /^new\s+task/,
-      /^task:/
+      /^create\s+.*?\btask\b/,  // "create urgent task", "create a task", etc.
+      /^add\s+.*?\btask\b/,     // "add high priority task", etc.
+      /^new\s+.*?\btask\b/,     // "new urgent task", etc.
+      /^task:/                   // "task: whatever"
     ];
 
     return triggers.some(trigger => trigger.test(lowerInput));
