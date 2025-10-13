@@ -185,3 +185,143 @@ export const deleteProject = async (userId: string, projectId: string): Promise<
     throw error;
   }
 };
+
+// ============================================
+// SUBSCRIPTION DATABASE FUNCTIONS
+// ============================================
+
+export const getUserSubscription = async (userId: string): Promise<import('../types').UserSubscription | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Failed to load subscription:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      tier: data.tier,
+      status: data.status,
+      stripeCustomerId: data.stripe_customer_id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      currentPeriodStart: new Date(data.current_period_start),
+      currentPeriodEnd: new Date(data.current_period_end),
+      trialEndsAt: data.trial_ends_at ? new Date(data.trial_ends_at) : undefined,
+      cancelAtPeriodEnd: data.cancel_at_period_end,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    };
+  } catch (error) {
+    console.error('Error loading subscription:', error);
+    return null;
+  }
+};
+
+export const updateSubscription = async (
+  userId: string, 
+  updates: Partial<import('../types').UserSubscription>
+): Promise<void> => {
+  try {
+    const updateData: any = {};
+    
+    if (updates.tier) updateData.tier = updates.tier;
+    if (updates.status) updateData.status = updates.status;
+    if (updates.stripeCustomerId) updateData.stripe_customer_id = updates.stripeCustomerId;
+    if (updates.stripeSubscriptionId) updateData.stripe_subscription_id = updates.stripeSubscriptionId;
+    if (updates.currentPeriodStart) updateData.current_period_start = updates.currentPeriodStart.toISOString();
+    if (updates.currentPeriodEnd) updateData.current_period_end = updates.currentPeriodEnd.toISOString();
+    if (updates.trialEndsAt) updateData.trial_ends_at = updates.trialEndsAt.toISOString();
+    if (updates.cancelAtPeriodEnd !== undefined) updateData.cancel_at_period_end = updates.cancelAtPeriodEnd;
+    
+    updateData.updated_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .update(updateData)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Failed to update subscription:', error);
+    throw error;
+  }
+};
+
+export const getTodayUsage = async (userId: string): Promise<import('../types').UsageTracking | null> => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    let { data, error } = await supabase
+      .from('usage_tracking')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Failed to load usage:', error);
+      return null;
+    }
+
+    if (!data) {
+      // Create today's usage record
+      const { data: newData, error: insertError } = await supabase
+        .from('usage_tracking')
+        .insert({
+          user_id: userId,
+          date: today,
+          ai_queries_count: 0,
+          storage_used_mb: 0
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      data = newData;
+    }
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      date: data.date,
+      aiQueriesCount: data.ai_queries_count,
+      storageUsedMb: data.storage_used_mb,
+      createdAt: new Date(data.created_at)
+    };
+  } catch (error) {
+    console.error('Error loading usage:', error);
+    return null;
+  }
+};
+
+export const incrementAiQueryCount = async (userId: string): Promise<void> => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Try to increment existing record
+    const { error } = await supabase.rpc('increment_ai_queries', {
+      p_user_id: userId,
+      p_date: today
+    });
+
+    if (error) {
+      // If function doesn't exist or fails, do it manually
+      const usage = await getTodayUsage(userId);
+      if (usage) {
+        await supabase
+          .from('usage_tracking')
+          .update({ ai_queries_count: usage.aiQueriesCount + 1 })
+          .eq('user_id', userId)
+          .eq('date', today);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to increment AI query count:', error);
+  }
+};

@@ -74,6 +74,7 @@ export interface Project {
 
 export interface OnboardingData {
   id?: string;           // Added to fix App.tsx error
+  
   skillLevel: SkillLevel | null;
   methodologies: string[];
   tools: string[];
@@ -110,4 +111,50 @@ export interface SearchResults {
   projects: SearchResultItem[];
   tasks: SearchResultItem[];
   journal: SearchResultItem[];
+}
+
+// ============================================
+// SUBSCRIPTION & BILLING TYPES
+// ============================================
+
+export type SubscriptionTier = 'trial' | 'starter' | 'pro' | 'team' | 'enterprise';
+export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';
+
+export interface UserSubscription {
+  id: string;
+  userId: string;
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEndsAt?: Date;
+  cancelAtPeriodEnd: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UsageLimits {
+  maxProjects: number;
+  maxTeamMembers: number;
+  maxStorage: number; // in MB
+  maxAiQueries: number; // per day, -1 for unlimited
+  allowedExports: ('pdf' | 'excel' | 'csv' | 'json')[];
+  features: {
+    advancedNotifications: boolean;
+    customBranding: boolean;
+    apiAccess: boolean;
+    sso: boolean;
+    whiteLabel: boolean;
+  };
+}
+
+export interface UsageTracking {
+  id: string;
+  userId: string;
+  date: string;
+  aiQueriesCount: number;
+  storageUsedMb: number;
+  createdAt: Date;
 }
