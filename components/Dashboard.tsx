@@ -12,12 +12,13 @@ import ThemeToggle from './ThemeToggle';
 import NotificationCenter, { Notification } from './NotificationCenter';
 import ToastNotification, { Toast } from './ToastNotification';
 import TaskSuggestions from './TaskSuggestions';
-import ExportCenter from './ExportCenter';
 import { SmartNotificationEngine } from '../lib/SmartNotificationEngine';
+import ExportCenter from './ExportCenter';
+import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
-type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement';
+type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -369,7 +370,9 @@ useEffect(() => {
         return { title: 'Timeline', subtitle: 'Project schedules and dependencies' };
       case 'projectManagement':
         return { title: 'Project Management', subtitle: 'Manage projects and tasks with Kanban board' };
-      default:
+      case 'pricing':
+        return { title: 'Pricing & Plans', subtitle: 'Choose the right plan for you' };
+      default:  
         return { title: 'Dashboard', subtitle: 'PiMbOt AI' };
     }
   };
@@ -472,6 +475,18 @@ useEffect(() => {
         return (
           <ProjectManagement 
             onMenuClick={() => setShowSidebar(true)}
+          />
+        );
+
+      case 'pricing':
+        return (
+          <PricingPage 
+            currentTier="trial"
+            onSelectPlan={(tier) => {
+              console.log('Selected plan:', tier);
+              // TODO: Integrate with Stripe
+              alert(`You selected the ${tier} plan. Stripe integration coming next!`);
+            }}
           />
         );
 
@@ -877,6 +892,23 @@ useEffect(() => {
                 </svg>
               </SidebarIcon>
               {!sidebarCollapsed && "AI Assistant"}
+            </button>
+          </li>
+          <li>
+            <button 
+              onClick={() => handleNavClick('pricing')} 
+              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+                currentView === 'pricing' 
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                  : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+              }`}
+            >
+              <SidebarIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </SidebarIcon>
+              {!sidebarCollapsed && "Pricing"}
             </button>
           </li>
         </ul>
