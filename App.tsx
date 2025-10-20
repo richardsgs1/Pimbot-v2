@@ -4,8 +4,9 @@ import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
+import SubscriptionSuccess from './components/SubscriptionSuccess';
 
-type AppState = 'login' | 'onboarding' | 'dashboard';
+type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess';
 
 // FIX: Added a default ID to the onboarding data.
 const defaultOnboardingData: OnboardingData = {
@@ -34,14 +35,43 @@ const App: React.FC = () => {
     localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
   }, [onboardingData]);
 
-  // FIX: Updated handleLoginSuccess to accept email and set it as the user ID.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('session_id')) {
+      setAppState('subscriptionSuccess');
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
+
   const handleLoginSuccess = useCallback((name: string, email: string) => {
+  // Check if this user already has onboarding data
+  const existingData = localStorage.getItem('pimbot_onboardingData');
+  
+  if (existingData) {
+    const parsed = JSON.parse(existingData);
+    // If they have skillLevel set, they've completed onboarding
+    if (parsed.skillLevel && parsed.id === email) {
+      setOnboardingData(parsed);
+      setAppState('dashboard'); // ← Skip onboarding!
+    } else {
+      // New user or incomplete onboarding
+      setOnboardingData(prev => ({ ...prev, name, id: email }));
+      setAppState('onboarding');
+    }
+  } else {
+    // Brand new user
     setOnboardingData(prev => ({ ...prev, name, id: email }));
     setAppState('onboarding');
+  }
   }, []);
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
     setOnboardingData(data);
+    setAppState('dashboard');
+  }, []);
+
+  const handleSubscriptionSuccess = useCallback(() => {
     setAppState('dashboard');
   }, []);
 
@@ -53,18 +83,19 @@ const App: React.FC = () => {
   }, []);
 
   const renderContent = () => {
-    switch (appState) {
-      case 'login':
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-      case 'onboarding':
-        // FIX: Passed the entire onboarding data object to the Onboarding component.
-        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
-      case 'dashboard':
-        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
-      default:
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-    }
-  };
+  switch (appState) {
+    case 'login':
+      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    case 'onboarding':
+      return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
+    case 'subscriptionSuccess':
+      return <SubscriptionSuccess onContinue={handleSubscriptionSuccess} />;
+    case 'dashboard':
+      return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
+    default:
+      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+   }
+ };
 
   return (
     <ThemeProvider>

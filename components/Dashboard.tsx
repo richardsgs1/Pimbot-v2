@@ -480,14 +480,7 @@ useEffect(() => {
 
       case 'pricing':
         return (
-          <PricingPage 
-            currentTier="trial"
-            onSelectPlan={(tier) => {
-              console.log('Selected plan:', tier);
-              // TODO: Integrate with Stripe
-              alert(`You selected the ${tier} plan. Stripe integration coming next!`);
-            }}
-          />
+          <PricingPage userData={userData} />
         );
 
       case 'account':
