@@ -8,15 +8,6 @@ import SubscriptionSuccess from './components/SubscriptionSuccess';
 
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess';
 
-// FIX: Added a default ID to the onboarding data.
-const defaultOnboardingData: OnboardingData = {
-  id: 'user-1',
-  skillLevel: null,
-  methodologies: [],
-  tools: [],
-  name: 'Valued User',
-};
-
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(() => {
     return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
@@ -24,7 +15,16 @@ const App: React.FC = () => {
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
     const savedData = localStorage.getItem('pimbot_onboardingData');
-    return savedData ? JSON.parse(savedData) : defaultOnboardingData;
+    if (savedData) {
+      return JSON.parse(savedData);
+    }
+    return {
+      id: '',
+      skillLevel: null,
+      methodologies: [],
+      tools: [],
+      name: '',
+    };
   });
 
   useEffect(() => {
@@ -39,31 +39,35 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('session_id')) {
       setAppState('subscriptionSuccess');
-      // Clean URL
       window.history.replaceState({}, '', '/');
     }
   }, []);
 
-  const handleLoginSuccess = useCallback((name: string, email: string) => {
-  // Check if this user already has onboarding data
-  const existingData = localStorage.getItem('pimbot_onboardingData');
-  
-  if (existingData) {
-    const parsed = JSON.parse(existingData);
-    // If they have skillLevel set, they've completed onboarding
-    if (parsed.skillLevel && parsed.id === email) {
-      setOnboardingData(parsed);
-      setAppState('dashboard'); // ← Skip onboarding!
+  const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
+    console.log('Login success! User data:', userData);
+    
+    // Check if user has completed onboarding
+    if (userData.onboarding_completed && userData.skill_level) {
+      // Existing user - go straight to dashboard
+      setOnboardingData({
+        id: userData.uuid,
+        name: userData.name,
+        skillLevel: userData.skill_level,
+        methodologies: userData.methodologies || [],
+        tools: userData.tools || [],
+      });
+      setAppState('dashboard');
     } else {
-      // New user or incomplete onboarding
-      setOnboardingData(prev => ({ ...prev, name, id: email }));
+      // New user or incomplete onboarding - go to onboarding
+      setOnboardingData({
+        id: userData.uuid,
+        name: userData.name,
+        skillLevel: null,
+        methodologies: [],
+        tools: [],
+      });
       setAppState('onboarding');
     }
-  } else {
-    // Brand new user
-    setOnboardingData(prev => ({ ...prev, name, id: email }));
-    setAppState('onboarding');
-  }
   }, []);
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
@@ -75,27 +79,33 @@ const App: React.FC = () => {
     setAppState('dashboard');
   }, []);
 
-   const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('pimbot_appState');
     localStorage.removeItem('pimbot_onboardingData');
-    setOnboardingData(defaultOnboardingData);
+    setOnboardingData({
+      id: '',
+      skillLevel: null,
+      methodologies: [],
+      tools: [],
+      name: '',
+    });
     setAppState('login');
   }, []);
 
   const renderContent = () => {
-  switch (appState) {
-    case 'login':
-      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-    case 'onboarding':
-      return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
-    case 'subscriptionSuccess':
-      return <SubscriptionSuccess onContinue={handleSubscriptionSuccess} />;
-    case 'dashboard':
-      return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
-    default:
-      return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
-   }
- };
+    switch (appState) {
+      case 'login':
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+      case 'onboarding':
+        return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
+      case 'subscriptionSuccess':
+        return <SubscriptionSuccess onContinue={handleSubscriptionSuccess} />;
+      case 'dashboard':
+        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
+      default:
+        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    }
+  };
 
   return (
     <ThemeProvider>

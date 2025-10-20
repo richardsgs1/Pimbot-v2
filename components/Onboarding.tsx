@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SkillLevel } from '../types';
 import type { OnboardingData } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface OnboardingProps {
   onOnboardingComplete: (data: OnboardingData) => void;
@@ -79,20 +80,49 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
     }
   };
 
-  const handleComplete = () => {
-    if (!skillLevel) return;
-    
-    onOnboardingComplete({
+  // FIXED: Combined handler - saves to Supabase AND completes onboarding
+  const handleComplete = async () => {
+    if (!skillLevel || !name.trim()) {
+      alert('Please complete all required sections');
+      return;
+    }
+
+    const completedData: OnboardingData = {
       ...initialData,
       skillLevel,
       methodologies,
       tools,
       name
-    });
+    };
+
+    try {
+      // Save to Supabase
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name,
+          skill_level: skillLevel,
+          methodologies: methodologies,
+          tools: tools,
+          onboarding_completed: true,
+        })
+        .eq('uuid', initialData.id);
+
+      if (error) {
+        console.error('Error saving onboarding:', error);
+        alert('Failed to save your preferences. Please try again.');
+        return;
+      }
+
+      console.log('Onboarding saved successfully!');
+      onOnboardingComplete(completedData);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      alert('An error occurred. Please try again.');
+    }
   };
 
   const guidance = getGuidanceText();
-  const isBeginnerLevel = skillLevel === SkillLevel.NO_EXPERIENCE || skillLevel === SkillLevel.NOVICE;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex items-center justify-center p-6">
