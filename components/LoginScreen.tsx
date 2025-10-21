@@ -34,6 +34,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         if (signUpError) throw signUpError;
         if (!authData.user) throw new Error('No user returned from signup');
 
+        // IMPORTANT: Wait a moment for auth to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Create user profile in database
         const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
         const { error: profileError } = await supabase
@@ -45,7 +48,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             onboarding_completed: false,
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw new Error('Failed to create user profile: ' + profileError.message);
+        }
+
+        console.log('User profile created successfully!');
 
         // Success - new user needs onboarding
         onLoginSuccess(authData.user.id, authData.user.email!, { 
