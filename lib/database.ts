@@ -47,15 +47,28 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
   }
 }
 
-export const getUserId = (): string | null => {
+export const getUserId = async (): Promise<string | null> => {
   if (typeof window === 'undefined') return null;
   
-  let userId = localStorage.getItem('user_id')
+  // First check localStorage cache
+  let userId = localStorage.getItem('user_id');
+  if (userId) return userId;
   
-  // Return the stored ID if it exists, otherwise return null
-  // This forces the INSERT path which lets Supabase generate a proper UUID
-  return userId;
+  // If not in localStorage, check Supabase auth session
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Cache it in localStorage for future calls
+      localStorage.setItem('user_id', user.id);
+      return user.id;
+    }
+  } catch (error) {
+    console.error('Error getting user from Supabase:', error);
+  }
+  
+  return null;
 }
+
 export const loadUserData = async (userId: string): Promise<OnboardingData | null> => {
   try {
     const { data, error } = await supabase
@@ -83,6 +96,7 @@ export const loadUserData = async (userId: string): Promise<OnboardingData | nul
     return null
   }
 }
+
 export const saveProject = async (userId: string, project: Project): Promise<string> => {
   try {
     const projectData = {
@@ -143,7 +157,7 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       .from('projects')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (error) throw error;
 

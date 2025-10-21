@@ -241,39 +241,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   useEffect(() => {
   const loadUser = async () => {
-    const userId = getUserId();
+    const userId = await getUserId(); // Now await it!
     
     if (userId) {
-      // Try to load from database
       console.log('Loading user data from database...');
       const dbUserData = await loadUserData(userId);
       
       if (dbUserData) {
         console.log('User data loaded from database');
         setLocalUserData(dbUserData);
-        // Update edited fields with database values
         setEditedName(dbUserData.name);
         setEditedEmail(dbUserData.email || '');
         setEditedSkillLevel(dbUserData.skillLevel);
         setEditedMethodologies(dbUserData.methodologies || []);
         
-        // Load projects
         console.log('Loading projects from database...');
         const dbProjects = await loadProjects(userId);
         if (dbProjects.length > 0) {
           console.log(`Loaded ${dbProjects.length} projects from database`);
           setProjects(dbProjects);
-        } else {
-          console.log('No projects found, using default projects');
         }
-      } else {
-        // No database record, use prop data with the userId
-        console.log('No database record, using initial data');
-        setLocalUserData(prev => ({ ...prev, id: userId }));
       }
     } else {
-      // First time user, no ID yet
-      console.log('New user, no ID yet');
+      console.log('No user ID found');
     }
   };
 
