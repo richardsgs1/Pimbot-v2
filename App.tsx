@@ -50,7 +50,7 @@ const App: React.FC = () => {
     if (userData.onboarding_completed && userData.skill_level) {
       // Existing user - go straight to dashboard
       setOnboardingData({
-        id: userData.uuid,
+        id: userData.id,
         name: userData.name,
         skillLevel: userData.skill_level,
         methodologies: userData.methodologies || [],
@@ -60,7 +60,7 @@ const App: React.FC = () => {
     } else {
       // New user or incomplete onboarding - go to onboarding
       setOnboardingData({
-        id: userData.uuid,
+        id: userData.id,
         name: userData.name,
         skillLevel: null,
         methodologies: [],

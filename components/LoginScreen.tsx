@@ -42,7 +42,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         const { error: profileError } = await supabase
           .from('users')
           .insert({
-            uuid: authData.user.id,
+            id: authData.user.id,
             email: authData.user.email,
             name,
             onboarding_completed: false,
@@ -57,7 +57,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         // Success - new user needs onboarding
         onLoginSuccess(authData.user.id, authData.user.email!, { 
-          uuid: authData.user.id, 
+          id: authData.user.id, 
           email: authData.user.email,
           name,
           skill_level: null,
@@ -80,7 +80,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         const { data: userData, error: fetchError } = await supabase
           .from('users')
           .select('*')
-          .eq('uuid', authData.user.id)
+          .eq('id', authData.user.id)
           .single();
 
         if (fetchError) throw fetchError;

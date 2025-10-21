@@ -106,7 +106,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
           tools: tools,
           onboarding_completed: true,
         })
-        .eq('uuid', initialData.id);
+        .eq('id', initialData.id);
 
       if (error) {
         console.error('Error saving onboarding:', error);
