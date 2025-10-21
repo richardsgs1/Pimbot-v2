@@ -1,74 +1,84 @@
 import React, { useState } from 'react';
-console.log('🚀 PRICINGPAGE.TSX VERSION 2.0 LOADED');
-import { Check, Zap } from 'lucide-react';
-import { PRICING, TIER_LIMITS } from '../lib/pricing';
-import { createClient } from '@supabase/supabase-js';
 import type { OnboardingData } from '../types';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
 
 interface PricingPageProps {
   userData: OnboardingData;
 }
 
-export default function PricingPage({ userData }: PricingPageProps) {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+const PricingPage: React.FC<PricingPageProps> = ({ userData }) => {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const handleSubscribe = async (planId: string) => {
+  // UPDATED WITH YOUR REAL STRIPE PRICE IDs
+  const priceIds = {
+    starter: {
+      monthly: 'price_1SJz3j4sXU2AWctaPfrlI6Dr',
+      yearly: 'price_1SJz584sXU2AWctazOczYezC'
+    },
+    pro: {
+      monthly: 'price_1SJz6D4sXU2AWctamRKkSsDC',
+      yearly: 'price_1SJz6j4sXU2AWctau4RJeSq2'
+    },
+    team: {
+      monthly: 'price_1SJz7a4sXU2AWctaHNfu9kvZ',
+      yearly: 'price_1SJz884sXU2AWctaf2SvY557'
+    }
+  };
+
+  const handleCheckout = async (tier: 'starter' | 'pro' | 'team') => {
+    console.log('🚀 PRICINGPAGE.TSX VERSION 2.0 LOADED');
+    
+    if (!userData || !userData.id) {
+      alert('Please complete your profile first');
+      console.log('New user, no ID yet');
+      return;
+    }
+
+    console.log('User ID:', userData.id);
+    console.log('User Email:', userData.email);
+
+    setLoadingPlan(tier);
+
     try {
-      setLoadingPlan(planId);
+      const priceId = priceIds[tier][billingCycle];
+      
+      console.log(`Creating checkout session for ${tier} (${billingCycle})`);
+      console.log('Price ID:', priceId);
 
-      // Check if user has ID
-      if (!userData.id || !userData.email) {
-        alert('Please complete your profile first');
-        return;
-      }
-
-      // Call checkout API
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          plan: planId,
-          billingPeriod,
+          priceId,
           userId: userData.id,
           userEmail: userData.email,
         }),
       });
 
-      // ... rest stays the same
-
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Checkout failed');
       }
 
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
-
-    } catch (error: any) {
+      const { url } = await response.json();
+      
+      console.log('Redirecting to Stripe:', url);
+      window.location.href = url;
+    } catch (error) {
       console.error('Checkout error:', error);
-      alert(error.message || 'Failed to start checkout. Please try again.');
+      alert('Failed to start checkout. Please try again.');
     } finally {
       setLoadingPlan(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-300">
@@ -77,122 +87,211 @@ export default function PricingPage({ userData }: PricingPageProps) {
         </div>
 
         {/* Billing Toggle */}
-        <div className="flex justify-center items-center gap-4 mb-12">
-          <span className={billingPeriod === 'monthly' ? 'text-white font-semibold' : 'text-gray-400'}>
-            Monthly
-          </span>
-          <button
-            onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-            className="relative inline-flex h-8 w-14 items-center rounded-full bg-purple-600 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-          >
-            <span
-              className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                billingPeriod === 'yearly' ? 'translate-x-7' : 'translate-x-1'
+        <div className="flex justify-center mb-12">
+          <div className="bg-slate-800/50 backdrop-blur rounded-full p-1 flex items-center">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-6 py-2 rounded-full transition-all ${
+                billingCycle === 'monthly'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-400 hover:text-white'
               }`}
-            />
-          </button>
-          <span className={billingPeriod === 'yearly' ? 'text-white font-semibold' : 'text-gray-400'}>
-            Yearly
-            <span className="ml-2 text-sm text-green-400">(Save 15%)</span>
-          </span>
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-6 py-2 rounded-full transition-all ${
+                billingCycle === 'yearly'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Yearly
+              <span className="ml-2 text-xs text-green-400">(Save 15%)</span>
+            </button>
+          </div>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {(['starter', 'pro', 'team'] as const).map((tierId) => {
-            const tier = PRICING[tierId];
-            const limits = TIER_LIMITS[tierId];
-            const price = billingPeriod === 'monthly' ? tier.price : tier.annual;
-            const isPopular = tier.popular;
-            const isLoading = loadingPlan === tierId;
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Starter Plan */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 border border-slate-700 hover:border-purple-500 transition-all">
+            <h3 className="text-2xl font-bold text-white mb-2">Starter</h3>
+            <p className="text-gray-400 mb-6">Perfect for freelancers & solopreneurs</p>
+            <div className="mb-6">
+              <span className="text-5xl font-bold text-white">
+                ${billingCycle === 'monthly' ? '14' : '12'}
+              </span>
+              <span className="text-gray-400">/mo</span>
+            </div>
+            <button
+              onClick={() => handleCheckout('starter')}
+              disabled={loadingPlan !== null}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            >
+              {loadingPlan === 'starter' ? 'Loading...' : 'Start Free Trial'}
+            </button>
+            <ul className="space-y-3 text-gray-300">
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                3 projects
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                1 team member
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                75 AI queries/day
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                PDF & CSV export
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                500MB storage
+              </li>
+            </ul>
+          </div>
 
-            return (
-              <div
-                key={tierId}
-                className={`relative rounded-2xl p-8 ${
-                  isPopular
-                    ? 'bg-gradient-to-br from-purple-600 to-blue-600 shadow-2xl scale-105'
-                    : 'bg-slate-800/50 backdrop-blur-sm border border-slate-700'
-                }`}
-              >
-                {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-slate-900 px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                      <Zap size={14} />
-                      Most Popular
-                    </span>
-                  </div>
-                )}
+          {/* Pro Plan */}
+          <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/50 backdrop-blur rounded-2xl p-8 border-2 border-purple-500 hover:border-purple-400 transition-all relative">
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1 rounded-full text-sm font-bold">
+              Most Popular
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
+            <p className="text-gray-300 mb-6">Best for small teams & agencies</p>
+            <div className="mb-6">
+              <span className="text-5xl font-bold text-white">
+                ${billingCycle === 'monthly' ? '29' : '25'}
+              </span>
+              <span className="text-gray-300">/mo</span>
+            </div>
+            <button
+              onClick={() => handleCheckout('pro')}
+              disabled={loadingPlan !== null}
+              className="w-full bg-white hover:bg-gray-100 text-purple-900 font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            >
+              {loadingPlan === 'pro' ? 'Loading...' : 'Start Free Trial'}
+            </button>
+            <ul className="space-y-3 text-white">
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                25 projects
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                5 team members
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                150 AI queries/day
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                All export formats
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                10GB storage
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Priority support
+              </li>
+            </ul>
+          </div>
 
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-                  <p className="text-gray-300 text-sm mb-4">{tier.description}</p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-bold">${price}</span>
-                    <span className="text-gray-300">/{billingPeriod === 'monthly' ? 'mo' : 'yr'}</span>
-                  </div>
-                  {billingPeriod === 'yearly' && (
-                    <p className="text-sm text-green-400 mt-2">
-                      ${(price / 12).toFixed(2)}/month billed annually
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleSubscribe(tierId)}
-                  disabled={isLoading}
-                  className={`w-full py-3 px-6 rounded-lg font-semibold mb-6 transition-all ${
-                    isPopular
-                      ? 'bg-white text-purple-600 hover:bg-gray-100'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isLoading ? 'Loading...' : 'Start Free Trial'}
-                </button>
-
-                <div className="space-y-3">
-                  {tier.features.map((feature: string, idx: number) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-200">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-6 border-t border-gray-600">
-                  <div className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">AI Queries</span>
-                      <span className="font-semibold">
-                        {limits.maxAiQueries === -1 ? 'Unlimited' : `${limits.maxAiQueries}/day`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Projects</span>
-                      <span className="font-semibold">
-                        {limits.maxProjects === -1 ? 'Unlimited' : limits.maxProjects}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Storage</span>
-                      <span className="font-semibold">
-                        {limits.maxStorage === -1 ? 'Unlimited' : `${limits.maxStorage}MB`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* FAQ/Trust Section */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-400">
-            ✓ 14-day free trial • ✓ No credit card required • ✓ Cancel anytime
-          </p>
+          {/* Team Plan */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 border border-slate-700 hover:border-purple-500 transition-all">
+            <h3 className="text-2xl font-bold text-white mb-2">Team</h3>
+            <p className="text-gray-400 mb-6">For growing businesses</p>
+            <div className="mb-6">
+              <span className="text-5xl font-bold text-white">
+                ${billingCycle === 'monthly' ? '119' : '101'}
+              </span>
+              <span className="text-gray-400">/mo</span>
+            </div>
+            <button
+              onClick={() => handleCheckout('team')}
+              disabled={loadingPlan !== null}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            >
+              {loadingPlan === 'team' ? 'Loading...' : 'Start Free Trial'}
+            </button>
+            <ul className="space-y-3 text-gray-300">
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Unlimited projects
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                20 team members
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                500 AI queries/day
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Advanced AI analytics
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                All exports + API
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                100GB storage
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Dedicated support
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default PricingPage;

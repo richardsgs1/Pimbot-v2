@@ -45,127 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [editedMethodologies, setEditedMethodologies] = useState(localUserData.methodologies || []);
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editedProject, setEditedProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Website Redesign',
-      description: 'Complete overhaul of company website',
-      status: ProjectStatus.OnTrack,
-      progress: 65,
-      startDate: '2024-01-15',
-      endDate: '2024-03-30',
-      dueDate: '2024-03-30',
-      priority: Priority.High,
-      manager: 'Sarah Johnson',
-      teamSize: 5,
-      tasks: [
-        {
-          id: '1',
-          name: 'Design wireframes',
-          completed: true,
-          priority: Priority.High,
-          dueDate: '2024-02-01',
-          startDate: '2024-01-15',
-          duration: 14
-        },
-        {
-          id: '2',
-          name: 'Develop frontend',
-          completed: false,
-          priority: Priority.High,
-          dueDate: '2024-03-15',
-          startDate: '2024-02-01',
-          duration: 42
-        }
-      ],
-      budget: 50000,
-      spent: 32500,
-      teamMembers: [
-        {
-          id: '1',
-          name: 'Sarah Johnson',
-          role: 'Project Manager',
-          email: 'sarah@company.com',
-          avatarColor: '#3B82F6'
-        },
-        {
-          id: '2',
-          name: 'Mike Chen',
-          role: 'Developer',
-          email: 'mike@company.com',
-          avatarColor: '#10B981'
-        }
-      ],
-      journal: [
-        {
-          id: '1',
-          date: '2024-01-20',
-          content: 'Project kickoff meeting completed. All stakeholders aligned on objectives.',
-          author: 'Sarah Johnson'
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Mobile App Development',
-      description: 'Native iOS and Android applications',
-      status: ProjectStatus.AtRisk,
-      progress: 35,
-      startDate: '2024-02-01',
-      endDate: '2024-06-15',
-      dueDate: '2024-06-15',
-      priority: Priority.Medium,
-      manager: 'Mike Chen',
-      teamSize: 8,
-      tasks: [
-        {
-          id: '3',
-          name: 'UI/UX Design',
-          completed: true,
-          priority: Priority.Medium,
-          dueDate: '2024-02-28',
-          startDate: '2024-02-01',
-          duration: 21
-        },
-        {
-          id: '4',
-          name: 'Backend API',
-          completed: false,
-          priority: Priority.High,
-          dueDate: '2024-04-30',
-          startDate: '2024-03-01',
-          duration: 60
-        }
-      ],
-      budget: 120000,
-      spent: 42000,
-      teamMembers: [
-        {
-          id: '3',
-          name: 'Mike Chen',
-          role: 'Lead Developer',
-          email: 'mike@company.com',
-          avatarColor: '#8B5CF6'
-        },
-        {
-          id: '4',
-          name: 'Lisa Wong',
-          role: 'UI Designer',
-          email: 'lisa@company.com',
-          avatarColor: '#F59E0B'
-        }
-      ],
-      journal: [
-        {
-          id: '2',
-          date: '2024-02-05',
-          content: 'Development phase initiated. Backend API structure defined.',
-          author: 'Mike Chen'
-        }
-      ]
-    }
-  ]);
-  
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   
@@ -241,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
   useEffect(() => {
   const loadUser = async () => {
-    const userId = await getUserId(); // Now await it!
+    const userId = await getUserId();
     
     if (userId) {
       console.log('Loading user data from database...');
@@ -257,9 +137,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         
         console.log('Loading projects from database...');
         const dbProjects = await loadProjects(userId);
+        
         if (dbProjects.length > 0) {
           console.log(`Loaded ${dbProjects.length} projects from database`);
           setProjects(dbProjects);
+        } else {
+          // New user with no projects - leave empty or add demo projects
+          console.log('No projects found - showing empty slate');
+          setProjects([]); // Empty slate for new users
         }
       }
     } else {
