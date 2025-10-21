@@ -4,6 +4,7 @@ import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
+import PricingScreen from './components/PricingScreen';
 import SubscriptionSuccess from './components/SubscriptionSuccess';
 
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
@@ -105,6 +106,8 @@ const App: React.FC = () => {
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
       case 'onboarding':
         return <Onboarding onOnboardingComplete={handleOnboardingComplete} initialData={onboardingData} />;
+      case 'pricing':
+        return <PricingScreen userData={onboardingData} />;
       case 'subscriptionSuccess':
         return <SubscriptionSuccess onContinue={handleSubscriptionSuccess} />;
       case 'dashboard':
