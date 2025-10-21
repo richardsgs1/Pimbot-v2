@@ -352,7 +352,10 @@ useEffect(() => {
 
       case 'pricing':
         return (
-          <PricingPage userData={localUserData} />
+          <PricingPage 
+            userData={userData} 
+            onComplete={() => setCurrentView('home')}
+          />
         );
 
       case 'account':

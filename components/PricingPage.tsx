@@ -3,9 +3,10 @@ import type { OnboardingData } from '../types';
 
 interface PricingPageProps {
   userData: OnboardingData;
+  onComplete: () => void;
 }
 
-const PricingPage: React.FC<PricingPageProps> = ({ userData }) => {
+const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
