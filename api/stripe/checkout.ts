@@ -7,16 +7,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const STRIPE_PRICES = {
   starter: {
-    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
-    yearly: process.env.STRIPE_PRICE_STARTER_YEARLY!,
+    monthly: 'price_1SJz3j4sXU2AWctaPfrlI6Dr',
+    yearly: 'price_1SJz584sXU2AWctazOczYezC',
   },
   pro: {
-    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY!,
-    yearly: process.env.STRIPE_PRICE_PRO_YEARLY!,
+    monthly: 'price_1SJz6D4sXU2AWctamRKkSsDC',
+    yearly: 'price_1SJz6j4sXU2AWctau4RJeSq2',
   },
   team: {
-    monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY!,
-    yearly: process.env.STRIPE_PRICE_TEAM_YEARLY!,
+    monthly: 'price_1SJz7a4sXU2AWctaHNfu9kvZ',
+    yearly: 'price_1SJz884sXU2AWctaf2SvY557',
   },
 };
 

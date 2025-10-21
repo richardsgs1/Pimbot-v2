@@ -6,7 +6,7 @@ import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
 import SubscriptionSuccess from './components/SubscriptionSuccess';
 
-type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess';
+type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(() => {
@@ -76,7 +76,7 @@ const App: React.FC = () => {
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
     setOnboardingData(data);
-    setAppState('dashboard');
+    setAppState('pricing');
   }, []);
 
   const handleSubscriptionSuccess = useCallback(() => {
