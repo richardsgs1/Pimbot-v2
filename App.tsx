@@ -46,6 +46,10 @@ const App: React.FC = () => {
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
     
+    // CRITICAL: Clear old localStorage data first
+    localStorage.removeItem('pimbot_onboardingData');
+    localStorage.removeItem('pimbot_appState');
+    
     // Check if user has completed onboarding
     if (userData.onboarding_completed && userData.skill_level) {
       // Existing user - go straight to dashboard
