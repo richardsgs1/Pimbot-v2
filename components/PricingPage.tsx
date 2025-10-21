@@ -26,53 +26,51 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData }) => {
   };
 
   const handleCheckout = async (tier: 'starter' | 'pro' | 'team') => {
-    console.log('🚀 PRICINGPAGE.TSX VERSION 2.0 LOADED');
+  console.log('🚀 PRICINGPAGE.TSX VERSION 3.0 LOADED');
+  
+  if (!userData || !userData.id) {
+    alert('Please complete your profile first');
+    console.log('New user, no ID yet');
+    return;
+  }
+
+  console.log('User ID:', userData.id);
+  console.log('User Email:', userData.email);
+
+  setLoadingPlan(tier);
+
+  try {
+    console.log(`Creating checkout session for ${tier} (${billingCycle})`);
+
+    const response = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        plan: tier,                    // ← Changed from priceId
+        billingPeriod: billingCycle,   // ← Added this
+        userId: userData.id,
+        userEmail: userData.email,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Checkout failed');
+    }
+
+    const { url } = await response.json();
     
-    if (!userData || !userData.id) {
-      alert('Please complete your profile first');
-      console.log('New user, no ID yet');
-      return;
-    }
-
-    console.log('User ID:', userData.id);
-    console.log('User Email:', userData.email);
-
-    setLoadingPlan(tier);
-
-    try {
-      const priceId = priceIds[tier][billingCycle];
-      
-      console.log(`Creating checkout session for ${tier} (${billingCycle})`);
-      console.log('Price ID:', priceId);
-
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceId,
-          userId: userData.id,
-          userEmail: userData.email,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Checkout failed');
-      }
-
-      const { url } = await response.json();
-      
-      console.log('Redirecting to Stripe:', url);
-      window.location.href = url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+    console.log('Redirecting to Stripe:', url);
+    window.location.href = url;
+  } catch (error) {
+    console.error('Checkout error:', error);
+    alert('Failed to start checkout. Please try again.');
+  } finally {
+    setLoadingPlan(null);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
@@ -294,4 +292,4 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData }) => {
   );
 };
 
-export default PricingPage;
+export default PricingPage
