@@ -62,8 +62,8 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
         metadata: { userId, plan, billingPeriod },
       },
       metadata: { userId, plan, billingPeriod },
-      success_url: `${appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/pricing?canceled=true`,
+      success_url: `${appUrl}/#subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/#pricing?canceled=true`,
       allow_promotion_codes: true,
     });
 

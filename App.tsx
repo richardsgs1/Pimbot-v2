@@ -75,8 +75,11 @@ const App: React.FC = () => {
   }, []);
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
+    console.log('🎯 Onboarding complete, data:', data);
     setOnboardingData(data);
+    console.log('🎯 Setting state to pricing');
     setAppState('pricing');
+    console.log('🎯 State should now be pricing');
   }, []);
 
   const handleSubscriptionSuccess = useCallback(() => {
