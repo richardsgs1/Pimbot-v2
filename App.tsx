@@ -46,16 +46,35 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-  // Check if user is authenticated
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session && appState !== 'login') {
-      // No session but trying to access protected pages
-      console.log('No session found, redirecting to login');
-      setAppState('login');
-      localStorage.removeItem('pimbot_appState');
-      localStorage.removeItem('pimbot_onboardingData');
+    if (!session) {
+      // Not logged in
+      if (appState !== 'login') {
+        console.log('No session, redirecting to login');
+        setAppState('login');
+      }
+      return;
+    }
+
+    // Logged in - load user data from database
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userData) {
+      console.log('Loaded user data from database:', userData);
+      setOnboardingData({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,  // ← Load email from DB
+        skillLevel: userData.skill_level,
+        methodologies: userData.methodologies || [],
+        tools: userData.tools || [],
+      });
     }
   };
   
