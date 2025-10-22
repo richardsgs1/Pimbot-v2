@@ -51,10 +51,10 @@ const App: React.FC = () => {
     
     if (!session) {
       // Not logged in
-      if (appState !== 'login') {
-        console.log('No session, redirecting to login');
-        setAppState('login');
-      }
+      console.log('No session, redirecting to login');
+      setAppState('login');
+      localStorage.removeItem('pimbot_appState');
+      localStorage.removeItem('pimbot_onboardingData');
       return;
     }
 
@@ -67,14 +67,27 @@ const App: React.FC = () => {
 
     if (userData) {
       console.log('Loaded user data from database:', userData);
+      
       setOnboardingData({
         id: userData.id,
         name: userData.name,
-        email: userData.email,  // ← Load email from DB
+        email: userData.email,
         skillLevel: userData.skill_level,
         methodologies: userData.methodologies || [],
         tools: userData.tools || [],
       });
+
+      // Set correct appState based on user status
+      if (userData.onboarding_completed && userData.skill_level) {
+        // Existing user with completed onboarding → dashboard
+        if (appState !== 'dashboard' && appState !== 'subscriptionSuccess') {
+          console.log('User has completed onboarding, going to dashboard');
+          setAppState('dashboard');
+        }
+      } else {
+        // Incomplete onboarding
+        setAppState('onboarding');
+      }
     }
   };
   
