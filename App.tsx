@@ -6,6 +6,7 @@ import { ThemeProvider } from './components/ThemeContext';
 import type { OnboardingData } from './types';
 import PricingPage from './components/PricingPage';
 import SubscriptionSuccess from './components/SubscriptionSuccess';
+import { supabase } from './lib/supabase';
 
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
 
@@ -43,6 +44,23 @@ const App: React.FC = () => {
       window.history.replaceState({}, '', '/');
     }
   }, []);
+
+  useEffect(() => {
+  // Check if user is authenticated
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session && appState !== 'login') {
+      // No session but trying to access protected pages
+      console.log('No session found, redirecting to login');
+      setAppState('login');
+      localStorage.removeItem('pimbot_appState');
+      localStorage.removeItem('pimbot_onboardingData');
+    }
+  };
+  
+  checkAuth();
+}, []);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
