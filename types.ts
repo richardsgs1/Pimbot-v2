@@ -74,12 +74,12 @@ export interface Project {
 
 export interface OnboardingData {
   id?: string;           // Added to fix App.tsx error
-  
-  skillLevel: SkillLevel | null;
-  methodologies: string[];
-  tools: string[];
   name: string;
   email?: string
+  skillLevel: 'Novice' | 'Intermediate' | 'Experienced' | null;
+  methodologies: string[];
+  tools: string[];
+  hasSeenPricing?: boolean;
 }
 
 export enum CommunicationType {

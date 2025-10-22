@@ -68,13 +68,14 @@ const App: React.FC = () => {
           skillLevel: userData.skill_level,
           methodologies: userData.methodologies || [],
           tools: userData.tools || [],
+          hasSeenPricing: userData.has_seen_pricing || false,
         });
 
         // Determine state based on user's onboarding AND subscription status
       if (!userData.onboarding_completed || !userData.skill_level) {
         // Incomplete onboarding → onboarding screen
         setAppState('onboarding');
-      } else if (userData.subscription_status === 'trial' && !userData.subscription_id) {
+      } else if (!userData.subscription_id) {
         // Onboarding complete but no subscription chosen → pricing
         setAppState('pricing');
       } else {
