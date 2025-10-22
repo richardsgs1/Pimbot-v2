@@ -70,19 +70,24 @@ const App: React.FC = () => {
           tools: userData.tools || [],
         });
 
-        // Determine state based on user's onboarding status
-        if (userData.onboarding_completed && userData.skill_level) {
-          setAppState('dashboard');
-        } else {
-          setAppState('onboarding');
-        }
+        // Determine state based on user's onboarding AND subscription status
+      if (!userData.onboarding_completed || !userData.skill_level) {
+        // Incomplete onboarding → onboarding screen
+        setAppState('onboarding');
+      } else if (userData.subscription_status === 'trial' && !userData.subscription_id) {
+        // Onboarding complete but no subscription chosen → pricing
+        setAppState('pricing');
+      } else {
+        // Everything complete → dashboard
+        setAppState('dashboard');
       }
-      
-      setIsCheckingAuth(false);
-    };
+    }
     
-    checkAuth();
-  }, []);
+    setIsCheckingAuth(false);
+  };
+  
+  checkAuth();
+}, []);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
