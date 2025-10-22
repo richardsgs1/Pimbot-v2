@@ -45,20 +45,21 @@ const App: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+useEffect(() => {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      // Not logged in
       console.log('No session, redirecting to login');
       setAppState('login');
       localStorage.removeItem('pimbot_appState');
       localStorage.removeItem('pimbot_onboardingData');
+      setIsCheckingAuth(false);
       return;
     }
 
-    // Logged in - load user data from database
     const { data: userData, error } = await supabase
       .from('users')
       .select('*')
@@ -77,22 +78,28 @@ const App: React.FC = () => {
         tools: userData.tools || [],
       });
 
-      // Set correct appState based on user status
       if (userData.onboarding_completed && userData.skill_level) {
-        // Existing user with completed onboarding → dashboard
-        if (appState !== 'dashboard' && appState !== 'subscriptionSuccess') {
-          console.log('User has completed onboarding, going to dashboard');
-          setAppState('dashboard');
-        }
+        setAppState('dashboard');
       } else {
-        // Incomplete onboarding
         setAppState('onboarding');
       }
     }
+    
+    setIsCheckingAuth(false);
   };
   
   checkAuth();
 }, []);
+
+if (isCheckingAuth) {
+  return (
+    <ThemeProvider>
+      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    </ThemeProvider>
+  );
+}
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);

@@ -83,6 +83,13 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
           <p className="text-xl text-gray-300">
             Start with a 14-day free trial. No credit card required.
           </p>
+          {/* ADD THIS BUTTON */}
+          <button
+            onClick={onComplete}
+            className="mt-4 text-gray-400 hover:text-white underline transition-colors"
+          >
+            Skip for now, I'll choose later
+          </button>
         </div>
 
         {/* Billing Toggle */}
