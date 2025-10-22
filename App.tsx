@@ -11,26 +11,20 @@ import { supabase } from './lib/supabase';
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
 
 const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>(() => {
-    return (localStorage.getItem('pimbot_appState') as AppState) || 'login';
-  });
-
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>(() => {
-    const savedData = localStorage.getItem('pimbot_onboardingData');
-    if (savedData) {
-      return JSON.parse(savedData);
-    }
-    return {
-      id: '',
-      skillLevel: null,
-      methodologies: [],
-      tools: [],
-      name: '',
-    };
-  });
-
+  // Don't initialize from localStorage - let auth check decide
+  const [appState, setAppState] = useState<AppState>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+    id: '',
+    skillLevel: null,
+    methodologies: [],
+    tools: [],
+    name: '',
+    email: '',
+  });
+
+  // Only save to localStorage, don't read from it on init
   useEffect(() => {
     localStorage.setItem('pimbot_appState', appState);
   }, [appState]);
@@ -48,62 +42,50 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.log('No session, redirecting to login');
-      setAppState('login');
-      localStorage.removeItem('pimbot_appState');
-      localStorage.removeItem('pimbot_onboardingData');
-      setIsCheckingAuth(false);
-      return;
-    }
-
-    // Only redirect to dashboard if we're currently on login screen
-    // Don't override if user is in signup flow (onboarding/pricing)
-    const currentState = localStorage.getItem('pimbot_appState') as AppState;
-    
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    if (userData) {
-      console.log('Loaded user data from database:', userData);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       
-      setOnboardingData({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        skillLevel: userData.skill_level,
-        methodologies: userData.methodologies || [],
-        tools: userData.tools || [],
-      });
+      if (!session) {
+        console.log('No session, redirecting to login');
+        setAppState('login');
+        setIsCheckingAuth(false);
+        return;
+      }
 
-      // Only auto-redirect if coming from login or initial load
-      if (currentState === 'login' || !currentState) {
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userData) {
+        console.log('Loaded user data from database:', userData);
+        
+        setOnboardingData({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          skillLevel: userData.skill_level,
+          methodologies: userData.methodologies || [],
+          tools: userData.tools || [],
+        });
+
+        // Determine state based on user's onboarding status
         if (userData.onboarding_completed && userData.skill_level) {
           setAppState('dashboard');
         } else {
           setAppState('onboarding');
         }
       }
-    }
+      
+      setIsCheckingAuth(false);
+    };
     
-    setIsCheckingAuth(false);
-  };
-  
-  checkAuth();
-}, []); // Empty dependency array = only run once on mount
+    checkAuth();
+  }, []);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
-    
-    // CRITICAL: Clear old localStorage data first
-    localStorage.removeItem('pimbot_onboardingData');
-    localStorage.removeItem('pimbot_appState');
     
     // Check if user has completed onboarding
     if (userData.onboarding_completed && userData.skill_level) {
@@ -152,6 +134,7 @@ const App: React.FC = () => {
       methodologies: [],
       tools: [],
       name: '',
+      email: '',
     });
     setAppState('login');
   }, []);
@@ -173,7 +156,6 @@ const App: React.FC = () => {
     }
   };
 
-  // ← MOVE THE LOADING CHECK HERE, AFTER ALL FUNCTIONS ARE DEFINED
   if (isCheckingAuth) {
     return (
       <ThemeProvider>
