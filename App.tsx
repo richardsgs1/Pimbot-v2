@@ -48,48 +48,55 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('No session, redirecting to login');
+      setAppState('login');
+      localStorage.removeItem('pimbot_appState');
+      localStorage.removeItem('pimbot_onboardingData');
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    // Only redirect to dashboard if we're currently on login screen
+    // Don't override if user is in signup flow (onboarding/pricing)
+    const currentState = localStorage.getItem('pimbot_appState') as AppState;
+    
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userData) {
+      console.log('Loaded user data from database:', userData);
       
-      if (!session) {
-        console.log('No session, redirecting to login');
-        setAppState('login');
-        localStorage.removeItem('pimbot_appState');
-        localStorage.removeItem('pimbot_onboardingData');
-        setIsCheckingAuth(false);
-        return;
-      }
+      setOnboardingData({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        skillLevel: userData.skill_level,
+        methodologies: userData.methodologies || [],
+        tools: userData.tools || [],
+      });
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (userData) {
-        console.log('Loaded user data from database:', userData);
-        
-        setOnboardingData({
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          skillLevel: userData.skill_level,
-          methodologies: userData.methodologies || [],
-          tools: userData.tools || [],
-        });
-
+      // Only auto-redirect if coming from login or initial load
+      if (currentState === 'login' || !currentState) {
         if (userData.onboarding_completed && userData.skill_level) {
           setAppState('dashboard');
         } else {
           setAppState('onboarding');
         }
       }
-      
-      setIsCheckingAuth(false);
-    };
+    }
     
-    checkAuth();
-  }, []);
+    setIsCheckingAuth(false);
+  };
+  
+  checkAuth();
+}, []); // Empty dependency array = only run once on mount
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
