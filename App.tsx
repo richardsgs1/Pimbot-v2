@@ -29,6 +29,8 @@ const App: React.FC = () => {
     };
   });
 
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
   useEffect(() => {
     localStorage.setItem('pimbot_appState', appState);
   }, [appState]);
@@ -45,61 +47,49 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
-useEffect(() => {
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.log('No session, redirecting to login');
-      setAppState('login');
-      localStorage.removeItem('pimbot_appState');
-      localStorage.removeItem('pimbot_onboardingData');
-      setIsCheckingAuth(false);
-      return;
-    }
-
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    if (userData) {
-      console.log('Loaded user data from database:', userData);
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       
-      setOnboardingData({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        skillLevel: userData.skill_level,
-        methodologies: userData.methodologies || [],
-        tools: userData.tools || [],
-      });
-
-      if (userData.onboarding_completed && userData.skill_level) {
-        setAppState('dashboard');
-      } else {
-        setAppState('onboarding');
+      if (!session) {
+        console.log('No session, redirecting to login');
+        setAppState('login');
+        localStorage.removeItem('pimbot_appState');
+        localStorage.removeItem('pimbot_onboardingData');
+        setIsCheckingAuth(false);
+        return;
       }
-    }
-    
-    setIsCheckingAuth(false);
-  };
-  
-  checkAuth();
-}, []);
 
-if (isCheckingAuth) {
-  return (
-    <ThemeProvider>
-      <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    </ThemeProvider>
-  );
-}
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userData) {
+        console.log('Loaded user data from database:', userData);
+        
+        setOnboardingData({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          skillLevel: userData.skill_level,
+          methodologies: userData.methodologies || [],
+          tools: userData.tools || [],
+        });
+
+        if (userData.onboarding_completed && userData.skill_level) {
+          setAppState('dashboard');
+        } else {
+          setAppState('onboarding');
+        }
+      }
+      
+      setIsCheckingAuth(false);
+    };
+    
+    checkAuth();
+  }, []);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
@@ -175,6 +165,17 @@ if (isCheckingAuth) {
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
     }
   };
+
+  // ← MOVE THE LOADING CHECK HERE, AFTER ALL FUNCTIONS ARE DEFINED
+  if (isCheckingAuth) {
+    return (
+      <ThemeProvider>
+        <div className="bg-[var(--bg-primary)] min-h-screen flex items-center justify-center">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider>
