@@ -57,6 +57,7 @@ const App: React.FC = () => {
       setOnboardingData({
         id: userData.id,
         name: userData.name,
+        email: userData.email || email,
         skillLevel: userData.skill_level,
         methodologies: userData.methodologies || [],
         tools: userData.tools || [],
@@ -67,6 +68,7 @@ const App: React.FC = () => {
       setOnboardingData({
         id: userData.id,
         name: userData.name,
+        email: userData.email || email, 
         skillLevel: null,
         methodologies: [],
         tools: [],
