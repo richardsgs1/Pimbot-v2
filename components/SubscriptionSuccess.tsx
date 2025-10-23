@@ -75,26 +75,26 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="bg-green-500/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Subscription Activated! 🎉</h2>
-          <p className="text-gray-300 mb-6">Your subscription has been successfully set up. Please log in to access your dashboard.</p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            Log In to Continue
-          </button>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 max-w-md w-full text-center">
+        <div className="bg-green-500/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
         </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Subscription Activated! 🎉</h2>
+        <p className="text-gray-300 mb-6">Your subscription is all set up. Click below to access your dashboard.</p>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+        >
+          Go to Dashboard
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
