@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface SubscriptionSuccessProps {
   sessionId: string;
@@ -10,7 +11,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const verifySubscription = async () => {
+    const verifyAndContinue = async () => {
       try {
         if (!sessionId) {
           setError('No session ID found');
@@ -20,7 +21,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
 
         console.log('Verifying subscription with session:', sessionId);
 
-        // Call your API to verify and update subscription
+        // Verify the subscription
         const response = await fetch('/api/stripe/verify-session', {
           method: 'POST',
           headers: {
@@ -36,12 +37,21 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
         const data = await response.json();
         console.log('Subscription verified:', data);
 
-        setLoading(false);
+        // Check if we still have a Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
 
-        // Auto-redirect to dashboard after 3 seconds
-        setTimeout(() => {
-          onContinue();
-        }, 3000);
+        if (session) {
+          console.log('Session found! Going to dashboard...');
+          setLoading(false);
+          // Wait a moment to show success, then continue
+          setTimeout(() => {
+            onContinue();
+          }, 2000);
+        } else {
+          console.log('No session found, user needs to log in');
+          setError('Please log in to access your dashboard');
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error verifying subscription:', err);
         setError('Failed to verify subscription. Please contact support.');
@@ -49,7 +59,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
       }
     };
 
-    verifySubscription();
+    verifyAndContinue();
   }, [sessionId, onContinue]);
 
   if (loading) {
@@ -73,13 +83,13 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Oops! Something went wrong</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Session Expired</h2>
           <p className="text-gray-300 mb-6">{error}</p>
           <button
-            onClick={onContinue}
+            onClick={() => window.location.href = '/'}
             className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
-            Continue to Dashboard
+            Log In to Continue
           </button>
         </div>
       </div>
@@ -96,14 +106,8 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Welcome to PiMbOt AI! 🎉</h2>
         <p className="text-gray-300 mb-6">
-          Your subscription is now active. You'll be redirected to your dashboard in a moment.
+          Your subscription is now active. Taking you to your dashboard...
         </p>
-        <button
-          onClick={onContinue}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-        >
-          Go to Dashboard Now
-        </button>
       </div>
     </div>
   );
