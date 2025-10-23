@@ -23,62 +23,63 @@ const App: React.FC = () => {
     email: '',
   });
 
+  const checkAuthAndRedirect = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('No session, redirecting to login');
+      setAppState('login');
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userData) {
+      console.log('Loaded user data from database:', userData);
+      
+      setOnboardingData({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        skillLevel: userData.skill_level,
+        methodologies: userData.methodologies || [],
+        tools: userData.tools || [],
+        hasSeenPricing: userData.has_seen_pricing || false,
+      });
+
+      // Determine state based on user's onboarding AND subscription status
+      if (!userData.onboarding_completed || !userData.skill_level) {
+        // Incomplete onboarding → onboarding screen
+        setAppState('onboarding');
+      } else if (!userData.subscription_id) {
+        // Onboarding complete but no subscription chosen → pricing
+        setAppState('pricing');
+      } else {
+        // Everything complete → dashboard
+        setAppState('dashboard');
+      }
+    }
+    
+    setIsCheckingAuth(false);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('session_id')) {
+      console.log('Stripe redirect detected, going to subscription success');
       setAppState('subscriptionSuccess');
-      window.history.replaceState({}, '', '/');
-    }
-  }, []);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.log('No session, redirecting to login');
-        setAppState('login');
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (userData) {
-        console.log('Loaded user data from database:', userData);
-        
-        setOnboardingData({
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          skillLevel: userData.skill_level,
-          methodologies: userData.methodologies || [],
-          tools: userData.tools || [],
-          hasSeenPricing: userData.has_seen_pricing || false,
-        });
-
-        // Determine state based on user's onboarding AND subscription status
-        if (!userData.onboarding_completed || !userData.skill_level) {
-          // Incomplete onboarding → onboarding screen
-          setAppState('onboarding');
-        } else if (!userData.subscription_id) {
-          // Onboarding complete but no subscription chosen → pricing
-          setAppState('pricing');
-        } else {
-          // Everything complete → dashboard
-          setAppState('dashboard');
-        }
-      }
-      
       setIsCheckingAuth(false);
-    };
+      window.history.replaceState({}, '', '/');
+      return;
+    }
     
-    checkAuth();
-  }, []);
+    checkAuthAndRedirect();
+  }, [checkAuthAndRedirect]);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
@@ -117,9 +118,10 @@ const App: React.FC = () => {
     console.log('🎯 State should now be pricing');
   }, []);
 
-  const handleSubscriptionSuccess = useCallback(() => {
-    setAppState('dashboard');
-  }, []);
+  const handleSubscriptionSuccess = useCallback(async () => {
+    console.log('Subscription verified, reloading user data...');
+    await checkAuthAndRedirect();
+  }, [checkAuthAndRedirect]);
 
   const handleLogout = useCallback(async () => {
     console.log('Logging out...');
