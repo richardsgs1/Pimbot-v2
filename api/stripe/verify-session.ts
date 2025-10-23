@@ -3,12 +3,13 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-10-28.acacia',
+  apiVersion: '2025-09-30.clover',
 });
 
+// Use SERVICE ROLE key to bypass RLS
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
-  process.env.VITE_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // ← Changed this
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -32,35 +33,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('Stripe session retrieved:', session.id);
-    console.log('Customer:', session.customer);
-    console.log('Subscription:', session.subscription);
     console.log('Metadata:', session.metadata);
 
     const userId = session.metadata.userId;
+    console.log('Updating user:', userId);
 
-    // Update USERS table (not user_subscriptions)
-    const { error: updateError } = await supabase
+    // Update USERS table
+    const { data, error: updateError } = await supabase
       .from('users')
       .update({
         subscription_id: session.subscription,
         subscription_status: 'trialing',
         stripe_customer_id: session.customer,
       })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select();
 
     if (updateError) {
-      console.error('Error updating user:', updateError);
+      console.error('Supabase error:', updateError);
       return res.status(500).json({ error: 'Failed to update user', details: updateError });
     }
 
-    console.log('User subscription updated successfully');
+    console.log('Update successful:', data);
 
     return res.status(200).json({
       success: true,
       subscription: session.subscription,
     });
   } catch (error: any) {
-    console.error('Error verifying session:', error);
+    console.error('Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
