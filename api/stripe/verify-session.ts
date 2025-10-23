@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2024-10-28.acacia',
 });
 
 const supabase = createClient(
@@ -25,7 +25,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Retrieving Stripe session:', sessionId);
 
-    // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (!session) {
@@ -33,29 +32,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('Stripe session retrieved:', session.id);
-    console.log('Customer ID:', session.customer);
-    console.log('Subscription ID:', session.subscription);
+    console.log('Customer:', session.customer);
+    console.log('Subscription:', session.subscription);
     console.log('Metadata:', session.metadata);
 
     const userId = session.metadata.userId;
-    console.log('Updating subscription for user:', userId);
 
-    // Update user_subscriptions table
+    // Update USERS table (not user_subscriptions)
     const { error: updateError } = await supabase
-      .from('user_subscriptions')
+      .from('users')
       .update({
+        subscription_id: session.subscription,
+        subscription_status: 'trialing',
         stripe_customer_id: session.customer,
-        stripe_subscription_id: session.subscription,
-        status: 'trialing', // Since trial_period_days: 14
       })
-      .eq('user_id', userId);
+      .eq('id', userId);
 
     if (updateError) {
-      console.error('Error updating user subscription:', updateError);
-      return res.status(500).json({ error: 'Failed to update subscription', details: updateError });
+      console.error('Error updating user:', updateError);
+      return res.status(500).json({ error: 'Failed to update user', details: updateError });
     }
 
-    console.log('Subscription updated successfully for user:', userId);
+    console.log('User subscription updated successfully');
 
     return res.status(200).json({
       success: true,
