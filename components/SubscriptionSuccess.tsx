@@ -21,7 +21,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
 
         console.log('Verifying subscription with session:', sessionId);
 
-        // Verify the subscription
+        // Verify the subscription first
         const response = await fetch('/api/stripe/verify-session', {
           method: 'POST',
           headers: {
@@ -37,18 +37,18 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
         const data = await response.json();
         console.log('Subscription verified:', data);
 
-        // Check if we still have a Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
+        // Try to refresh the session first
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
 
         if (session) {
-          console.log('Session found! Going to dashboard...');
+          console.log('Session refreshed successfully! Going to dashboard...');
           setLoading(false);
-          // Wait a moment to show success, then continue
           setTimeout(() => {
             onContinue();
           }, 2000);
         } else {
-          console.log('No session found, user needs to log in');
+          // No valid session to refresh
+          console.log('No session to refresh, user needs to log in');
           setError('Please log in to access your dashboard');
           setLoading(false);
         }
@@ -78,13 +78,13 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="bg-red-500/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <div className="bg-green-500/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Session Expired</h2>
-          <p className="text-gray-300 mb-6">{error}</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Subscription Activated! 🎉</h2>
+          <p className="text-gray-300 mb-6">Your subscription has been successfully set up. Please log in to access your dashboard.</p>
           <button
             onClick={() => window.location.href = '/'}
             className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
