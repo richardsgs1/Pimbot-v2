@@ -76,7 +76,7 @@ export interface OnboardingData {
   id?: string;           // Added to fix App.tsx error
   name: string;
   email?: string
-  skillLevel: 'Novice' | 'Intermediate' | 'Experienced' | null;
+  skillLevel: SkillLevel | null;
   methodologies: string[];
   tools: string[];
   hasSeenPricing?: boolean;

@@ -11,7 +11,6 @@ import { supabase } from './lib/supabase';
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
 
 const App: React.FC = () => {
-  // Don't initialize from localStorage - let auth check decide
   const [appState, setAppState] = useState<AppState>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
@@ -23,15 +22,6 @@ const App: React.FC = () => {
     name: '',
     email: '',
   });
-
-  // Only save to localStorage, don't read from it on init
-  useEffect(() => {
-    localStorage.setItem('pimbot_appState', appState);
-  }, [appState]);
-
-  useEffect(() => {
-    localStorage.setItem('pimbot_onboardingData', JSON.stringify(onboardingData));
-  }, [onboardingData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -72,50 +62,50 @@ const App: React.FC = () => {
         });
 
         // Determine state based on user's onboarding AND subscription status
-      if (!userData.onboarding_completed || !userData.skill_level) {
-        // Incomplete onboarding → onboarding screen
-        setAppState('onboarding');
-      } else if (!userData.subscription_id) {
-        // Onboarding complete but no subscription chosen → pricing
-        setAppState('pricing');
-      } else {
-        // Everything complete → dashboard
-        setAppState('dashboard');
+        if (!userData.onboarding_completed || !userData.skill_level) {
+          // Incomplete onboarding → onboarding screen
+          setAppState('onboarding');
+        } else if (!userData.subscription_id) {
+          // Onboarding complete but no subscription chosen → pricing
+          setAppState('pricing');
+        } else {
+          // Everything complete → dashboard
+          setAppState('dashboard');
+        }
       }
-    }
+      
+      setIsCheckingAuth(false);
+    };
     
-    setIsCheckingAuth(false);
-  };
-  
-  checkAuth();
-}, []);
+    checkAuth();
+  }, []);
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
     
-    // Check if user has completed onboarding
-    if (userData.onboarding_completed && userData.skill_level) {
-      // Existing user - go straight to dashboard
-      setOnboardingData({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email || email,
-        skillLevel: userData.skill_level,
-        methodologies: userData.methodologies || [],
-        tools: userData.tools || [],
-      });
-      setAppState('dashboard');
-    } else {
-      // New user or incomplete onboarding - go to onboarding
-      setOnboardingData({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email || email, 
-        skillLevel: null,
-        methodologies: [],
-        tools: [],
-      });
+    // Clear any stale data
+    localStorage.clear();
+    
+    // Set fresh user data
+    const freshUserData = {
+      id: userData.id,
+      name: userData.name,
+      email: userData.email || email,
+      skillLevel: userData.skill_level,
+      methodologies: userData.methodologies || [],
+      tools: userData.tools || [],
+      hasSeenPricing: userData.has_seen_pricing || false,
+    };
+    
+    setOnboardingData(freshUserData);
+    
+    // Use same logic as checkAuth for consistency
+    if (!userData.onboarding_completed || !userData.skill_level) {
       setAppState('onboarding');
+    } else if (!userData.subscription_id) {
+      setAppState('pricing');
+    } else {
+      setAppState('dashboard');
     }
   }, []);
 
@@ -131,9 +121,16 @@ const App: React.FC = () => {
     setAppState('dashboard');
   }, []);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('pimbot_appState');
-    localStorage.removeItem('pimbot_onboardingData');
+  const handleLogout = useCallback(async () => {
+    console.log('Logging out...');
+    
+    // Sign out from Supabase (this is critical!)
+    await supabase.auth.signOut();
+    
+    // Clear all local data
+    localStorage.clear();
+    
+    // Reset state
     setOnboardingData({
       id: '',
       skillLevel: null,
@@ -142,6 +139,7 @@ const App: React.FC = () => {
       name: '',
       email: '',
     });
+    
     setAppState('login');
   }, []);
 

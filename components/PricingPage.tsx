@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { OnboardingData } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface PricingPageProps {
   userData: OnboardingData;
@@ -10,7 +11,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  // UPDATED WITH YOUR REAL STRIPE PRICE IDs
   const priceIds = {
     starter: {
       monthly: 'price_1SJz3j4sXU2AWctaPfrlI6Dr',
@@ -26,52 +26,69 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
     }
   };
 
+  const handleSkip = async () => {
+    if (!userData.id) return;
+    
+    try {
+      await supabase
+        .from('users')
+        .update({ has_seen_pricing: true })
+        .eq('id', userData.id);
+      
+      console.log('Marked user as having seen pricing');
+      onComplete();
+    } catch (error) {
+      console.error('Error updating has_seen_pricing:', error);
+      onComplete();
+    }
+  };
+
   const handleCheckout = async (tier: 'starter' | 'pro' | 'team') => {
-  console.log('🚀 PRICINGPAGE.TSX VERSION 3.0 LOADED');
-  
-  if (!userData || !userData.id) {
-    alert('Please complete your profile first');
-    console.log('New user, no ID yet');
-    return;
-  }
-
-  console.log('User ID:', userData.id);
-  console.log('User Email:', userData.email);
-
-  setLoadingPlan(tier);
-
-  try {
-    console.log(`Creating checkout session for ${tier} (${billingCycle})`);
-
-    const response = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        plan: tier,                    // ← Changed from priceId
-        billingPeriod: billingCycle,   // ← Added this
-        userId: userData.id,
-        userEmail: userData.email,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Checkout failed');
+    console.log('🚀 PRICINGPAGE.TSX VERSION 3.0 LOADED');
+    
+    if (!userData || !userData.id) {
+      alert('Please complete your profile first');
+      console.log('New user, no ID yet');
+      return;
     }
 
-    const { url } = await response.json();
-    
-    console.log('Redirecting to Stripe:', url);
-    window.location.href = url;
-  } catch (error) {
-    console.error('Checkout error:', error);
-    alert('Failed to start checkout. Please try again.');
-  } finally {
-    setLoadingPlan(null);
-  }
-};
+    console.log('User ID:', userData.id);
+    console.log('User Email:', userData.email);
+
+    setLoadingPlan(tier);
+
+    try {
+      console.log(`Creating checkout session for ${tier} (${billingCycle})`);
+
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: tier,
+          billingPeriod: billingCycle,
+          userId: userData.id,
+          userEmail: userData.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Checkout failed');
+      }
+
+      const { url } = await response.json();
+      
+      console.log('Redirecting to Stripe:', url);
+      window.location.href = url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
@@ -83,16 +100,16 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
           <p className="text-xl text-gray-300">
             Start with a 14-day free trial. No credit card required.
           </p>
-          {/* ADD THIS BUTTON */}
-          <button
-            onClick={onComplete}
-            className="mt-4 text-gray-400 hover:text-white underline transition-colors"
-          >
-            Skip for now, I'll choose later
-          </button>
+          {!userData.hasSeenPricing && (
+            <button
+              onClick={handleSkip}
+              className="mt-4 text-gray-400 hover:text-white underline transition-colors"
+            >
+              Skip for now, I'll choose later
+            </button>
+          )}
         </div>
 
-        {/* Billing Toggle */}
         <div className="flex justify-center mb-12">
           <div className="bg-slate-800/50 backdrop-blur rounded-full p-1 flex items-center">
             <button
@@ -119,7 +136,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
           </div>
         </div>
 
-        {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8">
           {/* Starter Plan */}
           <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-8 border border-slate-700 hover:border-purple-500 transition-all">
@@ -300,4 +316,4 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
   );
 };
 
-export default PricingPage
+export default PricingPage;
