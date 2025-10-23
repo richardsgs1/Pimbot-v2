@@ -13,7 +13,7 @@ type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | '
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
+  const [stripeSessionId, setStripeSessionId] = useState<string | null>(null);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     id: '',
     skillLevel: null,
@@ -70,8 +70,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('session_id')) {
+    const sessionId = params.get('session_id');
+    
+    if (sessionId) {
       console.log('Stripe redirect detected, going to subscription success');
+      setStripeSessionId(sessionId); // ← SAVE IT
       setAppState('subscriptionSuccess');
       setIsCheckingAuth(false);
       window.history.replaceState({}, '', '/');
