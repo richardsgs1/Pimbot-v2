@@ -6,7 +6,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
 });
 
-// Create Supabase client in the API route
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
   process.env.VITE_SUPABASE_ANON_KEY!
@@ -34,24 +33,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('Stripe session retrieved:', session.id);
+    console.log('Customer ID:', session.customer);
+    console.log('Subscription ID:', session.subscription);
     console.log('Metadata:', session.metadata);
 
-    // Update user in Supabase
+    const userId = session.metadata.userId;
+    console.log('Updating subscription for user:', userId);
+
+    // Update user_subscriptions table
     const { error: updateError } = await supabase
-      .from('users')
+      .from('user_subscriptions')
       .update({
-        subscription_id: session.subscription,
-        subscription_status: session.status === 'complete' ? 'active' : 'trial',
         stripe_customer_id: session.customer,
+        stripe_subscription_id: session.subscription,
+        status: 'trialing', // Since trial_period_days: 14
       })
-      .eq('id', session.metadata.userId);
+      .eq('user_id', userId);
 
     if (updateError) {
       console.error('Error updating user subscription:', updateError);
-      return res.status(500).json({ error: 'Failed to update subscription' });
+      return res.status(500).json({ error: 'Failed to update subscription', details: updateError });
     }
 
-    console.log('User subscription updated successfully');
+    console.log('Subscription updated successfully for user:', userId);
 
     return res.status(200).json({
       success: true,
