@@ -1,20 +1,17 @@
 import React, { useEffect, useState } from 'react';
 
 interface SubscriptionSuccessProps {
+  sessionId: string;
   onContinue: () => void;
 }
 
-const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ onContinue }) => {
+const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, onContinue }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const verifySubscription = async () => {
       try {
-        // Get session_id from URL
-        const params = new URLSearchParams(window.location.search);
-        const sessionId = params.get('session_id');
-
         if (!sessionId) {
           setError('No session ID found');
           setLoading(false);
@@ -53,7 +50,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ onContinue })
     };
 
     verifySubscription();
-  }, [onContinue]);
+  }, [sessionId, onContinue]);
 
   if (loading) {
     return (

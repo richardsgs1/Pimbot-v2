@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [stripeSessionId, setStripeSessionId] = useState<string | null>(null);
+
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     id: '',
     skillLevel: null,
@@ -73,8 +74,8 @@ const App: React.FC = () => {
     const sessionId = params.get('session_id');
     
     if (sessionId) {
-      console.log('Stripe redirect detected, going to subscription success');
-      setStripeSessionId(sessionId); // ← SAVE IT
+      console.log('Stripe redirect detected, session ID:', sessionId);
+      setStripeSessionId(sessionId);
       setAppState('subscriptionSuccess');
       setIsCheckingAuth(false);
       window.history.replaceState({}, '', '/');
@@ -157,7 +158,7 @@ const App: React.FC = () => {
       case 'pricing':
         return <PricingPage userData={onboardingData} onComplete={() => setAppState('dashboard')} />; 
       case 'subscriptionSuccess':
-        return <SubscriptionSuccess onContinue={handleSubscriptionSuccess} />;
+        return <SubscriptionSuccess sessionId={stripeSessionId!} onContinue={handleSubscriptionSuccess} />;
       case 'dashboard':
         return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
       default:
