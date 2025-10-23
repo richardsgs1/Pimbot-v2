@@ -1,7 +1,18 @@
-// @ts-ignore
-import { supabase } from '../../lib/supabase';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(req: any, res: any) {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-09-30.clover',
+});
+
+// Create Supabase client in the API route
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.VITE_SUPABASE_ANON_KEY!
+);
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -13,8 +24,7 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Session ID required' });
     }
 
-    // Get Stripe instance
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    console.log('Retrieving Stripe session:', sessionId);
 
     // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -23,7 +33,8 @@ export default async function handler(req: any, res: any) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    console.log('Stripe session:', session);
+    console.log('Stripe session retrieved:', session.id);
+    console.log('Metadata:', session.metadata);
 
     // Update user in Supabase
     const { error: updateError } = await supabase
@@ -39,6 +50,8 @@ export default async function handler(req: any, res: any) {
       console.error('Error updating user subscription:', updateError);
       return res.status(500).json({ error: 'Failed to update subscription' });
     }
+
+    console.log('User subscription updated successfully');
 
     return res.status(200).json({
       success: true,
