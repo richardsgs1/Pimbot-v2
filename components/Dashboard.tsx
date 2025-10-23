@@ -373,7 +373,9 @@ useEffect(() => {
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Account Settings</h2>
             </div>
 
+            {/* Profile Section */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Profile</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
@@ -640,16 +642,41 @@ useEffect(() => {
                     </div>
                   )}
                 </div>
-                
-                <div className="pt-4 border-t border-[var(--border-primary)]">
-                  <button 
-                    onClick={onLogout}
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
               </div>
+            </div>
+
+            {/* Billing Section - NEW! */}
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Billing & Subscription</h3>
+              <div className="space-y-4">
+                <button
+                  onClick={() => setCurrentView('pricing')}
+                  className="flex items-center justify-between w-full p-4 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-tertiary)]/80 rounded-lg transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--accent-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="text-left">
+                      <p className="font-medium text-[var(--text-primary)]">Manage Subscription</p>
+                      <p className="text-sm text-[var(--text-tertiary)]">View plans, upgrade, or manage billing</p>
+                    </div>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Sign Out Section */}
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+              <button 
+                onClick={onLogout}
+                className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-medium py-3 px-4 rounded-lg transition-colors"
+              >
+                Sign Out
+              </button>
             </div>
           </div>
         );
@@ -762,23 +789,6 @@ useEffect(() => {
               {!sidebarCollapsed && "AI Assistant"}
             </button>
           </li>
-          <li>
-            <button 
-              onClick={() => handleNavClick('pricing')} 
-              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'pricing' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
-                  : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
-              }`}
-            >
-              <SidebarIcon>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </SidebarIcon>
-              {!sidebarCollapsed && "Pricing"}
-            </button>
-          </li>
         </ul>
 
         <div className="mt-8 pt-4 border-t border-[var(--border-primary)]">
@@ -861,24 +871,27 @@ useEffect(() => {
             </div>
             
             {/* ADD EXPORT BUTTON AND NOTIFICATION CENTER */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowExportCenter(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
-              title="Export Reports"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="hidden sm:inline">Export</span>
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Only show Export button on screens with project data */}
+              {(['home', 'projectList', 'projectDetails', 'projectManagement', 'timeline'].includes(currentView)) && (
+                <button
+                  onClick={() => setShowExportCenter(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
+                  title="Export Reports"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Export</span>
+                </button>
+              )}
 
-            {/* ADD NOTIFICATION CENTER HERE */}
-            <NotificationCenter 
-              projects={projects}
-              smartNotifications={smartNotifications}
-              onNotificationClick={handleNotificationClick}
-            />
+              {/* ADD NOTIFICATION CENTER HERE */}
+              <NotificationCenter 
+                projects={projects}
+                smartNotifications={smartNotifications}
+                onNotificationClick={handleNotificationClick}
+              />
             </div>
           </div>
         </header>
