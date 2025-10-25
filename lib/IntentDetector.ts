@@ -1,5 +1,5 @@
-import type { Project, Task } from '../types';
-import { ProjectStatus, Priority } from '../types';
+import type { Project, Task, ProjectStatus, Priority } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 
 export interface DetectedIntent {
   type: 'create-task' | 'update-status' | 'assign-task' | 'update-progress' | 'add-budget' | 'none';
@@ -66,7 +66,7 @@ export class IntentDetector {
     let taskName = '';
     let projectName = '';
     let projectId = '';
-    let priority: Priority = PRIORITY_VALUES.Medium;
+    let priority = PRIORITY_VALUES.Medium;
     let dueDate = '';
 
     // Check patterns
@@ -95,14 +95,11 @@ export class IntentDetector {
     }
 
     // Extract priority
-    if (lowerMessage.includes('high priority') || lowerMessage.includes('urgent') || lowerMessage.includes('important')) {
+    if (lowerMessage.includes('high priority') || lowerMessage.includes('urgent') || lowerMessage.includes('important') || lowerMessage.includes('critical')) {
       priority = PRIORITY_VALUES.High;
       confidence += 0.1;
     } else if (lowerMessage.includes('low priority')) {
       priority = PRIORITY_VALUES.Low;
-    } else if (lowerMessage.includes('critical')) {
-      priority = Priority.Critical;
-      confidence += 0.1;
     }
 
     // Extract due date
@@ -148,14 +145,11 @@ export class IntentDetector {
     } else if (lowerMessage.includes('at risk')) {
       status = PROJECT_STATUS_VALUES.AtRisk;
       confidence += 0.3;
-    } else if (lowerMessage.includes('off track')) {
+    } else if (lowerMessage.includes('off track') || lowerMessage.includes('on hold')) {
       status = PROJECT_STATUS_VALUES.OnHold;
       confidence += 0.3;
     } else if (lowerMessage.includes('completed') || lowerMessage.includes('complete')) {
       status = PROJECT_STATUS_VALUES.Completed;
-      confidence += 0.3;
-    } else if (lowerMessage.includes('on hold')) {
-      status = ProjectStatus.OnHold;
       confidence += 0.3;
     }
 
