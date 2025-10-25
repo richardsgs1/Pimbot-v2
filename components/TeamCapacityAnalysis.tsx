@@ -54,7 +54,7 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
           let score = workload.projects.length * 10;
           score += workload.totalTasks * 2;
           score += workload.overdueTasks * 5;
-          score += workload.projects.filter(p => p.project.status === ProjectStatus.AtRisk).length * 15;
+          score += workload.projects.filter(p => p.project.status === PROJECT_STATUS_VALUES.AtRisk).length * 15;
           
           workload.workloadScore = score;
         });
@@ -190,7 +190,7 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
                               <span className="font-medium text-[var(--text-primary)]">{project.name}</span>
                               <span className="text-[var(--text-tertiary)] mx-1">•</span>
                               <span className="text-[var(--text-tertiary)]">{role}</span>
-                              {project.status === ProjectStatus.AtRisk && (
+                              {project.status === PROJECT_STATUS_VALUES.AtRisk && (
                                 <span className="ml-2 text-yellow-600 dark:text-yellow-400">⚠️</span>
                               )}
                             </div>

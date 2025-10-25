@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { OnboardingData, Project } from '../types';
-import { ProjectStatus } from '../types';
+import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types'
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface DailyBriefingProps {
@@ -16,11 +16,12 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [] }
 
   // Calculate key metrics
   const metrics = {
-    atRisk: projects.filter(p => p.status === ProjectStatus.AtRisk).length,
+    atRisk: projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length,
     overdueTasks: projects.reduce((acc, p) => {
-      return acc + p.tasks.filter(t => !t.completed && new Date(t.dueDate) < new Date()).length;
+      return acc + p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()).length;
     }, 0),
     completingSoon: projects.filter(p => {
+      if (!p.dueDate) return false;
       const dueDate = new Date(p.dueDate);
       const today = new Date();
       const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));

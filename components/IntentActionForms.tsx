@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Project } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, ProjectStatus } from '../types';
+import { PROJECT_STATUS_VALUES } from '../types';
 import type { DetectedIntent } from '../lib/IntentDetector';
 
 interface StatusFormProps {
@@ -20,7 +20,7 @@ export const StatusUpdateForm: React.FC<StatusFormProps> = ({
     detectedIntent?.data.projectId || projects[0]?.id || ''
   );
   const [selectedStatus, setSelectedStatus] = React.useState<ProjectStatus>(
-    detectedIntent?.data.status || ProjectStatus.OnTrack
+    detectedIntent?.data.status || PROJECT_STATUS_VALUES.InProgress
   );
 
   return (
@@ -57,11 +57,10 @@ export const StatusUpdateForm: React.FC<StatusFormProps> = ({
               onChange={(e) => setSelectedStatus(e.target.value as ProjectStatus)}
               className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
             >
-              <option value={ProjectStatus.OnTrack}>On Track</option>
-              <option value={ProjectStatus.AtRisk}>At Risk</option>
-              <option value={ProjectStatus.OffTrack}>Off Track</option>
-              <option value={ProjectStatus.Completed}>Completed</option>
-              <option value={ProjectStatus.OnHold}>On Hold</option>
+              <option value={PROJECT_STATUS_VALUES.InProgress}>On Track</option>
+              <option value={PROJECT_STATUS_VALUES.AtRisk}>At Risk</option>
+              <option value={PROJECT_STATUS_VALUES.OnHold}>On Hold</option>
+              <option value={PROJECT_STATUS_VALUES.Completed}>Completed</option>
             </select>
           </div>
 
@@ -154,7 +153,7 @@ export const ProgressUpdateForm: React.FC<ProgressFormProps> = ({
           <div className="flex gap-2 pt-4">
             <button
               onClick={() => onConfirm(selectedProject, progress)}
-              className="flex-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white py-2 rounded-lg transition-colors"
+              className="flex-1 bg-[var(--accent-primary)} hover:bg-[var(--accent-secondary)] text-white py-2 rounded-lg transition-colors"
             >
               Update Progress
             </button>

@@ -65,7 +65,7 @@ export class SmartNotificationEngine {
     today.setHours(0, 0, 0, 0);
 
     this.projects.forEach(project => {
-      if (project.status === ProjectStatus.Completed) return;
+      if (project.status === PROJECT_STATUS_VALUES.Completed) return;
 
       const dueDate = new Date(project.dueDate);
       dueDate.setHours(0, 0, 0, 0);
@@ -214,7 +214,7 @@ export class SmartNotificationEngine {
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     this.projects.forEach(project => {
-      if (project.status === ProjectStatus.Completed || project.status === ProjectStatus.OnHold) return;
+      if (project.status === PROJECT_STATUS_VALUES.Completed || project.status === ProjectStatus.OnHold) return;
 
       const recentActivity = project.journal?.some(entry => 
         new Date(entry.date) > twoWeeksAgo
@@ -251,7 +251,7 @@ export class SmartNotificationEngine {
     const memberWorkload = new Map<string, { projects: string[], tasks: number }>();
 
     this.projects.forEach(project => {
-      if (project.status === ProjectStatus.Completed) return;
+      if (project.status === PROJECT_STATUS_VALUES.Completed) return;
 
       project.teamMembers?.forEach(member => {
         const current = memberWorkload.get(member.name) || { projects: [], tasks: 0 };
@@ -305,11 +305,11 @@ export class SmartNotificationEngine {
     const today = new Date();
     
     this.projects.forEach(project => {
-      if (project.status === ProjectStatus.Completed) return;
+      if (project.status === PROJECT_STATUS_VALUES.Completed) return;
 
       const criticalTasks = project.tasks.filter(task => 
         !task.completed && 
-        (task.priority === Priority.Critical || task.priority === Priority.High)
+        (task.priority === Priority.Critical || task.priority === PRIORITY_VALUES.High)
       );
       
       criticalTasks.forEach(task => {

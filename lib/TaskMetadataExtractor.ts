@@ -87,15 +87,15 @@ export class TaskMetadataExtractor {
       'critical': Priority.Critical,
       'urgent': Priority.Critical,
       'asap': Priority.Critical,
-      'high priority': Priority.High,
-      'high': Priority.High,
-      'important': Priority.High,
-      'medium priority': Priority.Medium,
-      'medium': Priority.Medium,
-      'normal': Priority.Medium,
-      'low priority': Priority.Low,
-      'low': Priority.Low,
-      'minor': Priority.Low
+      'high priority': PRIORITY_VALUES.High,
+      'high': PRIORITY_VALUES.High,
+      'important': PRIORITY_VALUES.High,
+      'medium priority': PRIORITY_VALUES.Medium,
+      'medium': PRIORITY_VALUES.Medium,
+      'normal': PRIORITY_VALUES.Medium,
+      'low priority': PRIORITY_VALUES.Low,
+      'low': PRIORITY_VALUES.Low,
+      'minor': PRIORITY_VALUES.Low
     };
 
     // Check for priority keywords
@@ -106,7 +106,7 @@ export class TaskMetadataExtractor {
     }
 
     // Default priority
-    return Priority.Medium;
+    return PRIORITY_VALUES.Medium;
   }
 
   /**

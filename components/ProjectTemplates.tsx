@@ -1,5 +1,6 @@
 import React from 'react';
-import { Project, ProjectStatus, Priority } from '../types';
+import type { Project, Task, ProjectStatus, Priority, TeamMember } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 
 export interface ProjectTemplate {
   id: string;
@@ -42,17 +43,17 @@ export const projectTemplates: ProjectTemplate[] = [
     estimatedDuration: '2-3 months',
     defaultBudget: 50000,
     tasks: [
-      { name: 'Stakeholder requirements gathering', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Competitive analysis and research', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Create wireframes and mockups', priority: Priority.High, estimatedDays: 10 },
-      { name: 'Design review and approval', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Frontend development', priority: Priority.High, estimatedDays: 20 },
-      { name: 'Backend integration', priority: Priority.High, estimatedDays: 15 },
-      { name: 'Content migration', priority: Priority.Medium, estimatedDays: 7 },
-      { name: 'SEO optimization', priority: Priority.Medium, estimatedDays: 5 },
-      { name: 'Cross-browser testing', priority: Priority.High, estimatedDays: 5 },
-      { name: 'User acceptance testing', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Launch and deployment', priority: Priority.High, estimatedDays: 2 }
+      { name: 'Stakeholder requirements gathering', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Competitive analysis and research', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Create wireframes and mockups', priority: PRIORITY_VALUES.High, estimatedDays: 10 },
+      { name: 'Design review and approval', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Frontend development', priority: PRIORITY_VALUES.High, estimatedDays: 20 },
+      { name: 'Backend integration', priority: PRIORITY_VALUES.High, estimatedDays: 15 },
+      { name: 'Content migration', priority: PRIORITY_VALUES.Medium, estimatedDays: 7 },
+      { name: 'SEO optimization', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 },
+      { name: 'Cross-browser testing', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'User acceptance testing', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Launch and deployment', priority: PRIORITY_VALUES.High, estimatedDays: 2 }
     ],
     teamRoles: [
       { role: 'Project Manager', description: 'Oversees timeline and stakeholder communication' },
@@ -72,20 +73,20 @@ export const projectTemplates: ProjectTemplate[] = [
     estimatedDuration: '4-6 months',
     defaultBudget: 120000,
     tasks: [
-      { name: 'Market research and validation', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Define feature requirements', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Create user flows and information architecture', priority: Priority.High, estimatedDays: 7 },
-      { name: 'UI/UX design for all screens', priority: Priority.High, estimatedDays: 15 },
-      { name: 'Design system and style guide', priority: Priority.Medium, estimatedDays: 5 },
-      { name: 'Backend API development', priority: Priority.High, estimatedDays: 25 },
-      { name: 'iOS app development', priority: Priority.High, estimatedDays: 30 },
-      { name: 'Android app development', priority: Priority.High, estimatedDays: 30 },
-      { name: 'Push notifications setup', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Analytics integration', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Beta testing program', priority: Priority.High, estimatedDays: 10 },
-      { name: 'Bug fixes and refinements', priority: Priority.High, estimatedDays: 10 },
-      { name: 'App Store submission and approval', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Launch marketing materials', priority: Priority.Medium, estimatedDays: 5 }
+      { name: 'Market research and validation', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Define feature requirements', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Create user flows and information architecture', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'UI/UX design for all screens', priority: PRIORITY_VALUES.High, estimatedDays: 15 },
+      { name: 'Design system and style guide', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 },
+      { name: 'Backend API development', priority: PRIORITY_VALUES.High, estimatedDays: 25 },
+      { name: 'iOS app development', priority: PRIORITY_VALUES.High, estimatedDays: 30 },
+      { name: 'Android app development', priority: PRIORITY_VALUES.High, estimatedDays: 30 },
+      { name: 'Push notifications setup', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Analytics integration', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Beta testing program', priority: PRIORITY_VALUES.High, estimatedDays: 10 },
+      { name: 'Bug fixes and refinements', priority: PRIORITY_VALUES.High, estimatedDays: 10 },
+      { name: 'App Store submission and approval', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Launch marketing materials', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 }
     ],
     teamRoles: [
       { role: 'Product Manager', description: 'Defines product vision and requirements' },
@@ -106,19 +107,19 @@ export const projectTemplates: ProjectTemplate[] = [
     estimatedDuration: '6-8 weeks',
     defaultBudget: 30000,
     tasks: [
-      { name: 'Define campaign goals and KPIs', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Audience research and segmentation', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Competitive analysis', priority: Priority.Medium, estimatedDays: 2 },
-      { name: 'Develop campaign messaging and positioning', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Create content calendar', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Design visual assets', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Write copy for all channels', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Set up email marketing sequences', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Configure social media ads', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Set up tracking and analytics', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Launch campaign', priority: Priority.High, estimatedDays: 1 },
-      { name: 'Monitor and optimize performance', priority: Priority.High, estimatedDays: 14 },
-      { name: 'Create final performance report', priority: Priority.Medium, estimatedDays: 2 }
+      { name: 'Define campaign goals and KPIs', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Audience research and segmentation', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Competitive analysis', priority: PRIORITY_VALUES.Medium, estimatedDays: 2 },
+      { name: 'Develop campaign messaging and positioning', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Create content calendar', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Design visual assets', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Write copy for all channels', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Set up email marketing sequences', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Configure social media ads', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Set up tracking and analytics', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Launch campaign', priority: PRIORITY_VALUES.High, estimatedDays: 1 },
+      { name: 'Monitor and optimize performance', priority: PRIORITY_VALUES.High, estimatedDays: 14 },
+      { name: 'Create final performance report', priority: PRIORITY_VALUES.Medium, estimatedDays: 2 }
     ],
     teamRoles: [
       { role: 'Marketing Manager', description: 'Oversees strategy and execution' },
@@ -138,21 +139,21 @@ export const projectTemplates: ProjectTemplate[] = [
     estimatedDuration: '3 months',
     defaultBudget: 75000,
     tasks: [
-      { name: 'Define product positioning and messaging', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Identify target audience segments', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Develop pricing strategy', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Create launch timeline and milestones', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Build product landing page', priority: Priority.High, estimatedDays: 10 },
-      { name: 'Create demo videos and screenshots', priority: Priority.Medium, estimatedDays: 5 },
-      { name: 'Write press release', priority: Priority.Medium, estimatedDays: 2 },
-      { name: 'Prepare sales enablement materials', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Set up customer support system', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Create onboarding experience', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Beta program with early customers', priority: Priority.High, estimatedDays: 14 },
-      { name: 'PR and media outreach', priority: Priority.Medium, estimatedDays: 7 },
-      { name: 'Launch day coordination', priority: Priority.High, estimatedDays: 1 },
-      { name: 'Post-launch monitoring and support', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Gather and analyze launch metrics', priority: Priority.Medium, estimatedDays: 3 }
+      { name: 'Define product positioning and messaging', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Identify target audience segments', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Develop pricing strategy', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Create launch timeline and milestones', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Build product landing page', priority: PRIORITY_VALUES.High, estimatedDays: 10 },
+      { name: 'Create demo videos and screenshots', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 },
+      { name: 'Write press release', priority: PRIORITY_VALUES.Medium, estimatedDays: 2 },
+      { name: 'Prepare sales enablement materials', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Set up customer support system', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Create onboarding experience', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Beta program with early customers', priority: PRIORITY_VALUES.High, estimatedDays: 14 },
+      { name: 'PR and media outreach', priority: PRIORITY_VALUES.Medium, estimatedDays: 7 },
+      { name: 'Launch day coordination', priority: PRIORITY_VALUES.High, estimatedDays: 1 },
+      { name: 'Post-launch monitoring and support', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Gather and analyze launch metrics', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 }
     ],
     teamRoles: [
       { role: 'Product Manager', description: 'Leads launch strategy and execution' },
@@ -172,21 +173,21 @@ export const projectTemplates: ProjectTemplate[] = [
     estimatedDuration: '2-4 months',
     defaultBudget: 40000,
     tasks: [
-      { name: 'Define event goals and success metrics', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Set budget and get approval', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Select and book venue', priority: Priority.High, estimatedDays: 5 },
-      { name: 'Create event brand and theme', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Build event website and registration', priority: Priority.High, estimatedDays: 7 },
-      { name: 'Book speakers and entertainment', priority: Priority.High, estimatedDays: 10 },
-      { name: 'Arrange catering and menu', priority: Priority.Medium, estimatedDays: 3 },
-      { name: 'Plan AV and technical requirements', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Create promotional materials', priority: Priority.Medium, estimatedDays: 5 },
-      { name: 'Launch ticket sales and marketing', priority: Priority.High, estimatedDays: 2 },
-      { name: 'Coordinate vendor contracts', priority: Priority.Medium, estimatedDays: 5 },
-      { name: 'Create event schedule and agenda', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Plan day-of logistics and staffing', priority: Priority.High, estimatedDays: 3 },
-      { name: 'Event day execution', priority: Priority.High, estimatedDays: 1 },
-      { name: 'Post-event survey and analysis', priority: Priority.Medium, estimatedDays: 3 }
+      { name: 'Define event goals and success metrics', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Set budget and get approval', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Select and book venue', priority: PRIORITY_VALUES.High, estimatedDays: 5 },
+      { name: 'Create event brand and theme', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Build event website and registration', priority: PRIORITY_VALUES.High, estimatedDays: 7 },
+      { name: 'Book speakers and entertainment', priority: PRIORITY_VALUES.High, estimatedDays: 10 },
+      { name: 'Arrange catering and menu', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 },
+      { name: 'Plan AV and technical requirements', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Create promotional materials', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 },
+      { name: 'Launch ticket sales and marketing', priority: PRIORITY_VALUES.High, estimatedDays: 2 },
+      { name: 'Coordinate vendor contracts', priority: PRIORITY_VALUES.Medium, estimatedDays: 5 },
+      { name: 'Create event schedule and agenda', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Plan day-of logistics and staffing', priority: PRIORITY_VALUES.High, estimatedDays: 3 },
+      { name: 'Event day execution', priority: PRIORITY_VALUES.High, estimatedDays: 1 },
+      { name: 'Post-event survey and analysis', priority: PRIORITY_VALUES.Medium, estimatedDays: 3 }
     ],
     teamRoles: [
       { role: 'Event Manager', description: 'Oversees all aspects of planning and execution' },
@@ -224,6 +225,7 @@ export const createProjectFromTemplate = (
       id: `task-${Date.now()}-${index}`,
       name: taskTemplate.name,
       completed: false,
+      status: 'To Do' as const,
       priority: taskTemplate.priority,
       dueDate: taskEnd.toISOString().split('T')[0],
       startDate: taskStart.toISOString().split('T')[0],
@@ -241,25 +243,16 @@ export const createProjectFromTemplate = (
   return {
     name: customName || template.name,
     description: template.description,
-    status: ProjectStatus.OnTrack,
+    status: PROJECT_STATUS_VALUES.InProgress,
     progress: 0,
     startDate: today,
     endDate: end.toISOString().split('T')[0],
     dueDate: end.toISOString().split('T')[0],
-    priority: Priority.Medium,
+    priority: PRIORITY_VALUES.Medium,
     manager: '',
-    teamSize: template.teamRoles.length,
     tasks: tasks,
     budget: template.defaultBudget,
     spent: 0,
-    teamMembers: [],
-    journal: [
-      {
-        id: '1',
-        date: today,
-        content: `Project created from "${template.name}" template with ${tasks.length} tasks.`,
-        author: 'System'
-      }
-    ]
+    teamMembers: [] as TeamMember[],
   };
 };

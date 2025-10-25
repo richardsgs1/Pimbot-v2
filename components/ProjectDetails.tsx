@@ -72,13 +72,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
-      case ProjectStatus.OnTrack:
+      case PROJECT_STATUS_VALUES.InProgress:
         return 'bg-green-100 text-green-800 border-green-200';
-      case ProjectStatus.AtRisk:
+      case PROJECT_STATUS_VALUES.AtRisk:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case ProjectStatus.OffTrack:
+      case PROJECT_STATUS_VALUES.OnHold:
         return 'bg-red-100 text-red-800 border-red-200';
-      case ProjectStatus.Completed:
+      case PROJECT_STATUS_VALUES.Completed:
         return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -89,11 +89,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     switch (priority) {
       case Priority.Critical:
         return 'bg-red-100 text-red-800 border-red-200';
-      case Priority.High:
+      case PRIORITY_VALUES.High:
         return 'bg-orange-100 text-orange-800 border-orange-200';
-      case Priority.Medium:
+      case PRIORITY_VALUES.Medium:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case Priority.Low:
+      case PRIORITY_VALUES.Low:
         return 'bg-green-100 text-green-800 border-green-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';

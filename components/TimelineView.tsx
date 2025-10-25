@@ -75,9 +75,9 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId
 
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
-      case Priority.High: return 'bg-red-500';
-      case Priority.Medium: return 'bg-yellow-500';
-      case Priority.Low: return 'bg-blue-500';
+      case PRIORITY_VALUES.High: return 'bg-red-500';
+      case PRIORITY_VALUES.Medium: return 'bg-yellow-500';
+      case PRIORITY_VALUES.Low: return 'bg-blue-500';
       default: return 'bg-gray-500';
     }
   };

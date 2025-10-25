@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { Project } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, ProjectStatus, TeamMember } from '../types';
+import { PROJECT_STATUS_VALUES } from '../types';
 
 interface ProjectListProps {
   projects: Project[];
@@ -43,13 +43,13 @@ const ProjectList: React.FC<ProjectListProps> = ({
   
   switch (projectFilter) {
     case 'on-track':
-      return activeProjects.filter(p => p.status === ProjectStatus.OnTrack);
+      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress);
     case 'at-risk':
-      return activeProjects.filter(p => p.status === ProjectStatus.AtRisk);
+      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk);
     case 'off-track':
-      return activeProjects.filter(p => p.status === ProjectStatus.OffTrack);
+      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.OnHold);
     case 'completed':
-      return activeProjects.filter(p => p.status === ProjectStatus.Completed);
+      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.Completed);
     case 'archived':
       return projects.filter(p => p.archived === true);
     default:
@@ -79,7 +79,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
       id: `project-${Date.now()}`,
       name: newProject.name,
       description: newProject.description,
-      status: ProjectStatus.OnTrack,
+      status: PROJECT_STATUS_VALUES.InProgress,
       startDate: newProject.startDate || new Date().toISOString().split('T')[0],
       endDate: newProject.endDate || newProject.dueDate,
       dueDate: newProject.dueDate,
@@ -90,7 +90,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
       spent: newProject.spent || 0,
       progress: 0,
       tasks: [],
-      teamMembers: [],
+      teamMembers: [] as TeamMember[],
       journal: []
     };
     
@@ -326,9 +326,9 @@ const ProjectList: React.FC<ProjectListProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-white">{p.name}</h3>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    p.status === ProjectStatus.OnTrack ? 'bg-green-500/20 text-green-300' :
-                    p.status === ProjectStatus.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
-                    p.status === ProjectStatus.OffTrack ? 'bg-red-500/20 text-red-300' :
+                    p.status === PROJECT_STATUS_VALUES.InProgress ? 'bg-green-500/20 text-green-300' :
+                    p.status === PROJECT_STATUS_VALUES.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
+                    p.status === PROJECT_STATUS_VALUES.OnHold ? 'bg-red-500/20 text-red-300' :
                     'bg-blue-500/20 text-blue-300'
                   }`}>
                     {p.status}
@@ -336,7 +336,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
                 </div>
                 <p className="text-sm text-slate-400 mb-2">{p.description}</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-500">Due: {new Date(p.dueDate).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500">Due: {p.dueDate ? new Date(p.dueDate).toLocaleDateString() : 'No due date'}</p>
                   <div className="flex items-center">
                     <div className="w-16 bg-slate-700 rounded-full h-2 mr-2">
                       <div 

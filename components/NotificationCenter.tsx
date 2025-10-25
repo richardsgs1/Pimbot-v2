@@ -51,7 +51,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
               message: `"${task.name}" in ${project.name} is ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''} overdue`,
               timestamp: dueDate,
               read: false,
-              priority: task.priority === Priority.High || task.priority === Priority.Critical ? 'critical' : 'high',
+              priority: task.priority === PRIORITY_VALUES.High || task.priority === Priority.Critical ? 'critical' : 'high',
               projectId: project.id
             });
           }
@@ -69,7 +69,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             });
           }
           // Due within 7 days (for high priority tasks)
-          else if (daysUntilDue <= 7 && (task.priority === Priority.High || task.priority === Priority.Critical)) {
+          else if (daysUntilDue <= 7 && (task.priority === PRIORITY_VALUES.High || task.priority === Priority.Critical)) {
             newNotifications.push({
               id: `upcoming-${task.id}`,
               type: 'task-due',
@@ -85,7 +85,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       });
 
       // Project status alerts
-      if (project.status === ProjectStatus.AtRisk) {
+      if (project.status === PROJECT_STATUS_VALUES.AtRisk) {
         newNotifications.push({
           id: `status-${project.id}`,
           type: 'project-status',
@@ -96,7 +96,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
           priority: 'high',
           projectId: project.id
         });
-      } else if (project.status === ProjectStatus.OffTrack) {
+      } else if (project.status === PROJECT_STATUS_VALUES.OnHold) {
         newNotifications.push({
           id: `status-offtrack-${project.id}`,
           type: 'project-status',
@@ -153,7 +153,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       const projectDueDate = new Date(project.dueDate);
       const daysUntilProjectDue = Math.ceil((projectDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (daysUntilProjectDue <= 7 && daysUntilProjectDue > 0 && project.status !== ProjectStatus.Completed) {
+      if (daysUntilProjectDue <= 7 && daysUntilProjectDue > 0 && project.status !== PROJECT_STATUS_VALUES.Completed) {
         newNotifications.push({
           id: `project-due-${project.id}`,
           type: 'milestone',

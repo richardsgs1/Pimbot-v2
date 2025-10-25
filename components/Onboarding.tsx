@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { SkillLevel } from '../types';
-import type { OnboardingData } from '../types';
+import type { OnboardingData, SkillLevel } from '../types';
+import { SKILL_LEVEL_VALUES } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface OnboardingProps {
@@ -9,23 +9,25 @@ interface OnboardingProps {
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialData }) => {
-  const [skillLevel, setSkillLevel] = useState<SkillLevel | null>(initialData.skillLevel);
-  const [methodologies, setMethodologies] = useState<string[]>(initialData.methodologies);
-  const [tools, setTools] = useState<string[]>(initialData.tools);
+  const [skillLevel, setSkillLevel] = useState<SkillLevel | null>((initialData.skillLevel as SkillLevel) || null);
+  const [tools, setTools] = useState<string[]>(initialData.tools || []);
   const [name, setName] = useState(initialData.name);
+  const [selectedMethodologies, setSelectedMethodologies] = useState<string[]>(
+    initialData?.methodologies || []
+  );
 
   // Skill level specific content
   const getSkillLevelDescription = (level: SkillLevel) => {
     switch (level) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return "New to project management? We'll guide you through the basics step-by-step and help you learn as you go. You'll start with simple concepts and build up your knowledge.";
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return "Some experience with projects? We'll help you develop structured approaches and build on what you already know with best practices.";
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return "Comfortable with project basics? We'll help you refine your skills and tackle more complex challenges with advanced techniques.";
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return "Seasoned project manager? We'll provide advanced insights, strategic guidance, and help optimize your existing workflows.";
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return "Project management expert? We'll offer high-level strategic advice, industry insights, and help you mentor others.";
       default:
         return "";
@@ -34,9 +36,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
 
   // Skill-specific methodology suggestions
   const getMethodologySuggestions = () => {
-    if (skillLevel === SkillLevel.NO_EXPERIENCE) {
+    if (skillLevel === SKILL_LEVEL_VALUES.NoExperience) {
       return ['Agile', 'Waterfall']; // Keep it simple for beginners
-    } else if (skillLevel === SkillLevel.NOVICE) {
+    } else if (skillLevel === SKILL_LEVEL_VALUES.Novice) {
       return ['Agile', 'Waterfall', 'Kanban', 'Scrum'];
     } else {
       return ['Agile', 'Waterfall', 'Kanban', 'Scrum', 'Lean', 'Six Sigma', 'DevOps', 'SAFe'];
@@ -45,9 +47,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
 
   // Skill-specific tool suggestions
   const getToolSuggestions = () => {
-    if (skillLevel === SkillLevel.NO_EXPERIENCE) {
+    if (skillLevel === SKILL_LEVEL_VALUES.NoExperience) {
       return ['Trello', 'Asana', 'Monday.com', 'Notion']; // User-friendly tools
-    } else if (skillLevel === SkillLevel.NOVICE) {
+    } else if (skillLevel === SKILL_LEVEL_VALUES.Novice) {
       return ['Trello', 'Asana', 'Monday.com', 'Jira', 'Notion', 'ClickUp'];
     } else {
       return ['Jira', 'Asana', 'Monday.com', 'Microsoft Project', 'Smartsheet', 'Wrike', 'Notion', 'ClickUp', 'Linear', 'Azure DevOps'];
@@ -56,14 +58,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
 
   // Get guidance text based on skill level
   const getGuidanceText = () => {
-    if (skillLevel === SkillLevel.NO_EXPERIENCE) {
+    if (skillLevel === SKILL_LEVEL_VALUES.NoExperience) {
       return {
         methodologyTitle: "We recommend starting with these beginner-friendly approaches:",
         methodologyNote: "Don't worry if you're not familiar with these - we'll explain everything as we go!",
         toolTitle: "These tools are great for beginners:",
         toolNote: "Choose any that sound familiar, or skip this step - you can always add tools later."
       };
-    } else if (skillLevel === SkillLevel.NOVICE) {
+    } else if (skillLevel === SKILL_LEVEL_VALUES.Novice) {
       return {
         methodologyTitle: "Which methodologies have you worked with or would like to learn?",
         methodologyNote: "Select the ones you know or are interested in exploring.",
@@ -90,7 +92,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
     const completedData: OnboardingData = {
       ...initialData,
       skillLevel,
-      methodologies,
+      methodologies: selectedMethodologies,
       tools,
       name
     };
@@ -102,7 +104,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
         .update({
           name,
           skill_level: skillLevel,
-          methodologies: methodologies,
+          methodologies: selectedMethodologies,
           tools: tools,
           onboarding_completed: true,
         })
@@ -146,7 +148,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">What's your project management experience level?</h2>
           <div className="space-y-3">
-            {Object.values(SkillLevel).map((level) => (
+            {Object.values(SKILL_LEVEL_VALUES).map((level) => (
               <label key={level} className="flex items-start p-4 rounded-lg border border-[var(--border-primary)] hover:border-[var(--accent-primary)] cursor-pointer transition-colors bg-[var(--bg-tertiary)]">
                 <input
                   type="radio"
@@ -177,12 +179,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
                 <label key={methodology} className="flex items-center p-3 rounded-lg border border-[var(--border-primary)] hover:border-[var(--accent-primary)] cursor-pointer transition-colors bg-[var(--bg-tertiary)]">
                   <input
                     type="checkbox"
-                    checked={methodologies.includes(methodology)}
+                    checked={selectedMethodologies.includes(methodology)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setMethodologies(prev => [...prev, methodology]);
+                        setSelectedMethodologies(prev => [...prev, methodology]);
                       } else {
-                        setMethodologies(prev => prev.filter(m => m !== methodology));
+                        setSelectedMethodologies(prev => prev.filter(m => m !== methodology));
                       }
                     }}
                     className="mr-2 accent-[var(--accent-primary)]"
@@ -218,7 +220,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
                 </label>
               ))}
             </div>
-            {skillLevel === SkillLevel.NO_EXPERIENCE && (
+            {skillLevel === SKILL_LEVEL_VALUES.NoExperience && (
               <p className="text-xs text-[var(--text-tertiary)] mt-3 italic">
                 Don't see your tool or don't use any yet? That's perfectly fine - you can skip this step!
               </p>
@@ -227,7 +229,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
         )}
 
         {/* Welcome message for beginners */}
-        {skillLevel === SkillLevel.NO_EXPERIENCE && (
+        {skillLevel === SKILL_LEVEL_VALUES.NoExperience && (
           <div className="mb-6 p-4 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-lg">
             <h3 className="font-semibold text-[var(--accent-primary)] mb-2">You're in good hands!</h3>
             <p className="text-sm text-[var(--text-secondary)]">
@@ -242,7 +244,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
           disabled={!skillLevel || !name.trim()}
           className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors"
         >
-          {skillLevel === SkillLevel.NO_EXPERIENCE ? "Start My Learning Journey" : "Complete Setup"}
+          {skillLevel === SKILL_LEVEL_VALUES.NoExperience ? "Start My Learning Journey" : "Complete Setup"}
         </button>
       </div>
     </div>

@@ -60,7 +60,7 @@ const Chat: React.FC<ChatProps> = ({
     name: '',
     projectId: projects[0]?.id || '',
     dueDate: new Date().toISOString().split('T')[0],
-    priority: Priority.Medium
+    priority: PRIORITY_VALUES.Medium
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,8 +68,8 @@ const Chat: React.FC<ChatProps> = ({
   // Calculate context insights
   const contextInsights = {
     totalProjects: projects.length,
-    activeProjects: projects.filter(p => p.status !== ProjectStatus.Completed).length,
-    atRiskProjects: projects.filter(p => p.status === ProjectStatus.AtRisk).length,
+    activeProjects: projects.filter(p => p.status !== PROJECT_STATUS_VALUES.Completed).length,
+    atRiskProjects: projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length,
     overdueTasks: projects.reduce((acc, p) => {
       const overdue = p.tasks.filter(t => 
         !t.completed && new Date(t.dueDate) < new Date()
@@ -360,7 +360,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
       name: '',
       projectId: projects[0]?.id || '',
       dueDate: new Date().toISOString().split('T')[0],
-      priority: Priority.Medium
+      priority: PRIORITY_VALUES.Medium
     });
     setShowTaskForm(false);
   };
@@ -652,9 +652,9 @@ Provide helpful, context-aware advice based on their current portfolio status an
                     onChange={(e) => setTaskForm({...taskForm, priority: e.target.value as Priority})}
                     className="w-full p-2 border border-[var(--border-primary)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
                   >
-                    <option value={Priority.Low}>Low</option>
-                    <option value={Priority.Medium}>Medium</option>
-                    <option value={Priority.High}>High</option>
+                    <option value={PRIORITY_VALUES.Low}>Low</option>
+                    <option value={PRIORITY_VALUES.Medium}>Medium</option>
+                    <option value={PRIORITY_VALUES.High}>High</option>
                     <option value={Priority.Critical}>Critical</option>
                   </select>
                 </div>

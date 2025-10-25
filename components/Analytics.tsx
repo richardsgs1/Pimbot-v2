@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import type { Project, TeamMember } from '../types';
-import { Priority, ProjectStatus } from '../types';
+import type { Project, TeamMember, Priority, ProjectStatus } from '../types';
+import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -257,7 +257,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
         });
     });
     return {
-        labels: Object.values(Priority),
+        labels: Object.values(PRIORITY_VALUES),
         values: [counts.High, counts.Medium, counts.Low, counts.None]
     };
   }, [projects, startDate, endDate]);
@@ -268,7 +268,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
 
     return projects
       .filter(p => {
-          if (p.status === ProjectStatus.Completed) return false;
+          if (p.status === PROJECT_STATUS_VALUES.Completed) return false;
           if (!start && !end) return true; // No filter, include all active projects
           // If filtering, include project if any of its tasks are within the date range
           return p.tasks.some(task => {

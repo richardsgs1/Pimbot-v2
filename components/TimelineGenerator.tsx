@@ -9,7 +9,7 @@ interface TimelineGeneratorProps {
 
 const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose }) => {
   const [selectedProjects, setSelectedProjects] = useState<string[]>(
-    projects.filter(p => p.status !== ProjectStatus.Completed).map(p => p.id)
+    projects.filter(p => p.status !== PROJECT_STATUS_VALUES.Completed).map(p => p.id)
   );
 
   // Calculate timeline data
@@ -43,13 +43,13 @@ const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose
 
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
-      case ProjectStatus.OnTrack:
+      case PROJECT_STATUS_VALUES.InProgress:
         return 'bg-green-500';
-      case ProjectStatus.AtRisk:
+      case PROJECT_STATUS_VALUES.AtRisk:
         return 'bg-yellow-500';
-      case ProjectStatus.OffTrack:
+      case PROJECT_STATUS_VALUES.OnHold:
         return 'bg-red-500';
-      case ProjectStatus.Completed:
+      case PROJECT_STATUS_VALUES.Completed:
         return 'bg-blue-500';
       default:
         return 'bg-gray-500';
@@ -126,7 +126,7 @@ const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose
                   const leftPos = calculatePosition(startDate);
                   const width = calculateWidth(startDate, endDate);
                   const today = new Date();
-                  const isOverdue = endDate < today && project.status !== ProjectStatus.Completed;
+                  const isOverdue = endDate < today && project.status !== PROJECT_STATUS_VALUES.Completed;
 
                   return (
                     <div key={project.id} className="relative">
@@ -136,8 +136,8 @@ const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose
                           {project.name}
                         </span>
                         <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
-                          project.status === ProjectStatus.OnTrack ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                          project.status === ProjectStatus.AtRisk ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          project.status === PROJECT_STATUS_VALUES.InProgress ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          project.status === PROJECT_STATUS_VALUES.AtRisk ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                           'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {project.status}

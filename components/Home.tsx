@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Project, OnboardingData } from '../types';
-import { ProjectStatus, Priority } from '../types';
+import type { Project, OnboardingData, ProjectStatus, Priority } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 
 interface HomeProps {
   projects: Project[];
@@ -26,14 +26,18 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
     );
     
     return allTasks
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .sort((a, b) => {
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+        return aDate - bDate;
+      })
       .slice(0, 5);
   };
 
-  const onTrackCount = projects.filter(p => p.status === ProjectStatus.OnTrack).length;
-  const atRiskCount = projects.filter(p => p.status === ProjectStatus.AtRisk).length;
-  const offTrackCount = projects.filter(p => p.status === ProjectStatus.OffTrack).length;
-  const completedCount = projects.filter(p => p.status === ProjectStatus.Completed).length;
+  const onTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress).length;
+  const atRiskCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length;
+  const offTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.OnHold).length;
+  const completedCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.Completed).length;
 
   return (
     <div className="space-y-8">
@@ -107,9 +111,9 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-white">{project.name}</h3>
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  project.status === ProjectStatus.OnTrack ? 'bg-green-500/20 text-green-300' :
-                  project.status === ProjectStatus.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
-                  project.status === ProjectStatus.OffTrack ? 'bg-red-500/20 text-red-300' :
+                  project.status === PROJECT_STATUS_VALUES.InProgress ? 'bg-green-500/20 text-green-300' :
+                  project.status === PROJECT_STATUS_VALUES.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
+                  project.status === PROJECT_STATUS_VALUES.OnHold ? 'bg-red-500/20 text-red-300' :
                   'bg-blue-500/20 text-blue-300'
                 }`}>
                   {project.status}
@@ -118,7 +122,7 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
               <p className="text-sm text-slate-400 mb-3">{project.description}</p>
               <div className="flex items-center justify-between">
                 <div className="text-xs text-slate-500">
-                  Due: {new Date(project.dueDate).toLocaleDateString()}
+                  Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'No due date'}
                 </div>
                 <div className="flex items-center">
                   <div className="w-16 bg-slate-700 rounded-full h-2 mr-2">
@@ -149,11 +153,11 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-slate-300">
-                      {new Date(task.dueDate).toLocaleDateString()}
+                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      task.priority === Priority.High ? 'bg-red-500/20 text-red-300' :
-                      task.priority === Priority.Medium ? 'bg-yellow-500/20 text-yellow-300' :
+                      task.priority === PRIORITY_VALUES.High ? 'bg-red-500/20 text-red-300' :
+                      task.priority === PRIORITY_VALUES.Medium ? 'bg-yellow-500/20 text-yellow-300' :
                       'bg-blue-500/20 text-blue-300'
                     }`}>
                       {task.priority}

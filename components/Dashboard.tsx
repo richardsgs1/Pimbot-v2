@@ -344,11 +344,17 @@ useEffect(() => {
         );
 
       case 'projectManagement':
-        return (
-          <ProjectManagement 
-            onMenuClick={() => setShowSidebar(true)}
-          />
-        );
+      return (
+        <ProjectManagement 
+          projects={projects}
+          onUpdateProjects={setProjects}
+          onSelectProject={(project) => {
+            setSelectedProject(project);
+            setCurrentView('projectDetails');
+          }}
+          selectedProject={selectedProject}
+        />
+      );
 
       case 'pricing':
         return (

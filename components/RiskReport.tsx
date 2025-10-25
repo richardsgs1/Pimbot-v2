@@ -23,17 +23,17 @@ const RiskReport: React.FC<RiskReportProps> = ({ projects, userData, onClose }) 
   // Analyze project risks
   const analyzeRisks = (): RiskFactor[] => {
     return projects
-      .filter(p => p.status !== ProjectStatus.Completed)
+      .filter(p => p.status !== PROJECT_STATUS_VALUES.Completed)
       .map(project => {
         let riskScore = 0;
         const factors: string[] = [];
         const recommendations: string[] = [];
 
         // Status-based risk
-        if (project.status === ProjectStatus.AtRisk) {
+        if (project.status === PROJECT_STATUS_VALUES.AtRisk) {
           riskScore += 30;
           factors.push('Project currently marked as "At Risk"');
-        } else if (project.status === ProjectStatus.OffTrack) {
+        } else if (project.status === PROJECT_STATUS_VALUES.OnHold) {
           riskScore += 50;
           factors.push('Project is off track');
           recommendations.push('Immediate intervention required');

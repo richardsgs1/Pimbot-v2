@@ -66,7 +66,7 @@ export class IntentDetector {
     let taskName = '';
     let projectName = '';
     let projectId = '';
-    let priority: Priority = Priority.Medium;
+    let priority: Priority = PRIORITY_VALUES.Medium;
     let dueDate = '';
 
     // Check patterns
@@ -96,10 +96,10 @@ export class IntentDetector {
 
     // Extract priority
     if (lowerMessage.includes('high priority') || lowerMessage.includes('urgent') || lowerMessage.includes('important')) {
-      priority = Priority.High;
+      priority = PRIORITY_VALUES.High;
       confidence += 0.1;
     } else if (lowerMessage.includes('low priority')) {
-      priority = Priority.Low;
+      priority = PRIORITY_VALUES.Low;
     } else if (lowerMessage.includes('critical')) {
       priority = Priority.Critical;
       confidence += 0.1;
@@ -143,16 +143,16 @@ export class IntentDetector {
 
     // Extract status
     if (lowerMessage.includes('on track')) {
-      status = ProjectStatus.OnTrack;
+      status = PROJECT_STATUS_VALUES.InProgress;
       confidence += 0.3;
     } else if (lowerMessage.includes('at risk')) {
-      status = ProjectStatus.AtRisk;
+      status = PROJECT_STATUS_VALUES.AtRisk;
       confidence += 0.3;
     } else if (lowerMessage.includes('off track')) {
-      status = ProjectStatus.OffTrack;
+      status = PROJECT_STATUS_VALUES.OnHold;
       confidence += 0.3;
     } else if (lowerMessage.includes('completed') || lowerMessage.includes('complete')) {
-      status = ProjectStatus.Completed;
+      status = PROJECT_STATUS_VALUES.Completed;
       confidence += 0.3;
     } else if (lowerMessage.includes('on hold')) {
       status = ProjectStatus.OnHold;
@@ -397,7 +397,7 @@ export class IntentDetector {
 
     projects.forEach(project => {
       // Suggest status updates for at-risk projects
-      if (project.status === ProjectStatus.AtRisk) {
+      if (project.status === PROJECT_STATUS_VALUES.AtRisk) {
         suggestions.push(`Update status for ${project.name} to On Track`);
       }
 

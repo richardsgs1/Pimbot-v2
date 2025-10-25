@@ -17,7 +17,7 @@ const App: React.FC = () => {
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     id: '',
-    skillLevel: null,
+    skillLevel: null as any,
     methodologies: [],
     tools: [],
     name: '',
@@ -139,7 +139,7 @@ const App: React.FC = () => {
     // Reset state
     setOnboardingData({
       id: '',
-      skillLevel: null,
+      skillLevel: null as any,
       methodologies: [],
       tools: [],
       name: '',

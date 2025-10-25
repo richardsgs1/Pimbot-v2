@@ -10,9 +10,9 @@ interface TeamHubProps {
 }
 
 const priorityIcons: { [key in Priority]: React.ReactNode } = {
-    [Priority.High]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
-    [Priority.Medium]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
-    [Priority.Low]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+    [PRIORITY_VALUES.High]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
+    [PRIORITY_VALUES.Medium]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
+    [PRIORITY_VALUES.Low]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
     [Priority.None]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>,
 };
 
@@ -169,7 +169,7 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject, onMe
       const priorityCounts = assignedTasks.reduce((acc, task) => {
         acc[task.priority] = (acc[task.priority] || 0) + 1;
         return acc;
-      }, { [Priority.High]: 0, [Priority.Medium]: 0, [Priority.Low]: 0, [Priority.None]: 0 });
+      }, { [PRIORITY_VALUES.High]: 0, [PRIORITY_VALUES.Medium]: 0, [PRIORITY_VALUES.Low]: 0, [Priority.None]: 0 });
 
       return { ...member, tasks: assignedTasks, overdueCount, priorityCounts };
     });
