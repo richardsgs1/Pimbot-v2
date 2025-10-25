@@ -1,8 +1,8 @@
 // lib/TaskMetadataExtractor.ts
 // Extract task metadata from natural language
 
-import type { Project } from '../types';
-import { Priority } from '../types';
+import type { Project, Priority } from '../types';
+import { PRIORITY_VALUES } from '../types';
 import { DateParser } from './DateParser';
 
 export interface ExtractedTaskData {
@@ -84,9 +84,9 @@ export class TaskMetadataExtractor {
   private static extractPriority(lowerInput: string): Priority {
     // Priority keywords mapping
     const priorityMap: { [key: string]: Priority } = {
-      'critical': Priority.Critical,
-      'urgent': Priority.Critical,
-      'asap': Priority.Critical,
+      'critical': PRIORITY_VALUES.High,
+      'urgent': PRIORITY_VALUES.High,
+      'asap': PRIORITY_VALUES.High,
       'high priority': PRIORITY_VALUES.High,
       'high': PRIORITY_VALUES.High,
       'important': PRIORITY_VALUES.High,
