@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { OnboardingData, Project, ChatMessage, Task } from '../types';
-import { SkillLevel, ProjectStatus, Priority } from '../types';
+import type { OnboardingData, Project, ChatMessage, Task, SkillLevel, ProjectStatus, Priority, TaskStatus } from '../types';
+import { SKILL_LEVEL_VALUES, PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import TimelineGenerator from './TimelineGenerator';
 import TeamCapacityAnalysis from './TeamCapacityAnalysis';
@@ -72,7 +72,7 @@ const Chat: React.FC<ChatProps> = ({
     atRiskProjects: projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length,
     overdueTasks: projects.reduce((acc, p) => {
       const overdue = p.tasks.filter(t => 
-        !t.completed && new Date(t.dueDate) < new Date()
+        !t.completed && t.dueDate && new Date(t.dueDate) < new Date()
       ).length;
       return acc + overdue;
     }, 0),
@@ -163,7 +163,7 @@ const Chat: React.FC<ChatProps> = ({
       id: '1',
       role: 'assistant',
       content: welcomeMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date()
     }]);
   }, [userData.skillLevel]);
 
@@ -183,10 +183,10 @@ const Chat: React.FC<ChatProps> = ({
     }.`;
 
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return `Hi ${userData.name}! 👋 I'm your AI assistant. ${insights}\n\nI can help you:\n- Understand project management concepts\n- Create and organize tasks\n- Review project health\n- Learn best practices\n\nTry clicking one of the quick action buttons below, or just ask me anything!`;
       
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return `Hello ${userData.name}! ${insights}\n\nI can help you create tasks, review risks, generate reports, and provide PM guidance. What would you like to work on?`;
       
       default:
@@ -282,7 +282,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
       id: Date.now().toString(),
       role: 'user',
       content: messageToSend,
-      timestamp: new Date().toISOString()
+      timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -314,7 +314,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.content || data.briefing || 'Sorry, I couldn\'t generate a response.',
-        timestamp: new Date().toISOString()
+        timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -324,7 +324,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.',
-        timestamp: new Date().toISOString()
+        timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -339,6 +339,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const newTask: Omit<Task, 'id'> = {
       name: taskForm.name,
       completed: false,
+      status: 'To Do' as TaskStatus,
       priority: taskForm.priority,
       dueDate: taskForm.dueDate,
       startDate: new Date().toISOString().split('T')[0],
@@ -352,7 +353,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
       id: Date.now().toString(),
       role: 'assistant',
       content: `✅ Task "${taskForm.name}" created successfully in project "${projects.find(p => p.id === taskForm.projectId)?.name}"!`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date()
     };
     setMessages(prev => [...prev, confirmMessage]);
 
@@ -390,6 +391,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const newTask = {
     name: nlTaskData.taskName,
     completed: false,
+    status: 'To Do' as TaskStatus,
     priority: nlTaskData.priority,
     dueDate: nlTaskData.dueDate || new Date().toISOString().split('T')[0],
     startDate: new Date().toISOString().split('T')[0],
@@ -404,7 +406,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
     id: Date.now().toString(),
     role: 'assistant',
     content: `✅ Task "${nlTaskData.taskName}" created successfully!\n\n${TaskMetadataExtractor.generatePreview(nlTaskData)}`,
-    timestamp: new Date().toISOString()
+    timestamp: new Date()
   };
   setMessages(prev => [...prev, confirmMessage]);
 
@@ -434,7 +436,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
       id: Date.now().toString(),
       role: 'assistant',
       content: `I've noted that "${taskName}" should be assigned to ${assignee}${projectId ? ` in project ${projects.find(p => p.id === projectId)?.name}` : ''}.`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date()
     };
     setMessages(prev => [...prev, assistantMessage]);
     setShowAssignForm(false);
@@ -655,7 +657,6 @@ Provide helpful, context-aware advice based on their current portfolio status an
                     <option value={PRIORITY_VALUES.Low}>Low</option>
                     <option value={PRIORITY_VALUES.Medium}>Medium</option>
                     <option value={PRIORITY_VALUES.High}>High</option>
-                    <option value={Priority.Critical}>Critical</option>
                   </select>
                 </div>
               </div>
@@ -704,7 +705,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
               <div>
                 <span className="font-semibold text-[var(--text-secondary)]">Priority:</span>
                 <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                  nlTaskData.priority === 'Critical' ? 'bg-red-500/20 text-red-400' :
+                  
                   nlTaskData.priority === 'High' ? 'bg-orange-500/20 text-orange-400' :
                   nlTaskData.priority === 'Medium' ? 'bg-blue-500/20 text-blue-400' :
                   'bg-gray-500/20 text-gray-400'

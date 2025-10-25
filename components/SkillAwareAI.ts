@@ -1,4 +1,5 @@
-import { SkillLevel, OnboardingData, Project } from '../types';
+import type { SkillLevel, OnboardingData, Project } from '../types';
+import { SKILL_LEVEL_VALUES, PROJECT_STATUS_VALUES } from '../types';
 
 export interface SkillContext {
   skillLevel: SkillLevel;
@@ -18,7 +19,7 @@ export class SkillAwareAI {
     terminology: string;
   } {
     switch (skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return {
           tone: "encouraging, supportive, and patient",
           complexity: "very simple with step-by-step explanations",
@@ -26,7 +27,7 @@ export class SkillAwareAI {
           terminology: "everyday language, avoiding jargon"
         };
       
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return {
           tone: "helpful and educational",
           complexity: "straightforward with clear examples",
@@ -34,7 +35,7 @@ export class SkillAwareAI {
           terminology: "simple project management terms with brief explanations"
         };
       
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return {
           tone: "professional and informative",
           complexity: "balanced detail level",
@@ -42,7 +43,7 @@ export class SkillAwareAI {
           terminology: "standard project management terminology"
         };
       
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return {
           tone: "concise and strategic",
           complexity: "advanced insights and analysis",
@@ -50,7 +51,7 @@ export class SkillAwareAI {
           terminology: "professional project management language"
         };
       
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return {
           tone: "high-level and strategic",
           complexity: "sophisticated analysis and insights",
@@ -72,21 +73,21 @@ export class SkillAwareAI {
    * Create a skill-aware prompt for daily briefings
    */
   static createDailyBriefingPrompt(userData: OnboardingData, projects: Project[]): string {
-    const style = this.getResponseStyle(userData.skillLevel!);
+    const style = this.getResponseStyle(userData.skillLevel as SkillLevel);
     const projectCount = projects.length;
-    const onTrackCount = projects.filter(p => p.status === 'On Track').length;
-    const atRiskCount = projects.filter(p => p.status === 'At Risk').length;
+    const onTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress).length;
+    const atRiskCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length;
 
     const basePrompt = `Generate a daily briefing for ${userData.name}, a project manager with ${userData.skillLevel} experience level. 
 
 Current portfolio: ${projectCount} projects (${onTrackCount} on track, ${atRiskCount} at risk)
 User's methodologies: ${userData.methodologies.join(', ') || 'None specified'}
-User's tools: ${userData.tools.join(', ') || 'None specified'}
+User's tools: ${userData.tools?.join(', ') || 'None specified'}
 
 Project details: ${projects.map(p => `${p.name}: ${p.status}, ${p.progress}% complete, due ${p.dueDate}`).join('; ')}`;
 
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return `${basePrompt}
 
 Create a daily briefing that:
@@ -100,7 +101,7 @@ Create a daily briefing that:
 
 Keep it warm, supportive, and educational. Remember they're still learning the basics.`;
 
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return `${basePrompt}
 
 Create a daily briefing that:
@@ -113,7 +114,7 @@ Create a daily briefing that:
 
 Be helpful and educational while building their confidence.`;
 
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return `${basePrompt}
 
 Create a daily briefing that:
@@ -125,7 +126,7 @@ Create a daily briefing that:
 
 Be professional and informative.`;
 
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return `${basePrompt}
 
 Create a daily briefing that:
@@ -137,7 +138,7 @@ Create a daily briefing that:
 
 Be concise and strategic.`;
 
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return `${basePrompt}
 
 Create a daily briefing that:
@@ -160,14 +161,14 @@ Create a professional daily briefing with balanced detail and clear recommendati
    * Create skill-aware chat prompts
    */
   static createChatPrompt(userData: OnboardingData, userMessage: string, context?: string): string {
-    const style = this.getResponseStyle(userData.skillLevel!);
+    const style = this.getResponseStyle(userData.skillLevel as SkillLevel);
     
     const basePrompt = `You are PiMbOt AI, a project management assistant helping ${userData.name}, who has ${userData.skillLevel} experience level.
 
 User's background:
 - Experience: ${userData.skillLevel}
 - Methodologies: ${userData.methodologies.join(', ') || 'None specified'}
-- Tools: ${userData.tools.join(', ') || 'None specified'}
+- Tools: ${userData.tools?.join(', ') || 'None specified'}
 
 ${context ? `Context: ${context}` : ''}
 
@@ -180,7 +181,7 @@ Respond using:
 - Terminology: ${style.terminology}`;
 
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return `${basePrompt}
 
 Remember to:
@@ -192,7 +193,7 @@ Remember to:
 - Offer to explain anything further if needed
 - Focus on building their confidence and learning`;
 
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return `${basePrompt}
 
 Remember to:
@@ -203,7 +204,7 @@ Remember to:
 - Offer actionable advice
 - Encourage skill development`;
 
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return `${basePrompt}
 
 Remember to:
@@ -213,7 +214,7 @@ Remember to:
 - Offer strategic insights
 - Build on established knowledge`;
 
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return `${basePrompt}
 
 Remember to:
@@ -223,7 +224,7 @@ Remember to:
 - Offer advanced techniques
 - Consider organizational impact`;
 
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return `${basePrompt}
 
 Remember to:
@@ -244,14 +245,14 @@ Provide helpful, professional guidance.`;
    * Create skill-aware task suggestions
    */
   static createTaskSuggestionPrompt(userData: OnboardingData, project: Project): string {
-    const style = this.getResponseStyle(userData.skillLevel!);
+    const style = this.getResponseStyle(userData.skillLevel as SkillLevel);
 
     const basePrompt = `Suggest next tasks for project "${project.name}" (${project.status}, ${project.progress}% complete) for ${userData.name}, who has ${userData.skillLevel} experience.
 
 Current tasks: ${project.tasks.map(t => `${t.name} (${t.completed ? 'Done' : 'Pending'})`).join(', ')}`;
 
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return `${basePrompt}
 
 Suggest tasks that are:
@@ -264,7 +265,7 @@ Suggest tasks that are:
 
 Use encouraging language and explain any project management concepts mentioned.`;
 
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return `${basePrompt}
 
 Suggest tasks that:
@@ -276,7 +277,7 @@ Suggest tasks that:
 
 Provide educational context where helpful.`;
 
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return `${basePrompt}
 
 Suggest tasks that:
@@ -286,7 +287,7 @@ Suggest tasks that:
 - Consider project optimization
 - Build leadership capabilities`;
 
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return `${basePrompt}
 
 Suggest tasks that:
@@ -296,7 +297,7 @@ Suggest tasks that:
 - Include mentoring or team development
 - Address complex project challenges`;
 
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return `${basePrompt}
 
 Suggest tasks that:
@@ -317,20 +318,20 @@ Suggest practical, actionable tasks.`;
    * Get user-appropriate help text for different features
    */
   static getFeatureHelp(skillLevel: SkillLevel, feature: string): string {
-    const helpText: Record<string, Record<SkillLevel, string>> = {
+    const helpText: Record<string, Record<string, string>> = {
       timeline: {
-        [SkillLevel.NO_EXPERIENCE]: "The Timeline view shows when your projects and tasks are scheduled. Think of it like a calendar for your work - it helps you see what needs to be done when, and if anything might be running late.",
-        [SkillLevel.NOVICE]: "Timeline view displays project schedules and task dependencies. It's useful for spotting potential delays and understanding how tasks connect to each other.",
-        [SkillLevel.INTERMEDIATE]: "Timeline provides visual project scheduling with dependency mapping and critical path analysis.",
-        [SkillLevel.EXPERIENCED]: "Timeline offers portfolio scheduling overview with resource allocation visibility and bottleneck identification.",
-        [SkillLevel.EXPERT]: "Timeline delivers strategic portfolio visualization with capacity planning and organizational resource optimization insights."
+        'No Experience': "The Timeline view shows when your projects and tasks are scheduled. Think of it like a calendar for your work - it helps you see what needs to be done when, and if anything might be running late.",
+        'Novice': "Timeline view displays project schedules and task dependencies. It's useful for spotting potential delays and understanding how tasks connect to each other.",
+        'Intermediate': "Timeline provides visual project scheduling with dependency mapping and critical path analysis.",
+        'Experienced': "Timeline offers portfolio scheduling overview with resource allocation visibility and bottleneck identification.",
+        'Expert': "Timeline delivers strategic portfolio visualization with capacity planning and organizational resource optimization insights."
       },
       projectStatus: {
-        [SkillLevel.NO_EXPERIENCE]: "Project status tells you how your project is doing. 'On Track' means everything is going well, 'At Risk' means there might be problems, and you should pay attention to those projects.",
-        [SkillLevel.NOVICE]: "Project status indicators help you quickly identify which projects need attention and which are progressing well.",
-        [SkillLevel.INTERMEDIATE]: "Status indicators provide quick visual assessment of project health and risk levels across your portfolio.",
-        [SkillLevel.EXPERIENCED]: "Status tracking enables proactive risk management and resource reallocation decisions.",
-        [SkillLevel.EXPERT]: "Status indicators support strategic portfolio management and stakeholder communication."
+        'No Experience': "Project status tells you how your project is doing. 'On Track' means everything is going well, 'At Risk' means there might be problems, and you should pay attention to those projects.",
+        'Novice': "Project status indicators help you quickly identify which projects need attention and which are progressing well.",
+        'Intermediate': "Status indicators provide quick visual assessment of project health and risk levels across your portfolio.",
+        'Experienced': "Status tracking enables proactive risk management and resource reallocation decisions.",
+        'Expert': "Status indicators support strategic portfolio management and stakeholder communication."
       }
     };
 

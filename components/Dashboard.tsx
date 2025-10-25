@@ -1,6 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect, useCallback } from 'react';
 import type { OnboardingData, Project, TeamMember, Task } from '../types';
-import { ProjectStatus, Priority } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import Home from './Home';
 import ProjectList from './ProjectList';

@@ -1,8 +1,8 @@
 // lib/SmartNotificationEngine.ts
 // AI-powered notification system for proactive project monitoring
 
-import type { Project } from '../types';
-import { ProjectStatus, Priority } from '../types';
+import type { Project, ProjectStatus, Priority } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 
 export type NotificationSeverity = 'critical' | 'warning' | 'info';
 export type NotificationType = 
@@ -66,6 +66,7 @@ export class SmartNotificationEngine {
 
     this.projects.forEach(project => {
       if (project.status === PROJECT_STATUS_VALUES.Completed) return;
+      if (!project.dueDate) return;
 
       const dueDate = new Date(project.dueDate);
       dueDate.setHours(0, 0, 0, 0);
@@ -109,6 +110,7 @@ export class SmartNotificationEngine {
       }
 
       const overdueTasks = project.tasks.filter(task => {
+        if (!task.dueDate) return false;
         const taskDue = new Date(task.dueDate);
         taskDue.setHours(0, 0, 0, 0);
         return !task.completed && taskDue < today;
@@ -187,7 +189,7 @@ export class SmartNotificationEngine {
     
     this.projects.forEach(project => {
       const incompleteTasks = project.tasks.filter(t => !t.completed);
-      const overdueTasks = incompleteTasks.filter(t => new Date(t.dueDate) < today);
+      const overdueTasks = incompleteTasks.filter(t => t.dueDate && new Date(t.dueDate) < today);
       
       if (overdueTasks.length > 2 && incompleteTasks.length > overdueTasks.length) {
         this.addNotification({
@@ -214,13 +216,11 @@ export class SmartNotificationEngine {
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     this.projects.forEach(project => {
-      if (project.status === PROJECT_STATUS_VALUES.Completed || project.status === ProjectStatus.OnHold) return;
+      if (project.status === PROJECT_STATUS_VALUES.Completed || project.status === PROJECT_STATUS_VALUES.OnHold) return;
 
-      const recentActivity = project.journal?.some(entry => 
-        new Date(entry.date) > twoWeeksAgo
-      );
-
-      if (!project.startDate || !project.dueDate) return; // Skip if missing dates
+      // Skip if missing dates
+      if (!project.startDate || !project.dueDate) return;
+      
       const projectStart = new Date(project.startDate);
       const projectEnd = new Date(project.dueDate);
       const totalDuration = projectEnd.getTime() - projectStart.getTime();
@@ -228,12 +228,13 @@ export class SmartNotificationEngine {
       const expectedProgress = (elapsed / totalDuration) * 100;
       const progressGap = expectedProgress - project.progress;
 
-      if (!recentActivity && progressGap > 20) {
+      // Consider a project stalled if progress is significantly behind schedule
+      if (progressGap > 20) {
         this.addNotification({
           type: 'project_stalled',
           severity: 'warning',
-          title: `⚠️ ${project.name} may be stalled`,
-          message: `No recent activity. Progress is ${Math.round(progressGap)}% behind schedule.`,
+          title: `⚠️ ${project.name} may be behind schedule`,
+          message: `Progress is ${Math.round(progressGap)}% behind schedule.`,
           projectId: project.id,
           projectName: project.name,
           actionable: true,
@@ -309,10 +310,11 @@ export class SmartNotificationEngine {
 
       const criticalTasks = project.tasks.filter(task => 
         !task.completed && 
-        (task.priority === Priority.Critical || task.priority === PRIORITY_VALUES.High)
+        task.priority === PRIORITY_VALUES.High
       );
       
       criticalTasks.forEach(task => {
+        if (!task.dueDate) return;
         const dueDate = new Date(task.dueDate);
         const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
