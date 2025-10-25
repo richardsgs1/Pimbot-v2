@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { OnboardingData, Project, Task, Priority } from '../types';
-import { SkillLevel } from '../types';
+import type { OnboardingData, Project, Task, Priority, SkillLevel, TaskStatus } from '../types';
+import { SKILL_LEVEL_VALUES } from '../types';
 import SkillAwareAI from './SkillAwareAI';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -80,7 +80,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
     const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return [
           {
             name: "Review project goals",
@@ -105,7 +105,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return [
           {
             name: "Update project timeline",
@@ -130,7 +130,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return [
           {
             name: "Resource optimization review",
@@ -155,7 +155,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return [
           {
             name: "Strategic project alignment review",
@@ -180,7 +180,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return [
           {
             name: "Organizational capability assessment",
@@ -212,8 +212,6 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
 
   const getPriorityColor = (priority: Priority): string => {
     switch (priority) {
-      case "Critical":
-        return "bg-red-100 text-red-800 border-red-200";
       case "High":
         return "bg-orange-100 text-orange-800 border-orange-200";
       case "Medium":
@@ -230,6 +228,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
       const newTask: Omit<Task, 'id'> = {
         name: suggestion.name,
         completed: false,
+        status: 'To Do' as TaskStatus,
         priority: suggestion.priority,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
         startDate: new Date().toISOString().split('T')[0],
@@ -241,15 +240,15 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
 
   const getSkillLevelLabel = (): string => {
     switch (userData.skillLevel) {
-      case SkillLevel.NO_EXPERIENCE:
+      case SKILL_LEVEL_VALUES.NoExperience:
         return "🌱 Learning Tasks";
-      case SkillLevel.NOVICE:
+      case SKILL_LEVEL_VALUES.Novice:
         return "📚 Skill Building Tasks";
-      case SkillLevel.INTERMEDIATE:
+      case SKILL_LEVEL_VALUES.Intermediate:
         return "⚡ Growth Tasks";
-      case SkillLevel.EXPERIENCED:
+      case SKILL_LEVEL_VALUES.Experienced:
         return "🎯 Strategic Tasks";
-      case SkillLevel.EXPERT:
+      case SKILL_LEVEL_VALUES.Expert:
         return "🏆 Leadership Tasks";
       default:
         return "Suggested Tasks";
@@ -361,7 +360,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
       )}
 
       {/* Skill Level Context */}
-      {userData.skillLevel === SkillLevel.NO_EXPERIENCE && (
+      {userData.skillLevel === SKILL_LEVEL_VALUES.NoExperience && (
         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-blue-800 dark:text-blue-200 text-sm">
             <strong>Learning Focus:</strong> These tasks are designed to help you build fundamental project management skills. 

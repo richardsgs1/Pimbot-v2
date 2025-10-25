@@ -1,4 +1,20 @@
-import type { SubscriptionTier, UsageLimits } from '../types';
+// Define types locally since they're not in types.ts
+export type SubscriptionTier = 'trial' | 'starter' | 'pro' | 'team' | 'enterprise';
+
+export interface UsageLimits {
+  maxProjects: number;
+  maxTeamMembers: number;
+  maxStorage: number;
+  maxAiQueries: number;
+  allowedExports: ('pdf' | 'excel' | 'csv' | 'json')[];
+  features: {
+    advancedNotifications: boolean;
+    customBranding: boolean;
+    apiAccess: boolean;
+    sso: boolean;
+    whiteLabel: boolean;
+  };
+}
 
 // ============================================
 // PRICING TIERS

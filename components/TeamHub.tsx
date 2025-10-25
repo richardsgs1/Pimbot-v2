@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import type { Project, TeamMember, Task } from '../types';
-import { Priority } from '../types';
+import type { Project, TeamMember, Task, Priority } from '../types';
+import { PRIORITY_VALUES } from '../types';
 
 interface TeamHubProps {
   projects: Project[];
@@ -9,11 +9,10 @@ interface TeamHubProps {
   onMenuClick: () => void;
 }
 
-const priorityIcons: { [key in Priority]: React.ReactNode } = {
-    [PRIORITY_VALUES.High]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
-    [PRIORITY_VALUES.Medium]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
-    [PRIORITY_VALUES.Low]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
-    [Priority.None]: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>,
+const priorityIcons: Record<Priority, React.ReactNode> = {
+    'High': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
+    'Medium': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
+    'Low': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
 };
 
 type MemberWithWorkload = TeamMember & {
@@ -33,11 +32,16 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const getAvatarColor = (name: string): string => {
+        const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-teal-500', 'bg-cyan-500', 'bg-blue-500'];
+        const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[hash % colors.length];
+    };
+
     const totalTasks = member.tasks.length;
     const highPriorityPercent = totalTasks > 0 ? (member.priorityCounts.High / totalTasks) * 100 : 0;
     const mediumPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Medium / totalTasks) * 100 : 0;
     const lowPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Low / totalTasks) * 100 : 0;
-    const nonePriorityPercent = totalTasks > 0 ? (member.priorityCounts.None / totalTasks) * 100 : 0;
 
 
     const fetchSummary = useCallback(async () => {
@@ -80,7 +84,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
             <div className="p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <div className={`w-12 h-12 rounded-full ${member.avatarColor} flex items-center justify-center text-xl font-bold text-white mr-4`}>
+                        <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.name)} flex items-center justify-center text-xl font-bold text-white mr-4`}>
                             {member.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -110,7 +114,6 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
                             <div className="bg-red-500" style={{ width: `${highPriorityPercent}%` }} title={`High Priority: ${member.priorityCounts.High} tasks`}></div>
                             <div className="bg-yellow-500" style={{ width: `${mediumPriorityPercent}%` }} title={`Medium Priority: ${member.priorityCounts.Medium} tasks`}></div>
                             <div className="bg-blue-500" style={{ width: `${lowPriorityPercent}%` }} title={`Low Priority: ${member.priorityCounts.Low} tasks`}></div>
-                            <div className="bg-slate-500" style={{ width: `${nonePriorityPercent}%` }} title={`No Priority: ${member.priorityCounts.None} tasks`}></div>
                         </div>
                     </div>
                 )}
@@ -166,10 +169,10 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject, onMe
 
       const overdueCount = assignedTasks.filter(t => t.dueDate && new Date(t.dueDate) < today).length;
       
-      const priorityCounts = assignedTasks.reduce((acc, task) => {
+      const priorityCounts: Record<Priority, number> = assignedTasks.reduce((acc, task) => {
         acc[task.priority] = (acc[task.priority] || 0) + 1;
         return acc;
-      }, { [PRIORITY_VALUES.High]: 0, [PRIORITY_VALUES.Medium]: 0, [PRIORITY_VALUES.Low]: 0, [Priority.None]: 0 });
+      }, { 'High': 0, 'Medium': 0, 'Low': 0 } as Record<Priority, number>);
 
       return { ...member, tasks: assignedTasks, overdueCount, priorityCounts };
     });

@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import type { Project, TeamMember, JournalEntry, OnboardingData, Task } from '../types';
-import { Priority, ProjectStatus } from '../types';
+import type { Project, TeamMember, OnboardingData, Task, Priority, ProjectStatus } from '../types';
+import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types';
+
+// Define JournalEntry locally since it's not in types
+interface JournalEntry {
+  id: string;
+  date: string;
+  content: string;
+  author: string;
+  type: string;
+}
 
 interface ProjectDetailsProps {
   project: Project;
@@ -21,11 +30,17 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team' | 'journal'>('overview');
   const [newJournalEntry, setNewJournalEntry] = useState('');
+  const [journal, setJournal] = useState<JournalEntry[]>([]);
 
-  // Ensure journal exists to prevent undefined errors
+  const getAvatarColor = (name: string): string => {
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  // Ensure teamMembers exists to prevent undefined errors
   const safeProject = {
     ...project,
-    journal: project.journal || [],
     teamMembers: project.teamMembers || team || []
   };
 
@@ -40,14 +55,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
       type: 'update'
     };
 
-    const updatedProject = {
-      ...safeProject,
-      journal: [...safeProject.journal, entry]
-    };
-
-    if (onUpdateProject) {
-      onUpdateProject(updatedProject);
-    }
+    setJournal([...journal, entry]);
     setNewJournalEntry('');
   };
 
@@ -87,10 +95,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
-      case Priority.Critical:
-        return 'bg-red-100 text-red-800 border-red-200';
       case PRIORITY_VALUES.High:
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-red-100 text-red-800 border-red-200';
       case PRIORITY_VALUES.Medium:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case PRIORITY_VALUES.Low:
@@ -125,12 +131,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
           <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-2">Due Date</h3>
           <p className="text-lg font-semibold text-[var(--text-primary)]">
-            {new Date(safeProject.dueDate).toLocaleDateString()}
+            {safeProject.dueDate ? new Date(safeProject.dueDate).toLocaleDateString() : 'Not set'}
           </p>
         </div>
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
           <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-2">Team Size</h3>
-          <p className="text-lg font-semibold text-[var(--text-primary)]">{safeProject.teamSize}</p>
+          <p className="text-lg font-semibold text-[var(--text-primary)]">{safeProject.teamMembers.length}</p>
         </div>
       </div>
 
@@ -183,9 +189,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                     {task.name}
                   </h4>
                   <div className="flex items-center space-x-4 mt-1">
-                    <span className="text-sm text-[var(--text-tertiary)]">
-                      Due: {new Date(task.dueDate).toLocaleDateString()}
-                    </span>
+                    {task.dueDate && (
+                      <span className="text-sm text-[var(--text-tertiary)]">
+                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                      </span>
+                    )}
                     {task.startDate && (
                       <span className="text-sm text-[var(--text-tertiary)]">
                         Started: {new Date(task.startDate).toLocaleDateString()}
@@ -217,7 +225,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
               <div className="flex items-center">
                 <div 
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold mr-4"
-                  style={{ backgroundColor: member.avatarColor || '#6B7280' }}
+                  style={{ backgroundColor: getAvatarColor(member.name) }}
                 >
                   {member.name.charAt(0).toUpperCase()}
                 </div>
@@ -263,10 +271,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 
       {/* Journal Entries */}
       <div className="space-y-4">
-        {safeProject.journal && safeProject.journal.length > 0 ? (
-          safeProject.journal
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((entry) => (
+        {journal && journal.length > 0 ? (
+          journal
+            .sort((a: JournalEntry, b: JournalEntry) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .map((entry: JournalEntry) => (
               <div key={entry.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-[var(--text-primary)]">{entry.author}</span>

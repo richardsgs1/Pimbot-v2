@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { Project, OnboardingData } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, OnboardingData, ProjectStatus } from '../types';
+import { PROJECT_STATUS_VALUES } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface RiskReportProps {
@@ -40,21 +40,21 @@ const RiskReport: React.FC<RiskReportProps> = ({ projects, userData, onClose }) 
         }
 
         // Timeline risk
-        const daysUntilDue = Math.ceil(
+        const daysUntilDue = project.dueDate ? Math.ceil(
           (new Date(project.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-        );
+        ) : 999;
         if (daysUntilDue < 0) {
           riskScore += 40;
           factors.push(`Overdue by ${Math.abs(daysUntilDue)} days`);
           recommendations.push('Reassess timeline and scope immediately');
-        } else if (daysUntilDue < 7) {
+        } else if (daysUntilDue < 7 && daysUntilDue >= 0) {
           riskScore += 20;
           factors.push(`Only ${daysUntilDue} days until deadline`);
           recommendations.push('Focus on critical path items');
         }
 
         // Progress risk
-        const expectedProgress = project.startDate
+        const expectedProgress = (project.startDate && project.dueDate)
           ? calculateExpectedProgress(project.startDate, project.dueDate)
           : 50;
         const progressGap = expectedProgress - project.progress;
@@ -80,7 +80,7 @@ const RiskReport: React.FC<RiskReportProps> = ({ projects, userData, onClose }) 
 
         // Task completion risk
         const overdueTasks = project.tasks.filter(
-          t => !t.completed && new Date(t.dueDate) < new Date()
+          t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()
         );
         if (overdueTasks.length > 0) {
           riskScore += overdueTasks.length * 5;
@@ -89,7 +89,7 @@ const RiskReport: React.FC<RiskReportProps> = ({ projects, userData, onClose }) 
         }
 
         // Team size risk
-        if (project.teamSize < 2 && project.tasks.length > 10) {
+        if ((project.teamMembers?.length || 0) < 2 && project.tasks.length > 10) {
           riskScore += 10;
           factors.push('Small team for task volume');
           recommendations.push('Consider adding team members or reducing scope');
@@ -166,39 +166,42 @@ Keep response under 200 words, actionable and specific.`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'generate',
-          prompt: prompt,
-          userData: userData,
-          projects: projects
-        }),
+          prompt,
+          systemPrompt: 'You are a project management expert providing strategic risk analysis.',
+          maxTokens: 300
+        })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setAiInsights(data.content || 'Unable to generate insights at this time.');
-      }
+      if (!response.ok) throw new Error('Failed to generate insights');
+
+      const data = await response.json();
+      setAiInsights(data.text || data.content);
     } catch (error) {
       console.error('Error generating AI insights:', error);
-      setAiInsights('Unable to generate insights. Please try again.');
+      setAiInsights('Failed to generate insights. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[var(--bg-primary)] rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-[var(--border-primary)] flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)]">Risk Assessment Report</h2>
-            <p className="text-sm text-[var(--text-tertiary)] mt-1">
-              Comprehensive analysis of project risks and mitigation strategies
-            </p>
+        <div className="p-6 border-b border-[var(--border-primary)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-[var(--accent-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Risk Analysis Report
+            </h2>
           </div>
+          <p className="text-sm text-[var(--text-tertiary)] mt-2">Comprehensive risk assessment across all active projects</p>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
+            className="absolute top-6 right-6 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+            aria-label="Close"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -329,12 +332,12 @@ Keep response under 200 words, actionable and specific.`;
                       </div>
                       <div className="bg-[var(--bg-secondary)] rounded p-2 text-center">
                         <div className="text-lg font-bold text-[var(--text-primary)]">
-                          {Math.ceil((new Date(risk.project.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d
+                          {risk.project.dueDate ? Math.ceil((new Date(risk.project.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 'N/A'}d
                         </div>
                         <div className="text-xs text-[var(--text-tertiary)]">Until Due</div>
                       </div>
                       <div className="bg-[var(--bg-secondary)] rounded p-2 text-center">
-                        <div className="text-lg font-bold text-[var(--text-primary)]">{risk.project.teamSize}</div>
+                        <div className="text-lg font-bold text-[var(--text-primary)]">{risk.project.teamMembers?.length || 0}</div>
                         <div className="text-xs text-[var(--text-tertiary)]">Team Size</div>
                       </div>
                     </div>

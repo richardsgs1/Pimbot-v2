@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import type { Project, Task } from '../types';
-import { Priority } from '../types';
+import type { Project, Task, Priority } from '../types';
+import { PRIORITY_VALUES } from '../types';
 
 interface TimelineViewProps {
   projects: Project[];
@@ -25,6 +25,9 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId
 
     projectsToShow.forEach(project => {
       project.tasks.forEach(task => {
+        // Skip tasks without due dates
+        if (!task.dueDate) return;
+        
         // Calculate start date and duration if not provided
         const dueDate = new Date(task.dueDate);
         const duration = task.duration || 7; // Default 7 days if not specified

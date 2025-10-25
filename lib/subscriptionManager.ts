@@ -1,6 +1,22 @@
-import type { SubscriptionTier, UserSubscription } from '../types';
+import type { SubscriptionTier } from './pricing';
 import { getTierLimits } from './pricing';
 import { getUserSubscription, getTodayUsage } from './database';
+
+// Define UserSubscription locally (matches database.ts definition)
+interface UserSubscription {
+  id: string;
+  userId: string;
+  tier: SubscriptionTier;
+  status: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEndsAt?: Date;
+  cancelAtPeriodEnd: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // ============================================
 // SUBSCRIPTION BUSINESS LOGIC
@@ -25,7 +41,7 @@ export const canCreateProject = async (
     return { allowed: false, reason: 'No active subscription' };
   }
 
-  const limits = getTierLimits(subscription.tier);
+  const limits = getTierLimits(subscription.tier as SubscriptionTier);
   
   if (limits.maxProjects === -1) {
     return { allowed: true };
@@ -64,7 +80,7 @@ export const canMakeAIQuery = async (userId: string): Promise<SubscriptionCheck>
     return { allowed: false, reason: 'Subscription not active' };
   }
 
-  const limits = getTierLimits(subscription.tier);
+  const limits = getTierLimits(subscription.tier as SubscriptionTier);
   
   if (limits.maxAiQueries === -1) {
     return { allowed: true };
@@ -99,7 +115,7 @@ export const canExport = async (
     return { allowed: false, reason: 'No active subscription' };
   }
 
-  const limits = getTierLimits(subscription.tier);
+  const limits = getTierLimits(subscription.tier as SubscriptionTier);
   
   if (!limits.allowedExports.includes(format)) {
     return {

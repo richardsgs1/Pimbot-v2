@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { Project } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, ProjectStatus } from '../types';
+import { PROJECT_STATUS_VALUES } from '../types';
 
 interface TimelineGeneratorProps {
   projects: Project[];
@@ -14,13 +14,18 @@ const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose
 
   // Calculate timeline data
   const getTimelineData = () => {
-    const activeProjects = projects.filter(p => selectedProjects.includes(p.id));
+    const activeProjects = projects.filter(p => selectedProjects.includes(p.id) && p.dueDate);
     
     // Get date range
     const allDates = activeProjects.flatMap(p => [
-      new Date(p.startDate || p.dueDate),
-      new Date(p.dueDate)
+      new Date(p.startDate || p.dueDate!),
+      new Date(p.dueDate!)
     ]);
+    
+    if (allDates.length === 0) {
+      return { activeProjects: [], minDate: new Date(), maxDate: new Date() };
+    }
+    
     const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
     
@@ -121,8 +126,8 @@ const TimelineGenerator: React.FC<TimelineGeneratorProps> = ({ projects, onClose
               {/* Project Bars */}
               <div className="space-y-4">
                 {activeProjects.map(project => {
-                  const startDate = new Date(project.startDate || project.dueDate);
-                  const endDate = new Date(project.dueDate);
+                  const startDate = new Date(project.startDate || project.dueDate!);
+                  const endDate = new Date(project.dueDate!);
                   const leftPos = calculatePosition(startDate);
                   const width = calculateWidth(startDate, endDate);
                   const today = new Date();

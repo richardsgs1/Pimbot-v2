@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Project } from '../types';
-import { ProjectStatus, Priority } from '../types';
+import type { Project, ProjectStatus, Priority } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 
 export interface Notification {
@@ -38,7 +38,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     projects.forEach(project => {
       // Task due date reminders
       project.tasks.forEach(task => {
-        if (!task.completed) {
+        if (!task.completed && task.dueDate) {
           const dueDate = new Date(task.dueDate);
           const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -51,7 +51,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
               message: `"${task.name}" in ${project.name} is ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''} overdue`,
               timestamp: dueDate,
               read: false,
-              priority: task.priority === PRIORITY_VALUES.High || task.priority === Priority.Critical ? 'critical' : 'high',
+              priority: task.priority === PRIORITY_VALUES.High ? 'critical' : 'high',
               projectId: project.id
             });
           }
@@ -69,7 +69,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             });
           }
           // Due within 7 days (for high priority tasks)
-          else if (daysUntilDue <= 7 && (task.priority === PRIORITY_VALUES.High || task.priority === Priority.Critical)) {
+          else if (daysUntilDue <= 7 && (task.priority === PRIORITY_VALUES.High)) {
             newNotifications.push({
               id: `upcoming-${task.id}`,
               type: 'task-due',
@@ -150,6 +150,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       }
 
       // Project deadline approaching
+      if (!project.dueDate) return;
       const projectDueDate = new Date(project.dueDate);
       const daysUntilProjectDue = Math.ceil((projectDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       

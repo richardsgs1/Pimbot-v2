@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Project, TeamMember } from '../types';
-import { ProjectStatus } from '../types';
+import type { Project, TeamMember, ProjectStatus } from '../types';
+import { PROJECT_STATUS_VALUES } from '../types';
 
 interface TeamCapacityAnalysisProps {
   projects: Project[];
@@ -36,7 +36,7 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
           }
 
           const workload = memberMap.get(member.id)!;
-          workload.projects.push({ project, role: member.role });
+          workload.projects.push({ project, role: member.role || 'Member' });
 
           // Count tasks (approximate - could be refined with actual task assignments)
           const tasksPerMember = Math.ceil(project.tasks.length / (project.teamMembers?.length || 1));
@@ -45,7 +45,7 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
           
           // Count overdue tasks
           const overdueTasks = project.tasks.filter(t => 
-            !t.completed && new Date(t.dueDate) < new Date()
+            !t.completed && t.dueDate && new Date(t.dueDate) < new Date()
           );
           workload.overdueTasks += Math.ceil(overdueTasks.length / (project.teamMembers?.length || 1));
 
@@ -65,6 +65,12 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
   };
 
   const teamWorkloads = analyzeTeamCapacity();
+
+  const getAvatarColor = (name: string): string => {
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
 
   const getWorkloadLevel = (score: number): { label: string; color: string; bgColor: string } => {
     if (score >= 80) return { 
@@ -144,7 +150,7 @@ const TeamCapacityAnalysis: React.FC<TeamCapacityAnalysisProps> = ({ projects, o
                         <div className="flex items-center gap-3">
                           <div
                             className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                            style={{ backgroundColor: workload.member.avatarColor }}
+                            style={{ backgroundColor: getAvatarColor(workload.member.name) }}
                           >
                             {workload.member.name.charAt(0).toUpperCase()}
                           </div>

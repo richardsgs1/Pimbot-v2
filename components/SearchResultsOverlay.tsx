@@ -1,6 +1,24 @@
-
 import React from 'react';
-import type { SearchResults, SearchResultItem } from '../types';
+import type { Project, Task } from '../types';
+
+// Define the search result types locally since they're not in the types module
+interface JournalEntry {
+  id: string;
+  content: string;
+  timestamp: string;
+  projectId: string;
+}
+export interface SearchResultItem {
+  type: 'project' | 'task' | 'journal';
+  data: Project | Task | JournalEntry;
+  project: Project;
+}
+
+export interface SearchResults {
+  projects: SearchResultItem[];
+  tasks: SearchResultItem[];
+  journal: SearchResultItem[];
+}
 
 interface SearchResultsOverlayProps {
   results: SearchResults;
@@ -15,21 +33,21 @@ const ResultItem: React.FC<{ item: SearchResultItem; onClick: () => void }> = ({
       case 'project':
         return (
           <div>
-            <p className="font-semibold text-white">{item.data.name}</p>
-            <p className="text-xs text-slate-400 truncate">{item.data.description}</p>
+            <p className="font-semibold text-white">{(item.data as Project).name}</p>
+            <p className="text-xs text-slate-400 truncate">{(item.data as Project).description}</p>
           </div>
         );
       case 'task':
         return (
           <div>
-            <p className="font-semibold text-white">{item.data.name}</p>
+            <p className="font-semibold text-white">{(item.data as Task).name}</p>
             <p className="text-xs text-slate-400">Task in: {item.project.name}</p>
           </div>
         );
       case 'journal':
         return (
           <div>
-            <p className="font-semibold text-white truncate">{item.data.content}</p>
+            <p className="font-semibold text-white truncate">{(item.data as JournalEntry).content}</p>
             <p className="text-xs text-slate-400">Journal entry in: {item.project.name}</p>
           </div>
         );
@@ -71,7 +89,7 @@ const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({ results, on
             {results.projects.length > 0 && (
               <div className="mb-2">
                 <h3 className="text-xs font-bold uppercase text-slate-400 px-3 py-1">Projects</h3>
-                {results.projects.map((item) => (
+                {results.projects.map((item: SearchResultItem) => (
                   <ResultItem key={`proj-${item.data.id}`} item={item} onClick={() => onResultClick(item)} />
                 ))}
               </div>
@@ -79,7 +97,7 @@ const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({ results, on
             {results.tasks.length > 0 && (
               <div className="mb-2">
                 <h3 className="text-xs font-bold uppercase text-slate-400 px-3 py-1">Tasks</h3>
-                {results.tasks.map((item) => (
+                {results.tasks.map((item: SearchResultItem) => (
                   <ResultItem key={`task-${item.data.id}`} item={item} onClick={() => onResultClick(item)} />
                 ))}
               </div>
@@ -87,7 +105,7 @@ const SearchResultsOverlay: React.FC<SearchResultsOverlayProps> = ({ results, on
             {results.journal.length > 0 && (
               <div>
                 <h3 className="text-xs font-bold uppercase text-slate-400 px-3 py-1">Journal</h3>
-                {results.journal.map((item) => (
+                {results.journal.map((item: SearchResultItem) => (
                   <ResultItem key={`jour-${item.data.id}`} item={item} onClick={() => onResultClick(item)} />
                 ))}
               </div>

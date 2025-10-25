@@ -1,6 +1,31 @@
 import { supabase } from './supabase'
 import type { OnboardingData, Project } from '../types'
 
+// Define subscription and usage types locally since they're not in types.ts
+interface UserSubscription {
+  id: string;
+  userId: string;
+  tier: string;
+  status: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEndsAt?: Date;
+  cancelAtPeriodEnd: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UsageTracking {
+  id: string;
+  userId: string;
+  date: string;
+  aiQueriesCount: number;
+  storageUsedMb: number;
+  createdAt: Date;
+}
+
 export const saveUserData = async (userData: Partial<OnboardingData> & { id?: string }): Promise<string> => {
   try {
     if (!userData.id) {
@@ -110,12 +135,10 @@ export const saveProject = async (userId: string, project: Project): Promise<str
       due_date: project.dueDate,
       priority: project.priority,
       manager: project.manager,
-      team_size: project.teamSize,
       budget: project.budget,
       spent: project.spent,
       tasks: project.tasks || [],
       team_members: project.teamMembers || [],
-      journal: project.journal || [],
       updated_at: new Date().toISOString()
     };
 
@@ -172,12 +195,10 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       dueDate: p.due_date,
       priority: p.priority,
       manager: p.manager,
-      teamSize: p.team_size,
       budget: p.budget,
       spent: p.spent,
       tasks: p.tasks || [],
-      teamMembers: p.team_members || [],
-      journal: p.journal || []
+      teamMembers: p.team_members || []
     }));
   } catch (error) {
     console.error('Failed to load projects:', error);
@@ -204,7 +225,7 @@ export const deleteProject = async (userId: string, projectId: string): Promise<
 // SUBSCRIPTION DATABASE FUNCTIONS
 // ============================================
 
-export const getUserSubscription = async (userId: string): Promise<import('../types').UserSubscription | null> => {
+export const getUserSubscription = async (userId: string): Promise<UserSubscription | null> => {
   try {
     const { data, error } = await supabase
       .from('user_subscriptions')
@@ -239,7 +260,7 @@ export const getUserSubscription = async (userId: string): Promise<import('../ty
 
 export const updateSubscription = async (
   userId: string, 
-  updates: Partial<import('../types').UserSubscription>
+  updates: Partial<UserSubscription>
 ): Promise<void> => {
   try {
     const updateData: any = {};
@@ -267,7 +288,7 @@ export const updateSubscription = async (
   }
 };
 
-export const getTodayUsage = async (userId: string): Promise<import('../types').UsageTracking | null> => {
+export const getTodayUsage = async (userId: string): Promise<UsageTracking | null> => {
   try {
     const today = new Date().toISOString().split('T')[0];
     
