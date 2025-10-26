@@ -17,7 +17,13 @@ import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
-type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing';
+// 🎯 CALENDAR IMPORTS - NEW!
+import CalendarView from './CalendarView';
+import TaskDetailModal from './TaskDetailModal';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '../css/calendar.css'; // Make sure you create css/ folder and put calendar.css there!
+
+type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -48,6 +54,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   
+  // 🎯 CALENDAR STATE - NEW!
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   // ADD THESE TOAST HELPER FUNCTIONS HERE:
   const addToast = (toast: Omit<Toast, 'id'>) => {
@@ -109,6 +118,58 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     if (selectedProject?.id === projectId) {
       setSelectedProject({ ...selectedProject, ...updates });
     }
+  };
+
+  // 🎯 CALENDAR HANDLERS - NEW!
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setShowTaskModal(true);
+  };
+
+  const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+    const updatedProjects = projects.map(project => ({
+      ...project,
+      tasks: project.tasks.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    }));
+    setProjects(updatedProjects);
+    await saveProjectsToDb(updatedProjects);
+  };
+
+  const handleTaskComplete = async (taskId: string, projectId: string, completed: boolean) => {
+    await handleTaskUpdate(taskId, { completed });
+    setShowTaskModal(false);
+    addToast({
+      type: 'success',
+      title: 'Success',
+      message: completed ? 'Task marked as complete! 🎉' : 'Task marked as incomplete'
+    });
+  };
+
+  const handleTaskDelete = async (taskId: string, projectId: string) => {
+    const updatedProjects = projects.map(project => ({
+      ...project,
+      tasks: project.tasks.filter(task => task.id !== taskId)
+    }));
+    setProjects(updatedProjects);
+    await saveProjectsToDb(updatedProjects);
+    setShowTaskModal(false);
+    addToast({
+      type: 'info',
+      title: 'Deleted',
+      message: 'Task deleted'
+    });
+  };
+
+  const handleDateSelect = (date: Date) => {
+    // Navigate to project management to create new task with pre-filled date
+    setCurrentView('projectManagement');
+    addToast({
+      type: 'info',
+      title: 'Create Task',
+      message: `Create a new task for ${date.toLocaleDateString()}`
+    });
   };
 
   // Generate smart notifications
@@ -185,7 +246,6 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
   };
 
   // Handle browser back/forward buttons
-  // Handle browser back/forward buttons
 useEffect(() => {
   const handlePopState = (event: PopStateEvent) => {
     if (event.state?.view) {
@@ -243,6 +303,9 @@ useEffect(() => {
         return { title: 'Project Management', subtitle: 'Manage projects and tasks with Kanban board' };
       case 'pricing':
         return { title: 'Pricing & Plans', subtitle: 'Choose the right plan for you' };
+      // 🎯 CALENDAR HEADER - NEW!
+      case 'calendar':
+        return { title: 'Calendar', subtitle: 'View all tasks and project milestones' };
       default:  
         return { title: 'Dashboard', subtitle: 'PiMbOt AI' };
     }
@@ -363,31 +426,42 @@ useEffect(() => {
           />
         );
 
+      // 🎯 CALENDAR VIEW - NEW!
+      case 'calendar':
+        return (
+          <CalendarView
+            projects={projects}
+            onTaskClick={handleTaskClick}
+            onDateSelect={handleDateSelect}
+          />
+        );
+
       case 'account':
         return (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center mb-4">
               <button
                 onClick={() => setCurrentView('home')}
-                className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                className="mr-4 p-2 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
+                title="Back to Home"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Account Settings</h2>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">Account Settings</h2>
             </div>
 
             {/* Profile Section */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Profile</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Profile Information</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Name</label>
                   {isEditingName ? (
                     <div className="flex gap-2">
                       <input 
-                        type="text" 
+                        type="text"
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
@@ -399,7 +473,7 @@ useEffect(() => {
                             
                             const updatedUserData = { 
                               ...localUserData, 
-                              name: editedName
+                              name: editedName 
                             };
                             
                             setLocalUserData(updatedUserData);
@@ -417,7 +491,7 @@ useEffect(() => {
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
                         Save
-                      </button>                 
+                      </button>
                       <button 
                         onClick={() => {
                           setEditedName(localUserData.name);
@@ -430,36 +504,29 @@ useEffect(() => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <input 
-                        type="text" 
-                        value={localUserData.name}
-                        className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                        readOnly
-                      />
+                      <p className="text-[var(--text-primary)] p-3">{localUserData.name}</p>
                       <button 
                         onClick={() => setIsEditingName(true)}
-                        className="ml-2 px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
+                        className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
                       >
                         Edit
                       </button>
                     </div>
                   )}
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Experience Level</label>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Skill Level</label>
                   {isEditingSkill ? (
                     <div className="flex gap-2">
                       <select 
-                        value={editedSkillLevel || ''}
+                        value={editedSkillLevel || 'beginner'}
                         onChange={(e) => setEditedSkillLevel(e.target.value as any)}
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                       >
-                        <option value="No Experience">No Experience</option>
-                        <option value="Novice">Novice</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Experienced">Experienced</option>
-                        <option value="Expert">Expert</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
                       </select>
                       <button 
                         onClick={async () => {
@@ -468,7 +535,7 @@ useEffect(() => {
                             
                             const updatedUserData = { 
                               ...localUserData, 
-                              skillLevel: editedSkillLevel
+                              skillLevel: editedSkillLevel 
                             };
                             
                             setLocalUserData(updatedUserData);
@@ -499,7 +566,7 @@ useEffect(() => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <p className="text-[var(--text-primary)] p-3">{localUserData.skillLevel}</p>
+                      <p className="text-[var(--text-primary)] p-3 capitalize">{localUserData.skillLevel}</p>
                       <button 
                         onClick={() => setIsEditingSkill(true)}
                         className="px-3 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-secondary)] transition-colors"
@@ -515,11 +582,11 @@ useEffect(() => {
                   {isEditingEmail ? (
                     <div className="flex gap-2">
                       <input 
-                        type="email" 
+                        type="email"
                         value={editedEmail}
                         onChange={(e) => setEditedEmail(e.target.value)}
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
-                        placeholder="Enter your email"
+                        placeholder="your.email@example.com"
                       />
                       <button 
                         onClick={async () => {
@@ -777,6 +844,26 @@ useEffect(() => {
               {!sidebarCollapsed && "Project Management"}
             </button>
           </li>
+          
+          {/* 🎯 CALENDAR BUTTON - NEW! */}
+          <li>
+            <button 
+              onClick={() => handleNavClick('calendar')} 
+              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+                currentView === 'calendar' 
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                  : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+              }`}
+            >
+              <SidebarIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </SidebarIcon>
+              {!sidebarCollapsed && "Calendar"}
+            </button>
+          </li>
+          
           <li>
             <button 
               onClick={() => handleNavClick('chat')} 
@@ -878,7 +965,7 @@ useEffect(() => {
             {/* ADD EXPORT BUTTON AND NOTIFICATION CENTER */}
             <div className="flex items-center gap-3">
               {/* Only show Export button on screens with project data */}
-              {(['home', 'projectList', 'projectDetails', 'projectManagement', 'timeline'].includes(currentView)) && (
+              {(['home', 'projectList', 'projectDetails', 'projectManagement', 'timeline', 'calendar'].includes(currentView)) && (
                 <button
                   onClick={() => setShowExportCenter(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded-lg transition-colors"
@@ -915,6 +1002,21 @@ useEffect(() => {
           onClose={() => setShowExportCenter(false)}
         />
       )}
+
+      {/* 🎯 TASK DETAIL MODAL - NEW! */}
+      {(() => {
+        const taskProject = selectedTask ? projects.find(p => p.tasks.some(t => t.id === selectedTask.id)) || null : null;
+        return (
+          <TaskDetailModal
+            task={selectedTask}
+            project={taskProject}
+            isOpen={showTaskModal}
+            onClose={() => setShowTaskModal(false)}
+            onToggleComplete={handleTaskComplete}
+            onDelete={handleTaskDelete}
+          />
+        );
+      })()}
 
       {/* ADD TOAST NOTIFICATIONS HERE */}
       <ToastNotification toasts={toasts} onDismiss={removeToast} />
