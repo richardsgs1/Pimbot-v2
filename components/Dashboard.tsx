@@ -172,6 +172,31 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     });
   };
 
+  // 🎯 NEW: Handle task rescheduling from drag-and-drop
+  const handleTaskReschedule = async (taskId: string, newDate: Date, projectId: string) => {
+    const updatedProjects = projects.map(project => {
+      if (project.id !== projectId) return project;
+      
+      return {
+        ...project,
+        tasks: project.tasks.map(task =>
+          task.id === taskId
+            ? { ...task, dueDate: newDate.toISOString() }
+            : task
+        )
+      };
+    });
+    
+    setProjects(updatedProjects);
+    await saveProjectsToDb(updatedProjects);
+    
+    addToast({
+      type: 'success',
+      title: 'Rescheduled',
+      message: `Task moved to ${newDate.toLocaleDateString()}`
+    });
+  };
+
   // Generate smart notifications
   const generateSmartNotifications = useCallback(() => {
     const engine = new SmartNotificationEngine(projects);
@@ -433,6 +458,7 @@ useEffect(() => {
             projects={projects}
             onTaskClick={handleTaskClick}
             onDateSelect={handleDateSelect}
+            onTaskReschedule={handleTaskReschedule}
           />
         );
 
