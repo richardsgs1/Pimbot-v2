@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { OnboardingData, Project, ChatMessage, Task, SkillLevel, ProjectStatus, Priority, TaskStatus } from '../types';
-import { SKILL_LEVEL_VALUES, PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
+import type { OnboardingData, Project, Message, Task, ProjectStatus, Priority, TaskStatus } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import TimelineGenerator from './TimelineGenerator';
 import TeamCapacityAnalysis from './TeamCapacityAnalysis';
@@ -9,6 +9,9 @@ import { IntentDetector } from '@/lib/IntentDetector';
 import IntentActionForms from './IntentActionForms';
 import { TaskMetadataExtractor } from '@/lib/TaskMetadataExtractor';
 import type { ExtractedTaskData } from '@/lib/TaskMetadataExtractor';
+
+// Local SkillLevel type definition (since it's not exported from types)
+type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
 
 interface ChatProps {
   userData: OnboardingData;
@@ -41,7 +44,7 @@ const Chat: React.FC<ChatProps> = ({
   onTaskCreate,
   onProjectUpdate 
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentResponse, setCurrentResponse] = useState('');
@@ -160,10 +163,9 @@ const Chat: React.FC<ChatProps> = ({
   useEffect(() => {
     const welcomeMessage = getWelcomeMessage();
     setMessages([{
-      id: '1',
       role: 'assistant',
       content: welcomeMessage,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     }]);
   }, [userData.skillLevel]);
 
@@ -182,16 +184,18 @@ const Chat: React.FC<ChatProps> = ({
       contextInsights.overdueTasks > 0 ? ` and ${contextInsights.overdueTasks} overdue task${contextInsights.overdueTasks !== 1 ? 's' : ''}` : ''
     }.`;
 
-    switch (userData.skillLevel) {
-      case SKILL_LEVEL_VALUES.NoExperience:
-        return `Hi ${userData.name}! 👋 I'm your AI assistant. ${insights}\n\nI can help you:\n- Understand project management concepts\n- Create and organize tasks\n- Review project health\n- Learn best practices\n\nTry clicking one of the quick action buttons below, or just ask me anything!`;
-      
-      case SKILL_LEVEL_VALUES.Novice:
-        return `Hello ${userData.name}! ${insights}\n\nI can help you create tasks, review risks, generate reports, and provide PM guidance. What would you like to work on?`;
-      
-      default:
-        return `Hi ${userData.name}! ${insights}\n\nReady to assist with strategic planning, risk management, and project optimization. What can I help with today?`;
+    const skillLevel = userData.skillLevel as string;
+    
+    // Use simple string comparison instead of SKILL_LEVEL_VALUES
+    if (skillLevel === 'Beginner' || skillLevel === 'No Experience') {
+      return `Hi ${userData.name}! 👋 I'm your AI assistant. ${insights}\n\nI can help you:\n- Understand project management concepts\n- Create and organize tasks\n- Review project health\n- Learn best practices\n\nTry clicking one of the quick action buttons below, or just ask me anything!`;
     }
+    
+    if (skillLevel === 'Novice' || skillLevel === 'Intermediate') {
+      return `Hello ${userData.name}! ${insights}\n\nI can help you create tasks, review risks, generate reports, and provide PM guidance. What would you like to work on?`;
+    }
+    
+    return `Hi ${userData.name}! ${insights}\n\nReady to assist with strategic planning, risk management, and project optimization. What can I help with today?`;
   };
 
   const buildContextPrompt = (userMessage: string): string => {
@@ -278,11 +282,10 @@ Provide helpful, context-aware advice based on their current portfolio status an
       return;
     }
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const userMessage: Message = {
       role: 'user',
       content: messageToSend,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -310,21 +313,19 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
       const data = await response.json();
       
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+      const assistantMessage: Message = {
         role: 'assistant',
         content: data.content || data.briefing || 'Sorry, I couldn\'t generate a response.',
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+      const errorMessage: Message = {
         role: 'assistant',
         content: 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.',
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -339,21 +340,23 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const newTask: Omit<Task, 'id'> = {
       name: taskForm.name,
       completed: false,
-      status: 'To Do' as TaskStatus,
+      status: TaskStatusEnum.ToDo,
       priority: taskForm.priority,
       dueDate: taskForm.dueDate,
       startDate: new Date().toISOString().split('T')[0],
-      duration: 1,
-      assigneeId: taskForm.assigneeId
+      assignees: taskForm.assigneeId ? [taskForm.assigneeId] : [],
+      description: '',
+      attachments: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     onTaskCreate(taskForm.projectId, newTask);
     
-    const confirmMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const confirmMessage: Message = {
       role: 'assistant',
       content: `✅ Task "${taskForm.name}" created successfully in project "${projects.find(p => p.id === taskForm.projectId)?.name}"!`,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, confirmMessage]);
 
@@ -388,25 +391,27 @@ Provide helpful, context-aware advice based on their current portfolio status an
     }
   }
 
-    const newTask = {
+    const newTask: Omit<Task, 'id'> = {
     name: nlTaskData.taskName,
     completed: false,
-    status: 'To Do' as TaskStatus,
+    status: TaskStatusEnum.ToDo,
     priority: nlTaskData.priority,
     dueDate: nlTaskData.dueDate || new Date().toISOString().split('T')[0],
     startDate: new Date().toISOString().split('T')[0],
-    duration: 1,
-    assigneeId: nlTaskData.assignee ?? undefined
+    assignees: nlTaskData.assignee ? [nlTaskData.assignee] : [],
+    description: '',
+    attachments: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 
   onTaskCreate(targetProjectId, newTask);
   
   // Add confirmation message
-  const confirmMessage: ChatMessage = {
-    id: Date.now().toString(),
+  const confirmMessage: Message = {
     role: 'assistant',
     content: `✅ Task "${nlTaskData.taskName}" created successfully!\n\n${TaskMetadataExtractor.generatePreview(nlTaskData)}`,
-    timestamp: new Date()
+    timestamp: new Date().toISOString()
   };
   setMessages(prev => [...prev, confirmMessage]);
 
@@ -432,11 +437,10 @@ Provide helpful, context-aware advice based on their current portfolio status an
   };
 
   const handleTaskAssign = (taskName: string, assignee: string, projectId?: string) => {
-    const assistantMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const assistantMessage: Message = {
       role: 'assistant',
       content: `I've noted that "${taskName}" should be assigned to ${assignee}${projectId ? ` in project ${projects.find(p => p.id === projectId)?.name}` : ''}.`,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, assistantMessage]);
     setShowAssignForm(false);
@@ -491,8 +495,8 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-4 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          {messages.map((message, index) => (
+            <div key={`${message.timestamp}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-xs lg:max-w-md xl:max-w-lg px-4 py-2 rounded-lg ${
                 message.role === 'user'
                   ? 'bg-[var(--accent-primary)] text-white'

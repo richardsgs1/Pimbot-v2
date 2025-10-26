@@ -260,15 +260,19 @@ export class SmartNotificationEngine {
         memberWorkload.set(member.name, current);
       });
 
+      // FIXED: Use assignees array instead of assigneeId
       project.tasks.forEach(task => {
-        if (task.completed || !task.assigneeId) return;
+        if (task.completed || !task.assignees || task.assignees.length === 0) return;
         
-        const assignee = project.teamMembers?.find(m => m.id === task.assigneeId);
-        if (!assignee) return;
+        // Loop through all assignees for this task
+        task.assignees.forEach(assigneeId => {
+          const assignee = project.teamMembers?.find(m => m.id === assigneeId);
+          if (!assignee) return;
 
-        const current = memberWorkload.get(assignee.name) || { projects: [], tasks: 0 };
-        current.tasks++;
-        memberWorkload.set(assignee.name, current);
+          const current = memberWorkload.get(assignee.name) || { projects: [], tasks: 0 };
+          current.tasks++;
+          memberWorkload.set(assignee.name, current);
+        });
       });
     });
 

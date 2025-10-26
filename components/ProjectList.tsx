@@ -43,7 +43,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
   
   switch (projectFilter) {
     case 'on-track':
-      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress);
+      return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.OnTrack);
     case 'at-risk':
       return activeProjects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk);
     case 'off-track':
@@ -79,7 +79,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
       id: `project-${Date.now()}`,
       name: newProject.name,
       description: newProject.description,
-      status: PROJECT_STATUS_VALUES.InProgress,
+      status: PROJECT_STATUS_VALUES.OnTrack,
       startDate: newProject.startDate || new Date().toISOString().split('T')[0],
       endDate: newProject.endDate || newProject.dueDate,
       dueDate: newProject.dueDate,
@@ -326,7 +326,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-white">{p.name}</h3>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    p.status === PROJECT_STATUS_VALUES.InProgress ? 'bg-green-500/20 text-green-300' :
+                    p.status === PROJECT_STATUS_VALUES.OnTrack ? 'bg-green-500/20 text-green-300' :
                     p.status === PROJECT_STATUS_VALUES.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
                     p.status === PROJECT_STATUS_VALUES.OnHold ? 'bg-red-500/20 text-red-300' :
                     'bg-blue-500/20 text-blue-300'

@@ -139,6 +139,7 @@ export const saveProject = async (userId: string, project: Project): Promise<str
       spent: project.spent,
       tasks: project.tasks || [],
       team_members: project.teamMembers || [],
+      attachments: project.attachments || [], // Include attachments
       updated_at: new Date().toISOString()
     };
 
@@ -198,7 +199,13 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       budget: p.budget,
       spent: p.spent,
       tasks: p.tasks || [],
-      teamMembers: p.team_members || []
+      teamMembers: p.team_members || [],
+      attachments: p.attachments || [], // Include attachments
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+      archived: p.archived || false,
+      tags: p.tags || [],
+      journal: p.journal || []
     }));
   } catch (error) {
     console.error('Failed to load projects:', error);

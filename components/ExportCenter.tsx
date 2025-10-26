@@ -82,7 +82,7 @@ EXECUTIVE SUMMARY
 ========================
 
 Total Projects: ${filteredProjects.length}
-On Track: ${filteredProjects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress).length}
+On Track: ${filteredProjects.filter(p => p.status === PROJECT_STATUS_VALUES.OnTrack).length}
 At Risk: ${filteredProjects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length}
 Off Track: ${filteredProjects.filter(p => p.status === PROJECT_STATUS_VALUES.OnHold).length}
 Completed: ${filteredProjects.filter(p => p.status === PROJECT_STATUS_VALUES.Completed).length}

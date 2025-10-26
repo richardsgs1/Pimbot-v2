@@ -34,7 +34,7 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
       .slice(0, 5);
   };
 
-  const onTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.InProgress).length;
+  const onTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.OnTrack).length;
   const atRiskCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length;
   const offTrackCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.OnHold).length;
   const completedCount = projects.filter(p => p.status === PROJECT_STATUS_VALUES.Completed).length;
@@ -111,7 +111,7 @@ const Home: React.FC<HomeProps> = ({ projects, userData, onSelectProject, onMenu
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-white">{project.name}</h3>
                 <span className={`text-xs px-2 py-1 rounded-full ${
-                  project.status === PROJECT_STATUS_VALUES.InProgress ? 'bg-green-500/20 text-green-300' :
+                  project.status === PROJECT_STATUS_VALUES.OnTrack ? 'bg-green-500/20 text-green-300' :
                   project.status === PROJECT_STATUS_VALUES.AtRisk ? 'bg-yellow-500/20 text-yellow-300' :
                   project.status === PROJECT_STATUS_VALUES.OnHold ? 'bg-red-500/20 text-red-300' :
                   'bg-blue-500/20 text-blue-300'

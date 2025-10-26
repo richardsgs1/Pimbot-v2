@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { OnboardingData, Project, Task, Priority, SkillLevel, TaskStatus } from '../types';
-import { SKILL_LEVEL_VALUES } from '../types';
+import type { OnboardingData, Project, Task, Priority, TaskStatus } from '../types';
 import SkillAwareAI from './SkillAwareAI';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -48,39 +47,54 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
       const staticSuggestions = getStaticSuggestions();
       setSuggestions(staticSuggestions);
 
-      // Generate AI-powered suggestions
-      const prompt = SkillAwareAI.createTaskSuggestionPrompt(userData, project);
-      
-      const response = await fetch('/api/ai', {
+      // Generate AI suggestions
+      const prompt = `As a project management coach, suggest 2-3 personalized tasks for this project based on the user's skill level.
+
+Project: ${project.name}
+Description: ${project.description}
+User Skill Level: ${userData.skillLevel}
+Current Progress: ${project.progress}%
+Current Tasks: ${project.tasks.length}
+
+Provide suggestions that:
+1. Match the user's skill level (${userData.skillLevel})
+2. Help them develop PM skills appropriate to their level
+3. Address gaps or next steps for this specific project
+4. Are actionable and specific
+
+Format as a numbered list with task name and brief description.`;
+
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'task-suggestions',
-          prompt: prompt,
-          project: project,
-          userData: userData
-        }),
+        body: JSON.stringify({ 
+          messages: [{ role: 'user', content: prompt }],
+          context: { skillLevel: userData.skillLevel }
+        })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setAiSuggestions(data.suggestions || data.content || '');
+      if (!response.ok) {
+        throw new Error('Failed to generate AI suggestions');
       }
-    } catch (error) {
-      console.error('Error generating task suggestions:', error);
-      setError('Could not generate AI suggestions');
+
+      const data = await response.json();
+      setAiSuggestions(data.response || '');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate suggestions');
+      console.error('Error generating task suggestions:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const getStaticSuggestions = (): SuggestedTask[] => {
-    const completedTasks = project.tasks.filter(t => t.completed).length;
     const totalTasks = project.tasks.length;
+    const completedTasks = project.tasks.filter(t => t.completed).length;
     const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
+    // Use string literals that match OnboardingData.skillLevel type
     switch (userData.skillLevel) {
-      case SKILL_LEVEL_VALUES.NoExperience:
+      case 'Beginner': // Was: 'No Experience'
         return [
           {
             name: "Review project goals",
@@ -105,7 +119,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SKILL_LEVEL_VALUES.Novice:
+      case 'Intermediate':
         return [
           {
             name: "Update project timeline",
@@ -130,7 +144,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SKILL_LEVEL_VALUES.Intermediate:
+      case 'Advanced': // Was: 'Experienced'
         return [
           {
             name: "Resource optimization review",
@@ -155,7 +169,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           }
         ];
 
-      case SKILL_LEVEL_VALUES.Experienced:
+      case 'Expert':
         return [
           {
             name: "Strategic project alignment review",
@@ -177,11 +191,7 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
             priority: "Medium" as Priority,
             estimatedDuration: "30 minutes",
             skillBenefit: "Builds portfolio management perspective"
-          }
-        ];
-
-      case SKILL_LEVEL_VALUES.Expert:
-        return [
+          },
           {
             name: "Organizational capability assessment",
             description: "Evaluate what organizational capabilities this project is building and how to leverage them strategically.",
@@ -198,41 +208,41 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
           },
           {
             name: "Mentoring session planning",
-            description: "Plan knowledge transfer sessions to help junior PMs learn from this project's challenges and solutions.",
+            description: "Plan a session to share your project insights and lessons learned with less experienced team members.",
             priority: "Low" as Priority,
-            estimatedDuration: "45 minutes",
-            skillBenefit: "Develops leadership and mentoring skills"
+            estimatedDuration: "30 minutes",
+            skillBenefit: "Develops leadership and knowledge transfer skills"
           }
         ];
 
       default:
-        return [];
-    }
-  };
-
-  const getPriorityColor = (priority: Priority): string => {
-    switch (priority) {
-      case "High":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return [
+          {
+            name: "Project status review",
+            description: "Review current project status and identify next steps.",
+            priority: "Medium" as Priority,
+            estimatedDuration: "30 minutes"
+          }
+        ];
     }
   };
 
   const handleAddTask = (suggestion: SuggestedTask) => {
     if (onTaskAdd) {
+      const now = new Date().toISOString();
       const newTask: Omit<Task, 'id'> = {
         name: suggestion.name,
+        description: suggestion.description,
         completed: false,
         status: 'To Do' as TaskStatus,
         priority: suggestion.priority,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
         startDate: new Date().toISOString().split('T')[0],
-        duration: parseInt(suggestion.estimatedDuration) || 1
+        assignees: [], // Required field
+        attachments: [], // Required field
+        createdAt: now, // Required field
+        updatedAt: now, // Required field
+        // Removed duration field as it doesn't exist in Task type
       };
       onTaskAdd(newTask);
     }
@@ -240,132 +250,150 @@ const TaskSuggestions: React.FC<TaskSuggestionsProps> = ({
 
   const getSkillLevelLabel = (): string => {
     switch (userData.skillLevel) {
-      case SKILL_LEVEL_VALUES.NoExperience:
+      case 'Beginner': // Was: 'No Experience'
         return "🌱 Learning Tasks";
-      case SKILL_LEVEL_VALUES.Novice:
+      case 'Intermediate':
         return "📚 Skill Building Tasks";
-      case SKILL_LEVEL_VALUES.Intermediate:
+      case 'Advanced': // Was: 'Experienced'
         return "⚡ Growth Tasks";
-      case SKILL_LEVEL_VALUES.Experienced:
-        return "🎯 Strategic Tasks";
-      case SKILL_LEVEL_VALUES.Expert:
-        return "🏆 Leadership Tasks";
+      case 'Expert':
+        return "🎯 Leadership Tasks";
       default:
-        return "Suggested Tasks";
+        return "💡 Suggested Tasks";
     }
   };
 
-  if (compact && !isExpanded) {
+  if (!isExpanded && compact) {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="w-full p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] transition-colors text-left"
+        className="w-full p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg hover:border-purple-500/40 transition-colors text-left"
       >
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-[var(--text-primary)]">
-            {getSkillLevelLabel()}
-          </span>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div>
+            <h3 className="font-semibold text-white">💡 Get Personalized Task Suggestions</h3>
+            <p className="text-sm text-slate-400 mt-1">
+              AI-powered recommendations based on your skill level
+            </p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <p className="text-xs text-[var(--text-tertiary)] mt-1">
-          Get personalized task suggestions for your skill level
-        </p>
       </button>
     );
   }
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-          {getSkillLevelLabel()}
-        </h3>
-        <div className="flex items-center space-x-2">
+    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-2xl">💡</span>
+            {getSkillLevelLabel()}
+          </h3>
+          <p className="text-sm text-slate-400 mt-1">
+            Personalized recommendations to help you grow your PM skills
+          </p>
+        </div>
+        {compact && (
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-4">
+          <div className="animate-pulse space-y-3">
+            <div className="h-20 bg-slate-700/50 rounded-lg"></div>
+            <div className="h-20 bg-slate-700/50 rounded-lg"></div>
+            <div className="h-20 bg-slate-700/50 rounded-lg"></div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+          <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={generateTaskSuggestions}
-            disabled={isLoading}
-            className="px-3 py-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:bg-[var(--bg-tertiary)] text-white rounded-lg transition-colors text-sm"
+            className="mt-2 text-sm text-red-300 hover:text-red-200 underline"
           >
-            {isLoading ? 'Generating...' : 'Refresh'}
+            Try again
           </button>
-          {compact && (
-            <button
-              onClick={() => setIsExpanded(false)}
-              className="p-1 hover:bg-[var(--bg-tertiary)] rounded"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-          )}
         </div>
-      </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Static Suggestions */}
+          <div className="space-y-3">
+            {suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="bg-slate-700/30 border border-slate-600/50 rounded-lg p-4 hover:border-purple-500/50 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-white mb-2">{suggestion.name}</h4>
+                    <p className="text-sm text-slate-300 mb-3">{suggestion.description}</p>
+                    
+                    <div className="flex items-center gap-4 text-xs">
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {suggestion.estimatedDuration}
+                      </span>
+                      
+                      <span className={`px-2 py-1 rounded ${
+                        suggestion.priority === 'High' ? 'bg-red-500/20 text-red-400' :
+                        suggestion.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {suggestion.priority}
+                      </span>
+                    </div>
 
-      {/* Static Suggestions */}
-      <div className="space-y-3 mb-6">
-        {suggestions.map((suggestion, index) => (
-          <div key={index} className="p-4 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-primary)]">
-            <div className="flex items-start justify-between mb-2">
-              <h4 className="font-medium text-[var(--text-primary)]">{suggestion.name}</h4>
-              <div className="flex items-center space-x-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(suggestion.priority)}`}>
-                  {suggestion.priority}
-                </span>
-                {onTaskAdd && (
-                  <button
-                    onClick={() => handleAddTask(suggestion)}
-                    className="px-2 py-1 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white rounded text-xs transition-colors"
-                  >
-                    Add
-                  </button>
-                )}
+                    {suggestion.skillBenefit && (
+                      <div className="mt-3 pt-3 border-t border-slate-600/50">
+                        <p className="text-xs text-purple-400 flex items-start gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span><strong>Skill Benefit:</strong> {suggestion.skillBenefit}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {onTaskAdd && (
+                    <button
+                      onClick={() => handleAddTask(suggestion)}
+                      className="ml-4 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+                    >
+                      Add Task
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* AI Suggestions */}
+          {aiSuggestions && (
+            <div className="border-t border-slate-700 pt-6">
+              <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <span className="text-xl">🤖</span>
+                AI-Powered Insights
+              </h4>
+              <div className="bg-slate-700/20 border border-slate-600/50 rounded-lg p-4">
+                <MarkdownRenderer content={aiSuggestions} />
               </div>
             </div>
-            
-            <p className="text-sm text-[var(--text-secondary)] mb-2">{suggestion.description}</p>
-            
-            <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
-              <span>⏱️ {suggestion.estimatedDuration}</span>
-              {suggestion.skillBenefit && (
-                <span className="italic">💡 {suggestion.skillBenefit}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* AI Suggestions */}
-      {aiSuggestions && (
-        <div className="border-t border-[var(--border-primary)] pt-4">
-          <h4 className="font-medium text-[var(--text-primary)] mb-3">AI-Powered Insights</h4>
-          <div className="prose prose-sm max-w-none text-[var(--text-primary)]">
-            <MarkdownRenderer content={aiSuggestions} />
-          </div>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="flex items-center justify-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-primary)]"></div>
-          <span className="ml-2 text-sm text-[var(--text-tertiary)]">Generating personalized suggestions...</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-          <p className="text-yellow-800 dark:text-yellow-200 text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Skill Level Context */}
-      {userData.skillLevel === SKILL_LEVEL_VALUES.NoExperience && (
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-blue-800 dark:text-blue-200 text-sm">
-            <strong>Learning Focus:</strong> These tasks are designed to help you build fundamental project management skills. 
-            Take your time with each one and don't hesitate to ask for help!
-          </p>
+          )}
         </div>
       )}
     </div>

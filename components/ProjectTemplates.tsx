@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Project, Task, ProjectStatus, Priority, TeamMember } from '../types';
-import { PROJECT_STATUS_VALUES, PRIORITY_VALUES } from '../types';
+import { PROJECT_STATUS_VALUES, PRIORITY_VALUES, TaskStatus } from '../types';
 
 export interface ProjectTemplate {
   id: string;
@@ -216,21 +216,25 @@ export const createProjectFromTemplate = (
   
   // Create tasks with calculated dates
   let currentDate = new Date(start);
-  const tasks = template.tasks.map((taskTemplate, index) => {
+  const now = new Date().toISOString();
+  const tasks: Task[] = template.tasks.map((taskTemplate, index) => {
     const taskStart = new Date(currentDate);
     const taskEnd = new Date(currentDate);
     taskEnd.setDate(taskEnd.getDate() + taskTemplate.estimatedDays);
     
-    const task = {
+    const task: Task = {
       id: `task-${Date.now()}-${index}`,
       name: taskTemplate.name,
+      description: taskTemplate.description || '',
       completed: false,
-      status: 'To Do' as const,
+      status: TaskStatus.ToDo,
       priority: taskTemplate.priority,
       dueDate: taskEnd.toISOString().split('T')[0],
       startDate: taskStart.toISOString().split('T')[0],
-      duration: taskTemplate.estimatedDays,
-      description: taskTemplate.description
+      assignees: [],
+      attachments: [],
+      createdAt: now,
+      updatedAt: now
     };
     
     // Move to next task start date
@@ -243,7 +247,7 @@ export const createProjectFromTemplate = (
   return {
     name: customName || template.name,
     description: template.description,
-    status: PROJECT_STATUS_VALUES.InProgress,
+    status: PROJECT_STATUS_VALUES.OnTrack,
     progress: 0,
     startDate: today,
     endDate: end.toISOString().split('T')[0],
@@ -254,5 +258,8 @@ export const createProjectFromTemplate = (
     budget: template.defaultBudget,
     spent: 0,
     teamMembers: [] as TeamMember[],
+    attachments: [],
+    createdAt: now,
+    updatedAt: now
   };
 };

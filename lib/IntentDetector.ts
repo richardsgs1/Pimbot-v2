@@ -66,7 +66,7 @@ export class IntentDetector {
     let taskName = '';
     let projectName = '';
     let projectId = '';
-    let priority = PRIORITY_VALUES.Medium;
+    let priority: Priority = PRIORITY_VALUES.Medium; // Fixed: properly typed as Priority
     let dueDate = '';
 
     // Check patterns
@@ -138,9 +138,9 @@ export class IntentDetector {
       }
     }
 
-    // Extract status
+    // Extract status - Fixed: use OnTrack instead of InProgress
     if (lowerMessage.includes('on track')) {
-      status = PROJECT_STATUS_VALUES.InProgress;
+      status = PROJECT_STATUS_VALUES.OnTrack; // Fixed: was InProgress
       confidence += 0.3;
     } else if (lowerMessage.includes('at risk')) {
       status = PROJECT_STATUS_VALUES.AtRisk;

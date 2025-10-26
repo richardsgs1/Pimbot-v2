@@ -106,10 +106,10 @@ const PriorityChart: React.FC<DonutChartProps> = ({ data, title }) => {
             datasets: [{
               data: data.values,
               backgroundColor: [
-                'rgba(239, 68, 68, 0.7)', // red-500
-                'rgba(245, 158, 11, 0.7)', // amber-500
-                'rgba(59, 130, 246, 0.7)', // blue-500
-                'rgba(100, 116, 139, 0.7)', // slate-500
+                'rgba(220, 38, 38, 0.7)',  // red-600 for Urgent
+                'rgba(239, 68, 68, 0.7)',   // red-500 for High
+                'rgba(245, 158, 11, 0.7)',  // amber-500 for Medium
+                'rgba(59, 130, 246, 0.7)',  // blue-500 for Low
               ],
               borderColor: '#1e293b', // slate-800
               borderWidth: 2,
@@ -175,70 +175,62 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
 
       const responseText = await response.text();
       if (!response.ok) {
-        let errorMsg = 'Failed to fetch portfolio summary.';
-        try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
-        throw new Error(errorMsg);
+          let errorMsg = 'Failed to fetch portfolio summary.';
+          try { errorMsg = JSON.parse(responseText).error || errorMsg; } catch (e) { errorMsg = responseText || response.statusText; }
+          throw new Error(errorMsg);
       }
-      if (!responseText) { throw new Error("Received an empty response from the server."); }
+
+      if (!responseText) {
+        throw new Error("Received an empty response from the portfolio summary API.");
+      }
       
       const data = JSON.parse(responseText);
       setPortfolioSummary(data.summary);
+
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setPortfolioError(msg);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      console.error("Portfolio summary error:", errorMessage);
+      setPortfolioError(errorMessage);
     } finally {
       setIsPortfolioLoading(false);
     }
   }, [projects, team]);
 
   useEffect(() => {
-    if (projects.length > 0 && team.length > 0) {
-      fetchPortfolioSummary();
-    } else {
-      setIsPortfolioLoading(false);
-    }
-  }, [fetchPortfolioSummary, projects, team]);
-
+    fetchPortfolioSummary();
+  }, [fetchPortfolioSummary]);
 
   const velocityData = useMemo(() => {
-    const tasksCompletedByWeek: { [week: string]: number } = {};
-    const todayDate = new Date();
-    
+    const completedTasksByWeek: Record<string, number> = {};
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end = endDate ? new Date(endDate + 'T23:59:59') : null;
 
     projects.forEach(project => {
-      project.tasks.forEach(task => {
-        if (task.completed && task.dueDate) {
-          const dueDate = new Date(task.dueDate + 'T00:00:00');
-          
-          if ((!start || dueDate >= start) && (!end || dueDate <= end) && dueDate <= todayDate) {
-            const taskYear = dueDate.getFullYear();
-            const taskWeek = getWeek(dueDate);
-            const weekKey = `${taskYear}-W${taskWeek.toString().padStart(2, '0')}`;
-            tasksCompletedByWeek[weekKey] = (tasksCompletedByWeek[weekKey] || 0) + 1;
-          }
-        }
-      });
+        project.tasks.forEach(task => {
+            if (task.completed && task.dueDate) {
+                const dueDate = new Date(task.dueDate + 'T00:00:00');
+                if (start && dueDate < start) return;
+                if (end && dueDate > end) return;
+
+                const week = getWeek(dueDate);
+                const year = dueDate.getFullYear();
+                const key = `${year}-W${week}`;
+                completedTasksByWeek[key] = (completedTasksByWeek[key] || 0) + 1;
+            }
+        });
     });
 
-    const labels: string[] = [];
-    const values: number[] = [];
-    for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(todayDate.getDate() - (i * 7));
-        const week = getWeek(date);
-        const year = date.getFullYear();
-        const weekKey = `${year}-W${week.toString().padStart(2, '0')}`;
-        labels.push(weekKey);
-        values.push(tasksCompletedByWeek[weekKey] || 0);
-    }
-    
+    const sortedWeeks = Object.keys(completedTasksByWeek).sort();
+    const recentWeeks = sortedWeeks.slice(-8);
+    const labels = recentWeeks.length > 0 ? recentWeeks : ['No data'];
+    const values = recentWeeks.length > 0 ? recentWeeks.map(w => completedTasksByWeek[w]) : [0];
+
     return { labels, values };
-  }, [projects, startDate, endDate, today]);
-  
+  }, [projects, startDate, endDate]);
+
+  // FIXED: Added Urgent to priority counts
   const priorityData = useMemo(() => {
-    const counts = { High: 0, Medium: 0, Low: 0, None: 0 };
+    const counts = { Urgent: 0, High: 0, Medium: 0, Low: 0 }; // Added Urgent
     const start = startDate ? new Date(startDate + 'T00:00:00') : null;
     const end = endDate ? new Date(endDate + 'T23:59:59') : null;
 
@@ -252,13 +244,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
                         return;
                     }
                 }
+                // Now counts has all priority keys including Urgent
                 counts[task.priority] = (counts[task.priority] || 0) + 1;
             }
         });
     });
     return {
         labels: Object.values(PRIORITY_VALUES),
-        values: [counts.High, counts.Medium, counts.Low, counts.None]
+        values: [counts.Urgent, counts.High, counts.Medium, counts.Low] // Added Urgent
     };
   }, [projects, startDate, endDate]);
   
@@ -284,35 +277,36 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [projects, startDate, endDate, today]);
   
+  // FIXED: Changed assigneeId to assignees array
   const portfolioKPIs = useMemo(() => {
     const allTasks = projects.flatMap(p => p.tasks);
     const totalOverdue = allTasks.filter(t => t.dueDate && !t.completed && new Date(t.dueDate) < today).length;
 
     const taskCounts = allTasks
-        .filter(t => !t.completed && t.assigneeId)
+        .filter(t => !t.completed && t.assignees && t.assignees.length > 0) // Fixed: use assignees array
         .reduce((acc, task) => {
-            acc[task.assigneeId!] = (acc[task.assigneeId!] || 0) + 1;
+            // Count for each assignee in the task
+            task.assignees.forEach(assigneeId => {
+              acc[assigneeId] = (acc[assigneeId] || 0) + 1;
+            });
             return acc;
         }, {} as Record<string, number>);
     
     let busiestMember = { name: 'N/A', count: 0 };
     if (Object.keys(taskCounts).length > 0) {
         const busiestId = Object.keys(taskCounts).reduce((a, b) => taskCounts[a] > taskCounts[b] ? a : b);
-        busiestMember = {
-            name: team.find(m => m.id === busiestId)?.name || 'Unknown',
-            count: taskCounts[busiestId]
-        };
+        const member = team.find(m => m.id === busiestId);
+        busiestMember = { name: member?.name || 'Unknown', count: taskCounts[busiestId] };
     }
     
     return { totalOverdue, busiestMember };
-  }, [projects, team, today]);
-
-
+  }, [projects, today, team]);
+  
   const handleGenerateSummary = async (project: Project) => {
     setLoadingSummaryId(project.id);
     setSummaryError(null);
     try {
-        const response = await fetch('/api/generate-health-summary', {
+        const response = await fetch('/api/get-project-health-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ project }),
@@ -464,8 +458,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
                                             </svg>
                                             Analyzing...
                                         </div>
-                                    ) : project.aiHealthSummary ? (
-                                        <p className="text-sm text-slate-300 whitespace-pre-wrap font-light">{project.aiHealthSummary}</p>
+                                    ) : (project as any).aiHealthSummary ? (
+                                        <p className="text-sm text-slate-300 whitespace-pre-wrap font-light">{(project as any).aiHealthSummary}</p>
                                     ) : (
                                         <button 
                                             onClick={() => handleGenerateSummary(project)}

@@ -25,10 +25,11 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ task, onEdit }) => {
   };
 
   const priorityColors: Record<Priority, string> = {
-  Low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  Medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  High: 'bg-red-500/20 text-red-400 border-red-500/30',
-};
+    Urgent: 'bg-red-600/20 text-red-300 border-red-600/30',
+    High: 'bg-red-500/20 text-red-400 border-red-500/30',
+    Medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    Low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  };
 
   return (
     <div
@@ -61,12 +62,17 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ task, onEdit }) => {
           {task.priority}
         </span>
 
-        {/* Assigned To */}
-        {task.assignedTo && (
+        {/* Assigned To - now uses assignees array */}
+        {task.assignees && task.assignees.length > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-[var(--accent-primary)] flex items-center justify-center text-xs text-white font-semibold">
-              {task.assignedTo.charAt(0).toUpperCase()}
+              {task.assignees[0].charAt(0).toUpperCase()}
             </div>
+            {task.assignees.length > 1 && (
+              <span className="text-xs text-[var(--text-tertiary)]">
+                +{task.assignees.length - 1}
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -9,7 +9,9 @@ interface TeamHubProps {
   onMenuClick: () => void;
 }
 
+// FIXED: Added Urgent priority icon
 const priorityIcons: Record<Priority, React.ReactNode> = {
+    'Urgent': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
     'High': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
     'Medium': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>,
     'Low': <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
@@ -39,6 +41,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
     };
 
     const totalTasks = member.tasks.length;
+    const urgentPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Urgent / totalTasks) * 100 : 0;
     const highPriorityPercent = totalTasks > 0 ? (member.priorityCounts.High / totalTasks) * 100 : 0;
     const mediumPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Medium / totalTasks) * 100 : 0;
     const lowPriorityPercent = totalTasks > 0 ? (member.priorityCounts.Low / totalTasks) * 100 : 0;
@@ -111,6 +114,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onSelectProject }) => {
                     <div className="mt-4">
                         <h4 className="text-xs font-semibold text-slate-400 mb-1">Workload Distribution</h4>
                         <div className="flex w-full h-2 rounded-full overflow-hidden bg-slate-700">
+                            <div className="bg-red-600" style={{ width: `${urgentPriorityPercent}%` }} title={`Urgent Priority: ${member.priorityCounts.Urgent} tasks`}></div>
                             <div className="bg-red-500" style={{ width: `${highPriorityPercent}%` }} title={`High Priority: ${member.priorityCounts.High} tasks`}></div>
                             <div className="bg-yellow-500" style={{ width: `${mediumPriorityPercent}%` }} title={`Medium Priority: ${member.priorityCounts.Medium} tasks`}></div>
                             <div className="bg-blue-500" style={{ width: `${lowPriorityPercent}%` }} title={`Low Priority: ${member.priorityCounts.Low} tasks`}></div>
@@ -159,11 +163,12 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject, onMe
         return d;
     }, []);
 
+  // FIXED: Use assignees array instead of assigneeId
   const workloadData = useMemo<MemberWithWorkload[]>(() => {
     return team.map(member => {
       const assignedTasks = projects.flatMap(p => 
         p.tasks
-          .filter(t => t.assigneeId === member.id && !t.completed)
+          .filter(t => t.assignees && t.assignees.includes(member.id) && !t.completed) // Changed from assigneeId
           .map(t => ({ ...t, projectName: p.name, projectId: p.id }))
       );
 
@@ -172,7 +177,7 @@ const TeamHub: React.FC<TeamHubProps> = ({ projects, team, onSelectProject, onMe
       const priorityCounts: Record<Priority, number> = assignedTasks.reduce((acc, task) => {
         acc[task.priority] = (acc[task.priority] || 0) + 1;
         return acc;
-      }, { 'High': 0, 'Medium': 0, 'Low': 0 } as Record<Priority, number>);
+      }, { 'Urgent': 0, 'High': 0, 'Medium': 0, 'Low': 0 } as Record<Priority, number>); // Added Urgent
 
       return { ...member, tasks: assignedTasks, overdueCount, priorityCounts };
     });

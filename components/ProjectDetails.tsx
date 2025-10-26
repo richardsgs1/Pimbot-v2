@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import type { Project, TeamMember, OnboardingData, Task, Priority, ProjectStatus } from '../types';
+import type { Project, TeamMember, OnboardingData, Task, Priority, ProjectStatus, FileAttachment } from '../types';
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types';
+import FileUpload from './FileUpload';
+import FileList from './FileList';
+
+// Add the upload and list components to your UI
+// See FILE_ATTACHMENTS_GUIDE.md for full example
 
 // Define JournalEntry locally since it's not in types
 interface JournalEntry {
@@ -44,33 +49,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     teamMembers: project.teamMembers || team || []
   };
 
-  const handleAddJournalEntry = () => {
-    if (!newJournalEntry.trim()) return;
-
-    const entry: JournalEntry = {
-      id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      content: newJournalEntry,
-      author: userData.name || 'Unknown User',
-      type: 'update'
-    };
-
-    setJournal([...journal, entry]);
-    setNewJournalEntry('');
-  };
-
   const handleTaskToggle = (taskId: string) => {
-    const updatedTasks = safeProject.tasks.map(task =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
+    if (!onUpdateProject) return;
+
+    const updatedTasks = safeProject.tasks.map(task => 
+      task.id === taskId 
+        ? { ...task, completed: !task.completed }
+        : task
     );
 
-    const completedCount = updatedTasks.filter(task => task.completed).length;
-    const progress = Math.round((completedCount / updatedTasks.length) * 100);
+    const completedTasks = updatedTasks.filter(t => t.completed).length;
+    const progress = Math.round((completedTasks / updatedTasks.length) * 100);
 
     const updatedProject = {
       ...safeProject,
       tasks: updatedTasks,
-      progress: progress
+      progress
     };
 
     if (onUpdateProject) {
@@ -78,9 +72,25 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     }
   };
 
+  const handleAddJournalEntry = () => {
+    if (!newJournalEntry.trim()) return;
+
+    const entry: JournalEntry = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      content: newJournalEntry,
+      author: userData.name,
+      type: 'update'
+    };
+
+    setJournal([entry, ...journal]);
+    setNewJournalEntry('');
+  };
+
+  // FIXED: Changed InProgress to OnTrack
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
-      case PROJECT_STATUS_VALUES.InProgress:
+      case PROJECT_STATUS_VALUES.OnTrack: // Was: InProgress
         return 'bg-green-100 text-green-800 border-green-200';
       case PROJECT_STATUS_VALUES.AtRisk:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -93,8 +103,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     }
   };
 
+  // FIXED: Added Urgent priority
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
+      case PRIORITY_VALUES.Urgent:
+        return 'bg-red-200 text-red-900 border-red-300';
       case PRIORITY_VALUES.High:
         return 'bg-red-100 text-red-800 border-red-200';
       case PRIORITY_VALUES.Medium:
@@ -168,6 +181,36 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           </div>
         </div>
       )}
+
+      {/* File Attachments Section */}
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Attachments</h3>
+        <FileUpload 
+          projectId={safeProject.id}
+          userId={userData.id}
+          onFileUploaded={(newFile: FileAttachment) => {
+            if (onUpdateProject) {
+              const updatedProject = {
+                ...safeProject,
+                attachments: [...(safeProject.attachments || []), newFile]
+              };
+              onUpdateProject(updatedProject);
+            }
+          }}
+        />
+        <FileList 
+          files={safeProject.attachments || []}
+          onFileDeleted={(fileId: string) => {
+            if (onUpdateProject) {
+              const updatedProject = {
+                ...safeProject,
+                attachments: safeProject.attachments?.filter(f => f.id !== fileId) || []
+              };
+              onUpdateProject(updatedProject);
+            }
+          }}
+        />
+      </div>
     </div>
   );
 
@@ -194,162 +237,160 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                         Due: {new Date(task.dueDate).toLocaleDateString()}
                       </span>
                     )}
-                    {task.startDate && (
-                      <span className="text-sm text-[var(--text-tertiary)]">
-                        Started: {new Date(task.startDate).toLocaleDateString()}
-                      </span>
-                    )}
+                    <span className={`inline-flex px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
                   </div>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-                {task.priority}
-              </span>
             </div>
           </div>
         ))
       ) : (
-        <div className="text-center py-8">
-          <p className="text-[var(--text-tertiary)]">No tasks available for this project.</p>
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
+          <p className="text-[var(--text-tertiary)]">No tasks yet</p>
         </div>
       )}
     </div>
   );
 
   const renderTeam = () => (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {safeProject.teamMembers && safeProject.teamMembers.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {safeProject.teamMembers.map((member) => (
-            <div key={member.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
-              <div className="flex items-center">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold mr-4"
-                  style={{ backgroundColor: getAvatarColor(member.name) }}
-                >
-                  {member.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="font-medium text-[var(--text-primary)]">{member.name}</h4>
-                  <p className="text-sm text-[var(--text-tertiary)]">{member.role}</p>
-                  <p className="text-sm text-[var(--text-tertiary)]">{member.email}</p>
-                </div>
+        safeProject.teamMembers.map((member) => (
+          <div key={member.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
+            <div className="flex items-center">
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
+                style={{ backgroundColor: getAvatarColor(member.name) }}
+              >
+                {member.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h4 className="font-medium text-[var(--text-primary)]">{member.name}</h4>
+                <p className="text-sm text-[var(--text-tertiary)]">{member.role || 'Team Member'}</p>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))
       ) : (
-        <div className="text-center py-8">
-          <p className="text-[var(--text-tertiary)]">No team members assigned to this project.</p>
+        <div className="col-span-full text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
+          <p className="text-[var(--text-tertiary)]">No team members assigned</p>
         </div>
       )}
     </div>
   );
 
   const renderJournal = () => (
-    <div className="space-y-6">
-      {/* Add New Entry */}
+    <div className="space-y-4">
+      {/* Add Entry Form */}
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
-        <h4 className="font-medium text-[var(--text-primary)] mb-3">Add Journal Entry</h4>
-        <div className="space-y-3">
-          <textarea
-            value={newJournalEntry}
-            onChange={(e) => setNewJournalEntry(e.target.value)}
-            placeholder="What happened today? Record project updates, decisions, or notes..."
-            className="w-full p-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] resize-none"
-            rows={3}
-          />
-          <button
-            onClick={handleAddJournalEntry}
-            disabled={!newJournalEntry.trim()}
-            className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-          >
-            Add Entry
-          </button>
-        </div>
+        <textarea
+          value={newJournalEntry}
+          onChange={(e) => setNewJournalEntry(e.target.value)}
+          placeholder="Add a project update..."
+          className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-3 text-[var(--text-primary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+          rows={3}
+        />
+        <button
+          onClick={handleAddJournalEntry}
+          disabled={!newJournalEntry.trim()}
+          className="mt-2 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add Entry
+        </button>
       </div>
 
       {/* Journal Entries */}
-      <div className="space-y-4">
-        {journal && journal.length > 0 ? (
-          journal
-            .sort((a: JournalEntry, b: JournalEntry) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((entry: JournalEntry) => (
-              <div key={entry.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-[var(--text-primary)]">{entry.author}</span>
-                  <span className="text-sm text-[var(--text-tertiary)]">
-                    {new Date(entry.date).toLocaleDateString()}
-                  </span>
+      {journal.length > 0 ? (
+        journal.map((entry) => (
+          <div key={entry.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"
+                  style={{ backgroundColor: getAvatarColor(entry.author) }}
+                >
+                  {entry.author.charAt(0).toUpperCase()}
                 </div>
-                <p className="text-[var(--text-secondary)]">{entry.content}</p>
+                <div>
+                  <p className="font-medium text-[var(--text-primary)]">{entry.author}</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {new Date(entry.date).toLocaleDateString()} at {new Date(entry.date).toLocaleTimeString()}
+                  </p>
+                </div>
               </div>
-            ))
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-[var(--text-tertiary)]">No journal entries yet. Add the first entry above!</p>
+            </div>
+            <p className="text-[var(--text-secondary)] ml-11">{entry.content}</p>
           </div>
-        )}
-      </div>
+        ))
+      ) : (
+        <div className="text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
+          <p className="text-[var(--text-tertiary)]">No journal entries yet</p>
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <button
-            onClick={onBack}
-            className="mr-4 p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{safeProject.name}</h1>
-            <p className="text-[var(--text-tertiary)]">Project Details & Management</p>
+      <header className="flex-shrink-0 p-4 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <button 
+              onClick={onMenuClick} 
+              className="md:hidden mr-4 p-1 rounded-full hover:bg-[var(--bg-tertiary)]"
+              aria-label="Open menu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              onClick={onBack}
+              className="mr-4 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">{safeProject.name}</h1>
+              <p className="text-sm text-[var(--text-tertiary)]">Project Details</p>
+            </div>
           </div>
         </div>
-        <button
-          onClick={onMenuClick}
-          className="md:hidden p-2 rounded-lg hover:bg-[var(--bg-tertiary)]"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+      </header>
+
+      {/* Tabs */}
+      <div className="flex-shrink-0 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="flex space-x-1 p-2">
+          {(['overview', 'tasks', 'team', 'journal'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
+                activeTab === tab
+                  ? 'bg-[var(--accent-primary)] text-white'
+                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex space-x-1 mb-6 bg-[var(--bg-secondary)] p-1 rounded-lg border border-[var(--border-primary)]">
-        {[
-          { id: 'overview', label: 'Overview' },
-          { id: 'tasks', label: 'Tasks' },
-          { id: 'team', label: 'Team' },
-          { id: 'journal', label: 'Journal' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === tab.id
-                ? 'bg-[var(--accent-primary)] text-white'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'tasks' && renderTasks()}
-        {activeTab === 'team' && renderTeam()}
-        {activeTab === 'journal' && renderJournal()}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-6xl mx-auto">
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'tasks' && renderTasks()}
+          {activeTab === 'team' && renderTeam()}
+          {activeTab === 'journal' && renderJournal()}
+        </div>
       </div>
     </div>
   );

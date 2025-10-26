@@ -11,6 +11,7 @@ import {
 import KanbanColumn from './KanbanColumn';
 import KanbanCard from './KanbanCard';
 import type { Project, Task, TaskStatus } from '../types';
+import { TaskStatus as TaskStatusEnum } from '../types';
 
 interface KanbanBoardProps {
   project: Project;
@@ -31,10 +32,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdateTask, onEdit
 
   // Group tasks by status
   const tasksByStatus: Record<TaskStatus, Task[]> = {
-    'To Do': [],
-    'In Progress': [],
-    'Done': [],
-    'On Hold': [],
+    [TaskStatusEnum.ToDo]: [],
+    [TaskStatusEnum.InProgress]: [],
+    [TaskStatusEnum.Done]: [],
+    [TaskStatusEnum.OnHold]: [],
   };
 
   project.tasks.forEach(task => {
@@ -66,7 +67,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdateTask, onEdit
     setActiveTask(null);
   };
 
-  const columns: TaskStatus[] = ['To Do', 'In Progress', 'Done', 'On Hold'];
+  const columns: TaskStatus[] = [TaskStatusEnum.ToDo, TaskStatusEnum.InProgress, TaskStatusEnum.Done, TaskStatusEnum.OnHold];
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

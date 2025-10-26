@@ -30,7 +30,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId
         
         // Calculate start date and duration if not provided
         const dueDate = new Date(task.dueDate);
-        const duration = task.duration || 7; // Default 7 days if not specified
+        // Calculate duration from estimatedHours (assuming 8-hour workdays) or default to 7 days
+        const duration = task.estimatedHours ? Math.ceil(task.estimatedHours / 8) : 7;
         const startDate = task.startDate 
           ? new Date(task.startDate)
           : new Date(dueDate.getTime() - (duration * 24 * 60 * 60 * 1000));
@@ -78,6 +79,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId
 
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
+      case PRIORITY_VALUES.Urgent: return 'bg-red-600'; // Added Urgent
       case PRIORITY_VALUES.High: return 'bg-red-500';
       case PRIORITY_VALUES.Medium: return 'bg-yellow-500';
       case PRIORITY_VALUES.Low: return 'bg-blue-500';
@@ -218,6 +220,10 @@ const TimelineView: React.FC<TimelineViewProps> = ({ projects, selectedProjectId
       <div className="mt-6 pt-4 border-t border-[var(--border-primary)]">
         <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
           <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
+              Urgent Priority
+            </div>
             <div className="flex items-center">
               <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
               High Priority

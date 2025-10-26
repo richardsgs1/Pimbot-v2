@@ -1,143 +1,168 @@
-// User types
-export type SkillLevel = 'No Experience' | 'Novice' | 'Intermediate' | 'Experienced' | 'Expert';
+// Import and re-export file attachment types
+import type { FileAttachment } from './lib/fileTypes';
+export type { FileAttachment };
 
-// Helper constant for SkillLevel values
-export const SKILL_LEVEL_VALUES = {
-  NoExperience: 'No Experience' as SkillLevel,
-  Novice: 'Novice' as SkillLevel,
-  Intermediate: 'Intermediate' as SkillLevel,
-  Experienced: 'Experienced' as SkillLevel,
-  Expert: 'Expert' as SkillLevel,
-};
-
-export interface UserData {
+// User and Authentication
+export interface OnboardingData {
   id: string;
   name: string;
-  email?: string;
-  skillLevel: string;
+  email: string;
+  skillLevel: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert' | null;
   methodologies: string[];
-  tools?: string[];
+  tools: string[];
   hasSeenPricing?: boolean;
+  onboardingCompleted?: boolean;
+  subscriptionId?: string;
 }
 
-// Task-related types
-export type TaskStatus = 'To Do' | 'In Progress' | 'Done' | 'On Hold';
-export type Priority = 'Low' | 'Medium' | 'High';
-
-// Helper constants for using as values (not just types)
-export const PRIORITY_VALUES = {
-  Low: 'Low' as Priority,
-  Medium: 'Medium' as Priority,
-  High: 'High' as Priority,
-};
-
-export interface Task {
-  id: string;
-  name: string;  // Keep 'name' as primary (for existing code)
-  title?: string; // Add 'title' as optional alias for Kanban
-  description?: string;
-  completed: boolean;
-  status: TaskStatus;
-  priority: Priority;
-  dueDate?: string; // Optional
-  startDate?: string;
-  duration?: number;
-  assigneeId?: string;
-  assignedTo?: string;
-  estimatedHours?: number;
-  dependencies?: string[];
-  tags?: string[];
+// Project Status
+export enum ProjectStatus {
+  Planning = 'Planning',
+  OnTrack = 'On Track',
+  AtRisk = 'At Risk',
+  OnHold = 'On Hold',
+  Completed = 'Completed'
 }
-
-// Project-related types
-export type ProjectStatus = 'Planning' | 'In Progress' | 'On Hold' | 'Completed' | 'At Risk';
 
 export const PROJECT_STATUS_VALUES = {
-  Planning: 'Planning' as ProjectStatus,
-  InProgress: 'In Progress' as ProjectStatus,
-  OnHold: 'On Hold' as ProjectStatus,
-  Completed: 'Completed' as ProjectStatus,
-  AtRisk: 'At Risk' as ProjectStatus,
-};
+  Planning: ProjectStatus.Planning,
+  OnTrack: ProjectStatus.OnTrack,
+  AtRisk: ProjectStatus.AtRisk,
+  OnHold: ProjectStatus.OnHold,
+  Completed: ProjectStatus.Completed
+} as const;
 
+// Task Priority
+export enum Priority {
+  Low = 'Low',
+  Medium = 'Medium',
+  High = 'High',
+  Urgent = 'Urgent'
+}
+
+export const PRIORITY_VALUES = {
+  Low: Priority.Low,
+  Medium: Priority.Medium,
+  High: Priority.High,
+  Urgent: Priority.Urgent
+} as const;
+
+// Task Status (for Kanban)
+export enum TaskStatus {
+  ToDo = 'To Do',
+  InProgress = 'In Progress',
+  Done = 'Done',
+  OnHold = 'On Hold'
+}
+
+// Team Member
 export interface TeamMember {
   id: string;
   name: string;
-  email?: string;
-  role?: string;
+  email: string;
+  role: string;
+  avatar?: string;
 }
 
+// Task
+export interface Task {
+  id: string;
+  name: string;
+  description: string;
+  completed: boolean;
+  status: TaskStatus;
+  priority: Priority;
+  dueDate?: string;
+  startDate?: string;
+  assignees: string[];
+  tags?: string[];
+  estimatedHours?: number;
+  actualHours?: number;
+  attachments: FileAttachment[]; // NEW: File attachments
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Journal Entry
+export interface JournalEntry {
+  id: string;
+  content: string;
+  timestamp: string;
+  projectId: string;
+  userId: string;
+  tags?: string[];
+}
+
+// Project
 export interface Project {
   id: string;
   name: string;
-  description?: string;
-  client?: string;
+  description: string;
   status: ProjectStatus;
-  progress: number;
-  startDate: string;
-  endDate?: string;
+  priority: Priority;
+  progress: number; // 0-100
+  startDate?: string;
+  endDate?: string; // Added for database.ts compatibility
   dueDate?: string;
   budget?: number;
-  spent?: number; // Added for budget tracking
-  priority?: Priority; // Added for project prioritization
-  manager?: string; // Added for project manager
-  aiHealthSummary?: string; // Added for AI-generated health insights
-  tasks: Task[];
+  spent?: number;
+  manager?: string; // Added for database.ts compatibility
   teamMembers: TeamMember[];
+  tasks: Task[];
+  attachments: FileAttachment[]; // NEW: File attachments
+  journal?: JournalEntry[];
   tags?: string[];
+  createdAt: string;
+  updatedAt: string;
   archived?: boolean;
-  color?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  aiHealthSummary?: string; // AI-generated health summary for Analytics
 }
 
-// Onboarding types
-export interface OnboardingData {
-  id?: string;
-  name: string;
-  email?: string;
-  skillLevel: string;
-  methodologies: string[];
-  tools?: string[];
-  hasSeenPricing?: boolean;
-}
-
-// Notification types
-export interface Notification {
-  id: string;
-  type: 'success' | 'warning' | 'error' | 'info';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read?: boolean;
-  projectId?: string;
-  taskId?: string;
-  actionUrl?: string;
-  priority?: 'high' | 'medium' | 'low';
-}
-
-export interface SmartNotification extends Notification {
-  insights?: string[];
-  suggestedActions?: string[];
-}
-
-// Chat/AI types
+// Chat/AI Message
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  timestamp: string;
 }
 
-export interface ChatMessage extends Message {
+// Search Results (if you use the search feature)
+export interface SearchResultItem {
+  type: 'project' | 'task' | 'journal';
+  data: Project | Task | JournalEntry;
+  project: Project;
+}
+
+export interface SearchResults {
+  projects: SearchResultItem[];
+  tasks: SearchResultItem[];
+  journal: SearchResultItem[];
+}
+
+// Dashboard Stats
+export interface DashboardStats {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  upcomingDeadlines: number;
+}
+
+// Notification
+export interface Notification {
   id: string;
-  timestamp: Date;
+  type: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  projectId?: string;
+  taskId?: string;
 }
 
-// Export/Report types
-export interface ExportOptions {
-  format: 'pdf' | 'csv' | 'json';
-  includeArchived?: boolean;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-}
+// Theme
+export type Theme = 'light' | 'dark';
+
+// View Types (for navigation)
+export type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account';
