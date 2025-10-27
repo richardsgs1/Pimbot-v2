@@ -8,7 +8,7 @@ export interface NotificationConfig {
   badge?: string;
   tag?: string;
   requireInteraction?: boolean;
-  actions?: NotificationAction[];
+  actions?: Array<{ action: string; title: string; icon?: string }>;
 }
 
 export class PushNotificationService {
@@ -80,21 +80,23 @@ export class PushNotificationService {
     }
 
     if (this.registration) {
-      // Use service worker notification (better for PWA)
+      // Use service worker notification (supports actions)
+      // Cast to any because TypeScript's NotificationOptions doesn't include actions
+      // but ServiceWorkerRegistration.showNotification does support them
       await this.registration.showNotification(config.title, {
         body: config.body,
         icon: config.icon || '/icon-192.png',
         badge: config.badge || '/icon-192.png',
         tag: config.tag || 'default',
         requireInteraction: config.requireInteraction || false,
-        vibrate: [200, 100, 200],
-        actions: config.actions || []
-      });
+        ...(config.actions && { actions: config.actions })
+      } as any);
     } else {
-      // Fallback to basic notification
+      // ✅ FIXED: Fallback to basic notification (no actions support)
       new Notification(config.title, {
         body: config.body,
         icon: config.icon || '/icon-192.png'
+        // Note: actions are not supported in basic Notification API
       });
     }
   }

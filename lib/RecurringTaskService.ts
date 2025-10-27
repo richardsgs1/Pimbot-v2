@@ -15,6 +15,17 @@ export interface RecurringTaskConfig extends Task {
   isRecurring?: boolean;
 }
 
+// ✅ ADDED: Export RecurringTask type that was missing
+export interface RecurringTask {
+  id: string;
+  title: string;
+  pattern: 'daily' | 'weekly' | 'monthly';
+  startDate: Date;
+  interval: number;
+  active: boolean;
+  createdAt?: Date;
+}
+
 export class RecurringTaskService {
   /**
    * Generate occurrences of a recurring task

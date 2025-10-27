@@ -1,23 +1,43 @@
-// CalendarView_Week4.tsx
-// 🎉 FINAL VERSION - Week 4: Complete Feature Set
-// ✅ All Weeks 1-3 features + Recurring tasks + Push notifications + PWA + Team views + Keyboard shortcuts
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Calendar, momentLocalizer, View, Event } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
+import type { Project, Task } from '../types';
+import { Priority, TaskStatus } from '../types'; // ✅ Regular import for enums (not type-only)
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
-// Import all services
-import { calendarExportService } from './lib/CalendarExportService';
-import { filterPresetService } from './lib/FilterPresetService';
-import { recurringTaskService, RecurringTask } from './lib/RecurringTaskService';
-import { pushNotificationService } from './lib/PushNotificationService';
-import { teamViewService, TeamView, TeamMember } from './lib/TeamViewService';
-import { keyboardShortcutService, SHORTCUT_DISPLAY } from './lib/KeyboardShortcutService';
+// ✅ FIXED IMPORTS - Import the classes directly (they have static methods)
+import { CalendarExportService } from '../lib/CalendarExportService';
+import { RecurringTaskService, RecurringTaskConfig } from '../lib/RecurringTaskService';
+import { KeyboardShortcutService, CalendarShortcuts } from '../lib/KeyboardShortcutService';
+
+// Services that may not exist yet - we'll handle gracefully
+let FilterPresetService: any = null;
+let PushNotificationService: any = null;
+let TeamViewService: any = null;
+
+try {
+  FilterPresetService = require('../lib/FilterPresetService').FilterPresetService;
+} catch (e) {
+  console.warn('FilterPresetService not available');
+}
+
+try {
+  PushNotificationService = require('../lib/PushNotificationService').PushNotificationService;
+} catch (e) {
+  console.warn('PushNotificationService not available');
+}
+
+try {
+  TeamViewService = require('../lib/TeamViewService').TeamViewService;
+} catch (e) {
+  console.warn('TeamViewService not available');
+}
 
 const localizer = momentLocalizer(moment);
 
-// Extended CalendarEvent interface
+// ✅ FIXED: Properly typed DnD Calendar - use Task types directly
 interface CalendarEvent extends Event {
   id: string;
   title: string;
@@ -25,8 +45,8 @@ interface CalendarEvent extends Event {
   end: Date;
   resourceId?: string;
   project?: string;
-  priority?: 'low' | 'medium' | 'high';
-  status?: 'not-started' | 'in-progress' | 'completed';
+  priority?: Task['priority']; // Use Task's priority type
+  status?: Task['status']; // Use Task's status type
   milestone?: boolean;
   assignee?: string;
   description?: string;
@@ -34,27 +54,62 @@ interface CalendarEvent extends Event {
   recurringId?: string;
 }
 
+const DnDCalendar = withDragAndDrop<CalendarEvent, object>(Calendar);
+
+// ✅ FIXED: Updated props interface to match what Dashboard passes
 interface CalendarViewProps {
-  tasks?: CalendarEvent[];
-  onTaskUpdate?: (taskId: string, updates: Partial<CalendarEvent>) => void;
-  onTaskCreate?: (task: Omit<CalendarEvent, 'id'>) => void;
+  projects: Project[];
+  onTaskClick?: (task: Task) => void;
+  onDateSelect?: (date: Date) => void;
+  onTaskReschedule?: (taskId: string, newDate: Date, projectId: string) => Promise<void>;
 }
 
+// Supporting interfaces
 interface NotificationBanner {
   type: 'warning' | 'info';
   message: string;
   tasks: string[];
 }
 
+interface RecurringTaskInstance {
+  id: string;
+  recurringTaskId: string;
+  title: string;
+  date: Date;
+}
+
+interface FilterPreset {
+  id: string;
+  name: string;
+  filters: any;
+  isBuiltIn: boolean;
+}
+
+interface TeamView {
+  id: string;
+  name: string;
+  memberIds: string[];
+  color?: string;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  color: string;
+}
+
+// ✅ Main Component
 export const CalendarView: React.FC<CalendarViewProps> = ({
-  tasks = [],
-  onTaskUpdate,
-  onTaskCreate
+  projects = [],
+  onTaskClick,
+  onDateSelect,
+  onTaskReschedule
 }) => {
-  // === STATE ===
+  // State
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>(tasks);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   
   // Filters
@@ -74,7 +129,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   
-  // Week 3 & 4 Features
+  // Week 4 Features
   const [notifications, setNotifications] = useState<NotificationBanner[]>([]);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [teamViews, setTeamViews] = useState<TeamView[]>([]);
@@ -82,257 +137,234 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<any>(null);
-  const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
+  const [recurringTasks, setRecurringTasks] = useState<RecurringTaskConfig[]>([]);
   
   const calendarRef = useRef<any>(null);
 
-  // === INITIALIZATION ===
+  // ✅ Convert projects to calendar events
   useEffect(() => {
-    initializeWeek4Features();
+    const calendarEvents: CalendarEvent[] = [];
+    
+    projects.forEach(project => {
+      // Add project milestones
+      if (project.startDate) {
+        calendarEvents.push({
+          id: `milestone-start-${project.id}`,
+          title: `🚀 ${project.name} Start`,
+          start: new Date(project.startDate),
+          end: new Date(project.startDate),
+          project: project.name,
+          milestone: true,
+          priority: Priority.High,
+          status: TaskStatus.ToDo
+        });
+      }
+
+      if (project.dueDate) {
+        calendarEvents.push({
+          id: `milestone-end-${project.id}`,
+          title: `🏁 ${project.name} Due`,
+          start: new Date(project.dueDate),
+          end: new Date(project.dueDate),
+          project: project.name,
+          milestone: true,
+          priority: Priority.High,
+          status: TaskStatus.ToDo
+        });
+      }
+
+      // Add tasks
+      project.tasks.forEach(task => {
+        if (task.dueDate) {
+          const taskStart = task.startDate ? new Date(task.startDate) : new Date(task.dueDate);
+          const taskEnd = new Date(task.dueDate);
+          
+          calendarEvents.push({
+            id: task.id,
+            title: task.name,
+            start: taskStart,
+            end: taskEnd,
+            project: project.name,
+            priority: task.priority,
+            status: task.status,
+            description: task.description,
+            assignee: task.assignees?.[0],
+            milestone: false
+          });
+        }
+      });
+    });
+
+    setEvents(calendarEvents);
+  }, [projects]);
+
+  // Initialization
+  useEffect(() => {
+    initializeFeatures();
     setupKeyboardShortcuts();
     checkNotifications();
-    loadTeamData();
-    loadRecurringTasks();
-    registerPWA();
   }, []);
 
-  // Initialize Week 4 features
-  const initializeWeek4Features = async () => {
-    // Check notification permission
-    const permission = pushNotificationService.getPermissionStatus();
-    setNotificationPermission(permission);
+  const initializeFeatures = async () => {
+    if (PushNotificationService) {
+      const permission = await PushNotificationService.requestPermission();
+      setNotificationPermission(permission);
+    }
     
-    // Register service worker
-    await pushNotificationService.registerServiceWorker();
-    
-    // Listen for PWA install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setPwaInstallPrompt(e);
     });
-  };
 
-  // Register PWA
-  const registerPWA = async () => {
+    // Register service worker for PWA
     if ('serviceWorker' in navigator) {
       try {
         await navigator.serviceWorker.register('/service-worker.js');
         console.log('✅ PWA registered');
       } catch (error) {
-        console.error('❌ PWA registration failed:', error);
+        console.warn('PWA registration failed:', error);
       }
     }
   };
 
-  // Load team data
-  const loadTeamData = () => {
-    const members = teamViewService.getAllMembers();
-    setTeamMembers(members);
-    
-    const views = teamViewService.getAllViews();
-    if (views.length === 0) {
-      teamViewService.createDefaultViews('current-user');
-      setTeamViews(teamViewService.getAllViews());
-    } else {
-      setTeamViews(views);
-    }
-  };
-
-  // Load recurring tasks
-  const loadRecurringTasks = () => {
-    const recurring = recurringTaskService.getAllRecurringTasks();
-    setRecurringTasks(recurring);
-    
-    // Generate instances for current view
-    const instances = recurringTaskService.generateInstancesForRange(
-      moment(date).startOf('month').toDate(),
-      moment(date).endOf('month').toDate()
-    );
-    
-    // Add to events
-    const recurringEvents: CalendarEvent[] = instances.map(instance => ({
-      id: instance.id,
-      title: instance.title,
-      start: instance.date,
-      end: instance.date,
-      isRecurring: true,
-      recurringId: instance.recurringTaskId,
-      priority: 'medium',
-      status: 'not-started'
-    }));
-    
-    setEvents(prev => [...tasks, ...recurringEvents]);
-  };
-
-  // Setup keyboard shortcuts
   const setupKeyboardShortcuts = () => {
-    const service = keyboardShortcutService;
-    
-    // Navigation
-    service.register({ key: 'd', description: 'Day view', action: () => setView('day') });
-    service.register({ key: 'w', description: 'Week view', action: () => setView('week') });
-    service.register({ key: 'm', description: 'Month view', action: () => setView('month') });
-    service.register({ key: 'a', description: 'Agenda view', action: () => setView('agenda') });
-    service.register({ key: 't', description: 'Today', action: () => setDate(new Date()) });
-    service.register({ key: 'arrowleft', description: 'Previous', action: () => handleNavigate('PREV') });
-    service.register({ key: 'arrowright', description: 'Next', action: () => handleNavigate('NEXT') });
-    
-    // Actions
-    service.register({ key: 'f', description: 'Toggle filters', action: () => setShowFilters(prev => !prev) });
-    service.register({ key: 'e', description: 'Export', action: () => setShowExportModal(true) });
-    service.register({ key: 's', description: 'Save preset', action: () => setShowPresetModal(true) });
-    service.register({ key: 'p', description: 'Toggle milestones', action: () => setShowMilestonesOnly(prev => !prev) });
-    service.register({ key: 'o', description: 'Toggle overdue', action: () => setShowOverdueOnly(prev => !prev) });
-    service.register({ key: '?', shiftKey: true, description: 'Show shortcuts', action: () => setShowShortcutsModal(true) });
-    service.register({ key: 'Escape', description: 'Close modal', action: closeAllModals });
-    
-    // Team views
-    service.register({ key: '1', ctrlKey: true, description: 'Team 1', action: () => loadTeamView(0) });
-    service.register({ key: '2', ctrlKey: true, description: 'Team 2', action: () => loadTeamView(1) });
-    service.register({ key: '3', ctrlKey: true, description: 'Team 3', action: () => loadTeamView(2) });
+    // Register keyboard shortcuts using the service
+    const shortcuts = CalendarShortcuts.create({
+      onViewChange: (newView) => setView(newView),
+      onNavigate: (direction) => {
+        if (direction === 'today') setDate(new Date());
+        else if (direction === 'prev') handleNavigate('PREV');
+        else if (direction === 'next') handleNavigate('NEXT');
+      },
+      onFilterToggle: () => setShowFilters(prev => !prev),
+      onPresetToggle: () => setShowPresetModal(prev => !prev),
+      onExportToggle: () => setShowExportModal(prev => !prev),
+      onCreateTask: () => {
+        if (onDateSelect) onDateSelect(new Date());
+      },
+      onSearch: () => {
+        // Could open a search modal here
+      },
+      onHelp: () => setShowShortcutsModal(prev => !prev)
+    });
+
+    KeyboardShortcutService.registerMultiple(shortcuts);
+    KeyboardShortcutService.initialize();
+
+    return () => {
+      KeyboardShortcutService.cleanup();
+    };
   };
 
-  const closeAllModals = () => {
-    setShowExportModal(false);
-    setShowPresetModal(false);
-    setShowTeamModal(false);
-    setShowShortcutsModal(false);
-    setShowRecurringModal(false);
-    setShowNotificationSettings(false);
-  };
-
-  const loadTeamView = (index: number) => {
-    if (teamViews[index]) {
-      setActiveTeamView(teamViews[index]);
-      setShowTeamModal(true);
-    }
-  };
-
-  // Check and show notifications
   const checkNotifications = () => {
-    const tomorrow = moment().add(1, 'day').startOf('day');
-    const dueSoon = events.filter(event => {
+    const now = moment();
+    const upcoming: string[] = [];
+    const overdue: string[] = [];
+
+    events.forEach(event => {
       const eventDate = moment(event.start);
-      return eventDate.isSame(tomorrow, 'day') && event.status !== 'completed';
-    });
+      const daysUntil = eventDate.diff(now, 'days');
 
-    if (dueSoon.length > 0) {
-      setNotifications([{
-        type: 'warning',
-        message: `📅 ${dueSoon.length} task(s) due tomorrow`,
-        tasks: dueSoon.map(e => e.title)
-      }]);
-
-      // Send push notification
-      if (notificationPermission === 'granted') {
-        dueSoon.forEach(task => {
-          pushNotificationService.notifyTaskDue(task.title, task.start);
-        });
+      if (daysUntil >= 0 && daysUntil <= 3 && event.status !== TaskStatus.Done) {
+        upcoming.push(event.title);
+      } else if (daysUntil < 0 && event.status !== TaskStatus.Done) {
+        overdue.push(event.title);
       }
-    }
-
-    // Check overdue
-    const overdue = events.filter(event => {
-      return moment(event.start).isBefore(moment(), 'day') && event.status !== 'completed';
     });
+
+    const newNotifications: NotificationBanner[] = [];
 
     if (overdue.length > 0) {
-      setNotifications(prev => [...prev, {
+      newNotifications.push({
         type: 'warning',
-        message: `🚨 ${overdue.length} overdue task(s)`,
-        tasks: overdue.map(e => e.title)
-      }]);
-    }
-  };
-
-  // Request notification permission
-  const requestNotificationPermission = async () => {
-    const granted = await pushNotificationService.requestPermission();
-    setNotificationPermission(granted ? 'granted' : 'denied');
-    
-    if (granted) {
-      // Send test notification
-      await pushNotificationService.showNotification({
-        title: '🎉 Notifications Enabled',
-        body: 'You\'ll now receive task reminders!',
-        tag: 'welcome'
+        message: `⚠️ ${overdue.length} Overdue Tasks`,
+        tasks: overdue
       });
     }
+
+    if (upcoming.length > 0) {
+      newNotifications.push({
+        type: 'info',
+        message: `📅 ${upcoming.length} Tasks Due Soon`,
+        tasks: upcoming
+      });
+    }
+
+    setNotifications(newNotifications);
   };
 
-  // Install PWA
-  const installPWA = async () => {
-    if (!pwaInstallPrompt) return;
-    
-    pwaInstallPrompt.prompt();
-    const { outcome } = await pwaInstallPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('✅ PWA installed');
-      setPwaInstallPrompt(null);
-    }
+  const getFilteredEvents = (): CalendarEvent[] => {
+    return events.filter(event => {
+      if (filterProject && event.project !== filterProject) return false;
+      if (filterPriority && event.priority !== filterPriority) return false;
+      if (filterStatus && event.status !== filterStatus) return false;
+      if (filterAssignee && event.assignee !== filterAssignee) return false;
+      if (showMilestonesOnly && !event.milestone) return false;
+      if (showOverdueOnly && !moment(event.start).isBefore(moment(), 'day')) return false;
+      return true;
+    });
   };
 
-  // === FILTERING ===
-  const getFilteredEvents = useCallback(() => {
-    let filtered = [...events];
-
-    if (filterProject) {
-      filtered = filtered.filter(e => e.project === filterProject);
-    }
-    if (filterPriority) {
-      filtered = filtered.filter(e => e.priority === filterPriority);
-    }
-    if (filterStatus) {
-      filtered = filtered.filter(e => e.status === filterStatus);
-    }
-    if (filterAssignee) {
-      filtered = filtered.filter(e => e.assignee === filterAssignee);
-    }
-    if (showMilestonesOnly) {
-      filtered = filtered.filter(e => e.milestone);
-    }
-    if (showOverdueOnly) {
-      const now = new Date();
-      filtered = filtered.filter(e => e.start < now && e.status !== 'completed');
-    }
-    if (activeTeamView) {
-      const memberIds = activeTeamView.members.map(m => m.id);
-      filtered = filtered.filter(e => e.assignee && memberIds.includes(e.assignee));
-    }
-
-    return filtered;
-  }, [events, filterProject, filterPriority, filterStatus, filterAssignee, 
-      showMilestonesOnly, showOverdueOnly, activeTeamView]);
-
-  // === EVENT HANDLERS ===
+  // ✅ FIXED: Event handlers with proper types
   const handleSelectEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
-  };
-
-  const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
-    const title = window.prompt('New task title:');
-    if (title && onTaskCreate) {
-      onTaskCreate({
-        title,
-        start,
-        end,
-        priority: 'medium',
-        status: 'not-started'
-      });
+    
+    // If it's a task (not milestone), call the onTaskClick handler
+    if (!event.milestone && onTaskClick) {
+      // Find the original task from projects
+      for (const project of projects) {
+        const task = project.tasks.find(t => t.id === event.id);
+        if (task) {
+          onTaskClick(task);
+          break;
+        }
+      }
     }
   };
 
-  const handleEventDrop = ({ event, start, end }: any) => {
-    const updatedEvent = { ...event, start, end };
-    setEvents(events.map(e => (e.id === event.id ? updatedEvent : e)));
-    onTaskUpdate?.(event.id, { start, end });
+  const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    if (onDateSelect) {
+      onDateSelect(slotInfo.start);
+    }
   };
 
-  const handleEventResize = ({ event, start, end }: any) => {
-    const updatedEvent = { ...event, start, end };
-    setEvents(events.map(e => (e.id === event.id ? updatedEvent : e)));
-    onTaskUpdate?.(event.id, { start, end });
+  const handleEventDrop = async (args: { event: CalendarEvent; start: string | Date; end: string | Date }) => {
+    // Convert stringOrDate to Date
+    const startDate = typeof args.start === 'string' ? new Date(args.start) : args.start;
+    const endDate = typeof args.end === 'string' ? new Date(args.end) : args.end;
+    
+    // Find which project this task belongs to
+    const project = projects.find(p => p.tasks.some(t => t.id === args.event.id));
+    
+    if (project && onTaskReschedule) {
+      await onTaskReschedule(args.event.id, startDate, project.id);
+    }
+
+    // Update local state
+    setEvents(prev =>
+      prev.map(e =>
+        e.id === args.event.id ? { ...e, start: startDate, end: endDate } : e
+      )
+    );
+  };
+
+  const handleEventResize = async (args: { event: CalendarEvent; start: string | Date; end: string | Date }) => {
+    // Convert stringOrDate to Date
+    const startDate = typeof args.start === 'string' ? new Date(args.start) : args.start;
+    const endDate = typeof args.end === 'string' ? new Date(args.end) : args.end;
+    
+    // Similar to drop
+    const project = projects.find(p => p.tasks.some(t => t.id === args.event.id));
+    
+    if (project && onTaskReschedule) {
+      await onTaskReschedule(args.event.id, endDate, project.id);
+    }
+
+    setEvents(prev =>
+      prev.map(e =>
+        e.id === args.event.id ? { ...e, start: startDate, end: endDate } : e
+      )
+    );
   };
 
   const handleNavigate = (action: 'PREV' | 'NEXT' | 'TODAY') => {
@@ -341,59 +373,48 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (action === 'TODAY') {
       newDate = new Date();
     } else if (action === 'PREV') {
-      if (view === 'month') {
-        newDate = moment(date).subtract(1, 'month').toDate();
-      } else if (view === 'week') {
-        newDate = moment(date).subtract(1, 'week').toDate();
-      } else if (view === 'day') {
-        newDate = moment(date).subtract(1, 'day').toDate();
-      }
+      if (view === 'month') newDate = moment(date).subtract(1, 'month').toDate();
+      else if (view === 'week') newDate = moment(date).subtract(1, 'week').toDate();
+      else if (view === 'day') newDate = moment(date).subtract(1, 'day').toDate();
     } else if (action === 'NEXT') {
-      if (view === 'month') {
-        newDate = moment(date).add(1, 'month').toDate();
-      } else if (view === 'week') {
-        newDate = moment(date).add(1, 'week').toDate();
-      } else if (view === 'day') {
-        newDate = moment(date).add(1, 'day').toDate();
-      }
+      if (view === 'month') newDate = moment(date).add(1, 'month').toDate();
+      else if (view === 'week') newDate = moment(date).add(1, 'week').toDate();
+      else if (view === 'day') newDate = moment(date).add(1, 'day').toDate();
     }
     
     setDate(newDate);
-    
-    // Reload recurring task instances for new date range
-    if (recurringTasks.length > 0) {
-      loadRecurringTasks();
-    }
   };
 
-  // === EXPORT ===
   const handleExport = (format: 'ical' | 'google' | 'csv') => {
-    const filtered = getFilteredEvents();
-    
-    if (format === 'ical') {
-      const blob = calendarExportService.exportToICal(filtered, 'TaskFlow Calendar');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'calendar.ics';
-      a.click();
-    } else if (format === 'google') {
-      const url = calendarExportService.exportToGoogleCalendar(filtered[0]);
-      window.open(url, '_blank');
-    } else if (format === 'csv') {
-      const blob = calendarExportService.exportToCSV(filtered);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'calendar.csv';
-      a.click();
+    // Convert CalendarEvents back to Projects format for export
+    const exportProjects = projects;
+    const options = {
+      format,
+      includeCompleted: true,
+      includeMilestones: true
+    };
+
+    try {
+      if (format === 'ical') {
+        CalendarExportService.exportToICal(exportProjects, options);
+      } else if (format === 'google') {
+        CalendarExportService.exportToGoogleCalendar(exportProjects, options);
+      } else if (format === 'csv') {
+        CalendarExportService.exportToCSV(exportProjects, options);
+      }
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
     }
-    
-    setShowExportModal(false);
   };
 
-  // === PRESETS ===
   const handleSavePreset = () => {
+    if (!FilterPresetService) {
+      alert('Filter presets not available');
+      return;
+    }
+
     const name = window.prompt('Preset name:');
     if (!name) return;
 
@@ -406,76 +427,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       overdueOnly: showOverdueOnly
     };
 
-    filterPresetService.savePreset(name, filters);
+    FilterPresetService.savePreset(name, filters);
     setShowPresetModal(false);
   };
 
-  const handleLoadPreset = (presetId: string) => {
-    const preset = filterPresetService.getPreset(presetId);
-    if (!preset) return;
-
-    setFilterProject(preset.filters.project || '');
-    setFilterPriority(preset.filters.priority || '');
-    setFilterStatus(preset.filters.status || '');
-    setFilterAssignee(preset.filters.assignee || '');
-    setShowMilestonesOnly(preset.filters.milestonesOnly || false);
-    setShowOverdueOnly(preset.filters.overdueOnly || false);
-    setActivePreset(presetId);
+  const closeAllModals = () => {
+    setShowExportModal(false);
     setShowPresetModal(false);
-  };
-
-  const handleDeletePreset = (presetId: string) => {
-    filterPresetService.deletePreset(presetId);
-    if (activePreset === presetId) {
-      setActivePreset(null);
-    }
-  };
-
-  // === RECURRING TASKS ===
-  const handleCreateRecurring = () => {
-    const title = window.prompt('Recurring task title:');
-    if (!title) return;
-
-    const pattern = window.prompt('Pattern (daily/weekly/monthly):');
-    if (!pattern || !['daily', 'weekly', 'monthly'].includes(pattern)) return;
-
-    const task: Omit<RecurringTask, 'id' | 'createdAt'> = {
-      title,
-      pattern: pattern as 'daily' | 'weekly' | 'monthly',
-      startDate: new Date(),
-      interval: 1,
-      active: true
-    };
-
-    const recurring = recurringTaskService.createRecurringTask(task);
-    setRecurringTasks(prev => [...prev, recurring]);
-    loadRecurringTasks();
-  };
-
-  // === TEAM VIEWS ===
-  const handleCreateTeamView = () => {
-    const name = window.prompt('Team view name:');
-    if (!name) return;
-
-    // For demo, select first 3 members
-    const memberIds = teamMembers.slice(0, 3).map(m => m.id);
-    const view = teamViewService.createView(name, memberIds, 'current-user');
-    setTeamViews(prev => [...prev, view]);
-  };
-
-  const handleLoadTeamView = (view: TeamView) => {
-    setActiveTeamView(view);
     setShowTeamModal(false);
+    setShowShortcutsModal(false);
+    setShowRecurringModal(false);
+    setShowNotificationSettings(false);
   };
 
-  // === STATS ===
   const calculateStats = () => {
     const filtered = getFilteredEvents();
-    const completed = filtered.filter(e => e.status === 'completed').length;
-    const inProgress = filtered.filter(e => e.status === 'in-progress').length;
-    const notStarted = filtered.filter(e => e.status === 'not-started').length;
+    const completed = filtered.filter(e => e.status === TaskStatus.Done).length;
+    const inProgress = filtered.filter(e => e.status === TaskStatus.InProgress).length;
+    const notStarted = filtered.filter(e => e.status === TaskStatus.ToDo).length;
     const overdue = filtered.filter(e => 
-      moment(e.start).isBefore(moment(), 'day') && e.status !== 'completed'
+      moment(e.start).isBefore(moment(), 'day') && e.status !== TaskStatus.Done
     ).length;
     const milestones = filtered.filter(e => e.milestone).length;
 
@@ -486,20 +457,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const activeFilters = [filterProject, filterPriority, filterStatus, filterAssignee]
     .filter(Boolean).length + (showMilestonesOnly ? 1 : 0) + (showOverdueOnly ? 1 : 0);
 
-  // === EVENT STYLING ===
+  // ✅ FIXED: Properly typed event style getter
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = '#3b82f6';
     
-    if (event.priority === 'high') backgroundColor = '#ef4444';
-    else if (event.priority === 'low') backgroundColor = '#10b981';
+    if (event.priority === Priority.High) backgroundColor = '#ef4444';
+    else if (event.priority === Priority.Low) backgroundColor = '#10b981';
     
-    if (event.status === 'completed') backgroundColor = '#6b7280';
+    if (event.status === TaskStatus.Done) backgroundColor = '#6b7280';
     if (event.milestone) backgroundColor = '#8b5cf6';
     if (event.isRecurring) backgroundColor = '#f59e0b';
     
-    // Team member color
     if (event.assignee) {
-      const member = teamMembers.find(m => m.id === event.assignee);
+      const member = teamMembers.find((m: TeamMember) => m.id === event.assignee);
       if (member) backgroundColor = member.color;
     }
 
@@ -514,166 +484,58 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     };
   };
 
-  // === RENDER ===
+  const uniqueProjects = Array.from(new Set(events.map(e => e.project).filter((p): p is string => Boolean(p))));
+  const uniqueAssignees = Array.from(new Set(events.map(e => e.assignee).filter((a): a is string => Boolean(a))));
+
   return (
-    <div className="calendar-container" style={{ height: '100vh', padding: '20px' }}>
-      {/* Notification Banners */}
+    <div className="calendar-container" style={{ height: '100vh', padding: '20px', backgroundColor: 'var(--bg-primary)' }}>
+      {/* Notifications */}
       {notifications.map((notif, idx) => (
-        <div
-          key={idx}
-          style={{
-            padding: '12px',
-            marginBottom: '12px',
-            backgroundColor: notif.type === 'warning' ? '#fef3c7' : '#dbeafe',
-            borderLeft: `4px solid ${notif.type === 'warning' ? '#f59e0b' : '#3b82f6'}`,
-            borderRadius: '4px'
-          }}
-        >
+        <div key={idx} style={{
+          padding: '12px',
+          marginBottom: '12px',
+          backgroundColor: notif.type === 'warning' ? '#fef3c7' : '#dbeafe',
+          borderLeft: `4px solid ${notif.type === 'warning' ? '#f59e0b' : '#3b82f6'}`,
+          borderRadius: '4px'
+        }}>
           <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{notif.message}</div>
           {notif.tasks.length > 0 && (
             <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              {notif.tasks.slice(0, 3).map((task, i) => (
-                <div key={i}>• {task}</div>
-              ))}
+              {notif.tasks.slice(0, 3).map((task, i) => <div key={i}>• {task}</div>)}
               {notif.tasks.length > 3 && <div>...and {notif.tasks.length - 3} more</div>}
             </div>
           )}
         </div>
       ))}
 
+      {/* Stats Bar */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '16px',
+        padding: '12px',
+        backgroundColor: 'var(--bg-secondary)',
+        borderRadius: '8px',
+        flexWrap: 'wrap'
+      }}>
+        <StatBadge label="Total" value={stats.total} color="#3b82f6" />
+        <StatBadge label="Completed" value={stats.completed} color="#10b981" />
+        <StatBadge label="In Progress" value={stats.inProgress} color="#f59e0b" />
+        <StatBadge label="Not Started" value={stats.notStarted} color="#6b7280" />
+        <StatBadge label="Overdue" value={stats.overdue} color="#ef4444" />
+        <StatBadge label="Milestones" value={stats.milestones} color="#8b5cf6" />
+      </div>
+
       {/* Action Bar */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          🔍 Filters {activeFilters > 0 && `(${activeFilters})`}
-        </button>
-
-        <button
-          onClick={() => setShowPresetModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: activePreset ? '#10b981' : '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          🔖 Presets {activePreset && '✓'}
-        </button>
-
-        <button
-          onClick={() => setShowExportModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#8b5cf6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          📤 Export
-        </button>
-
-        <button
-          onClick={() => setShowTeamModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#f59e0b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          👥 Team {activeTeamView && `(${activeTeamView.name})`}
-        </button>
-
-        <button
-          onClick={() => setShowRecurringModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#ec4899',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          🔄 Recurring ({recurringTasks.length})
-        </button>
-
-        <button
-          onClick={() => setShowNotificationSettings(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: notificationPermission === 'granted' ? '#10b981' : '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          🔔 Notifications {notificationPermission === 'granted' && '✓'}
-        </button>
-
-        {pwaInstallPrompt && (
-          <button
-            onClick={installPWA}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#06b6d4',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            📱 Install App
-          </button>
-        )}
-
-        <button
-          onClick={() => setShowShortcutsModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer'
-          }}
-        >
-          ⌨️ Shortcuts
-        </button>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <input
-            type="checkbox"
-            checked={showMilestonesOnly}
-            onChange={(e) => setShowMilestonesOnly(e.target.checked)}
-          />
-          ⭐ Milestones Only
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <input
-            type="checkbox"
-            checked={showOverdueOnly}
-            onChange={(e) => setShowOverdueOnly(e.target.checked)}
-          />
-          🚨 Overdue Only
-        </label>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <ActionButton 
+          onClick={() => setShowFilters(!showFilters)} 
+          label={`🔍 Filters ${activeFilters > 0 ? `(${activeFilters})` : ''}`}
+        />
+        <ActionButton onClick={() => setShowExportModal(true)} label="📤 Export" />
+        <ActionButton onClick={() => setShowPresetModal(true)} label="💾 Presets" />
+        <ActionButton onClick={() => setShowShortcutsModal(true)} label="⌨️ Shortcuts" />
+        <ActionButton onClick={() => handleNavigate('TODAY')} label="📅 Today" />
       </div>
 
       {/* Filters Panel */}
@@ -681,56 +543,52 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div style={{
           padding: '16px',
           marginBottom: '16px',
-          backgroundColor: '#f3f4f6',
+          backgroundColor: 'var(--bg-secondary)',
           borderRadius: '8px',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '12px'
         }}>
-          <select
+          <FilterSelect
+            label="Project"
             value={filterProject}
-            onChange={(e) => setFilterProject(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Projects</option>
-            <option value="Project A">Project A</option>
-            <option value="Project B">Project B</option>
-            <option value="Project C">Project C</option>
-          </select>
-
-          <select
+            onChange={setFilterProject}
+            options={['', ...uniqueProjects]}
+          />
+          <FilterSelect
+            label="Priority"
             value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-
-          <select
+            onChange={setFilterPriority}
+            options={['', Priority.Low, Priority.Medium, Priority.High, Priority.Urgent]}
+          />
+          <FilterSelect
+            label="Status"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Statuses</option>
-            <option value="not-started">Not Started</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-
-          <select
+            onChange={setFilterStatus}
+            options={['', TaskStatus.ToDo, TaskStatus.InProgress, TaskStatus.Done, TaskStatus.OnHold]}
+          />
+          <FilterSelect
+            label="Assignee"
             value={filterAssignee}
-            onChange={(e) => setFilterAssignee(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Assignees</option>
-            {teamMembers.map(member => (
-              <option key={member.id} value={member.id}>{member.name}</option>
-            ))}
-          </select>
-
+            onChange={setFilterAssignee}
+            options={['', ...uniqueAssignees]}
+          />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={showMilestonesOnly}
+              onChange={(e) => setShowMilestonesOnly(e.target.checked)}
+            />
+            Milestones Only
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={showOverdueOnly}
+              onChange={(e) => setShowOverdueOnly(e.target.checked)}
+            />
+            Overdue Only
+          </label>
           <button
             onClick={() => {
               setFilterProject('');
@@ -739,15 +597,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               setFilterAssignee('');
               setShowMilestonesOnly(false);
               setShowOverdueOnly(false);
-              setActivePreset(null);
-              setActiveTeamView(null);
             }}
             style={{
-              padding: '8px',
+              padding: '8px 16px',
               backgroundColor: '#ef4444',
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
+              borderRadius: '6px',
               cursor: 'pointer'
             }}
           >
@@ -756,43 +612,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* Stats Bar */}
+      {/* ✅ FIXED: Calendar with proper accessor functions */}
       <div style={{
-        display: 'flex',
-        gap: '12px',
-        marginBottom: '16px',
-        flexWrap: 'wrap'
+        height: 'calc(100vh - 350px)',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '16px'
       }}>
-        <div style={{ padding: '8px 16px', backgroundColor: '#dbeafe', borderRadius: '6px' }}>
-          📊 Total: <strong>{stats.total}</strong>
-        </div>
-        <div style={{ padding: '8px 16px', backgroundColor: '#d1fae5', borderRadius: '6px' }}>
-          ✅ Completed: <strong>{stats.completed}</strong>
-        </div>
-        <div style={{ padding: '8px 16px', backgroundColor: '#fef3c7', borderRadius: '6px' }}>
-          ⚡ In Progress: <strong>{stats.inProgress}</strong>
-        </div>
-        <div style={{ padding: '8px 16px', backgroundColor: '#fee2e2', borderRadius: '6px' }}>
-          🚨 Overdue: <strong>{stats.overdue}</strong>
-        </div>
-        <div style={{ padding: '8px 16px', backgroundColor: '#ede9fe', borderRadius: '6px' }}>
-          ⭐ Milestones: <strong>{stats.milestones}</strong>
-        </div>
-        {recurringTasks.length > 0 && (
-          <div style={{ padding: '8px 16px', backgroundColor: '#fed7aa', borderRadius: '6px' }}>
-            🔄 Recurring: <strong>{recurringTasks.length}</strong>
-          </div>
-        )}
-      </div>
-
-      {/* Calendar */}
-      <div style={{ height: 'calc(100vh - 300px)', backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
-        <Calendar
-          ref={calendarRef}
+        <DnDCalendar
           localizer={localizer}
           events={getFilteredEvents()}
-          startAccessor="start"
-          endAccessor="end"
+          startAccessor={(event: CalendarEvent) => event.start}
+          endAccessor={(event: CalendarEvent) => event.end}
           view={view}
           onView={setView}
           date={date}
@@ -810,565 +641,171 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Export Modal */}
       {showExportModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '300px'
-          }}>
-            <h3 style={{ marginTop: 0 }}>📤 Export Calendar</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                onClick={() => handleExport('ical')}
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                📅 iCal Format (.ics)
-              </button>
-              <button
-                onClick={() => handleExport('google')}
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                🗓️ Google Calendar
-              </button>
-              <button
-                onClick={() => handleExport('csv')}
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#8b5cf6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                📊 CSV Spreadsheet
-              </button>
-              <button
-                onClick={() => setShowExportModal(false)}
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+        <Modal title="Export Calendar" onClose={() => setShowExportModal(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button onClick={() => handleExport('ical')} className="modal-button">
+              📅 Export to iCal (.ics)
+            </button>
+            <button onClick={() => handleExport('google')} className="modal-button">
+              🗓️ Add to Google Calendar
+            </button>
+            <button onClick={() => handleExport('csv')} className="modal-button">
+              📊 Export to CSV
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* Preset Modal */}
-      {showPresetModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '400px',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <h3 style={{ marginTop: 0 }}>🔖 Filter Presets</h3>
-            
-            <button
-              onClick={handleSavePreset}
-              style={{
-                padding: '12px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginBottom: '16px'
-              }}
-            >
-              💾 Save Current Filters
-            </button>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {filterPresetService.getAllPresets().map(preset => (
-                <div
-                  key={preset.id}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: activePreset === preset.id ? '#dbeafe' : '#f3f4f6',
-                    borderRadius: '6px',
+      {/* Shortcuts Modal */}
+      {showShortcutsModal && (
+        <Modal title="Keyboard Shortcuts" onClose={() => setShowShortcutsModal(false)}>
+          <div style={{ display: 'grid', gap: '8px' }}>
+            {KeyboardShortcutService.getShortcutsByCategory().map((category, idx) => (
+              <div key={idx}>
+                <h3 style={{ fontWeight: 'bold', marginTop: '12px', marginBottom: '8px' }}>
+                  {category.name}
+                </h3>
+                {category.shortcuts.map((shortcut, sidx) => (
+                  <div key={sidx} style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <span
-                    onClick={() => handleLoadPreset(preset.id)}
-                    style={{ cursor: 'pointer', flex: 1 }}
-                  >
-                    {preset.name} {activePreset === preset.id && '✓'}
-                  </span>
-                  {!preset.isBuiltIn && (
-                    <button
-                      onClick={() => handleDeletePreset(preset.id)}
-                      style={{
-                        padding: '4px 8px',
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setShowPresetModal(false)}
-              style={{
-                padding: '12px',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginTop: '16px'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Team View Modal */}
-      {showTeamModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '500px',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <h3 style={{ marginTop: 0 }}>👥 Team Calendar Views</h3>
-
-            <button
-              onClick={handleCreateTeamView}
-              style={{
-                padding: '12px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginBottom: '16px'
-              }}
-            >
-              ➕ Create New Team View
-            </button>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {teamViews.map(view => (
-                <div
-                  key={view.id}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: activeTeamView?.id === view.id ? '#dbeafe' : '#f3f4f6',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <strong>{view.name}</strong>
-                    <button
-                      onClick={() => handleLoadTeamView(view)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
-                      Load View
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {view.members.map(member => (
-                      <span
-                        key={member.id}
-                        style={{
-                          padding: '4px 8px',
-                          backgroundColor: member.color,
-                          color: 'white',
-                          borderRadius: '12px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        {member.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                setActiveTeamView(null);
-                setShowTeamModal(false);
-              }}
-              style={{
-                padding: '12px',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginTop: '16px'
-              }}
-            >
-              {activeTeamView ? 'Clear Team View' : 'Close'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Recurring Tasks Modal */}
-      {showRecurringModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '400px',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <h3 style={{ marginTop: 0 }}>🔄 Recurring Tasks</h3>
-
-            <button
-              onClick={handleCreateRecurring}
-              style={{
-                padding: '12px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginBottom: '16px'
-              }}
-            >
-              ➕ Create Recurring Task
-            </button>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {recurringTasks.map(task => (
-                <div
-                  key={task.id}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: task.active ? '#f3f4f6' : '#fee2e2',
-                    borderRadius: '6px'
-                  }}
-                >
-                  <div style={{ fontWeight: 'bold' }}>{task.title}</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                    {task.pattern} • Every {task.interval} {task.pattern}
-                  </div>
-                  {task.endDate && (
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Ends: {moment(task.endDate).format('MMM D, YYYY')}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {recurringTasks.length === 0 && (
-                <div style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
-                  No recurring tasks yet
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowRecurringModal(false)}
-              style={{
-                padding: '12px',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginTop: '16px'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Notification Settings Modal */}
-      {showNotificationSettings && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '400px'
-          }}>
-            <h3 style={{ marginTop: 0 }}>🔔 Notification Settings</h3>
-
-            <div style={{ marginBottom: '16px' }}>
-              <p>Status: <strong>
-                {notificationPermission === 'granted' ? '✅ Enabled' : 
-                 notificationPermission === 'denied' ? '❌ Blocked' : 
-                 '⚠️ Not Set'}
-              </strong></p>
-            </div>
-
-            {notificationPermission !== 'granted' && (
-              <button
-                onClick={requestNotificationPermission}
-                style={{
-                  padding: '12px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  width: '100%',
-                  marginBottom: '16px'
-                }}
-              >
-                Enable Notifications
-              </button>
-            )}
-
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
-              <p>You'll receive notifications for:</p>
-              <ul>
-                <li>Tasks due tomorrow</li>
-                <li>Overdue tasks</li>
-                <li>Project deadlines</li>
-                <li>Team mentions</li>
-              </ul>
-            </div>
-
-            <button
-              onClick={() => setShowNotificationSettings(false)}
-              style={{
-                padding: '12px',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Keyboard Shortcuts Modal */}
-      {showShortcutsModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            minWidth: '600px',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <h3 style={{ marginTop: 0 }}>⌨️ Keyboard Shortcuts</h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-              {Object.entries(SHORTCUT_DISPLAY).map(([category, shortcuts]) => (
-                <div key={category}>
-                  <h4 style={{ 
-                    marginTop: 0, 
-                    marginBottom: '12px', 
-                    textTransform: 'capitalize',
-                    color: '#3b82f6'
+                    padding: '4px 0'
                   }}>
-                    {category}
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {shortcuts.map((shortcut, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '8px',
-                          backgroundColor: '#f3f4f6',
-                          borderRadius: '4px'
-                        }}
-                      >
-                        <span style={{ fontSize: '14px' }}>{shortcut.description}</span>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          {shortcut.keys.map((key, kidx) => (
-                            <kbd
-                              key={kidx}
-                              style={{
-                                padding: '2px 6px',
-                                backgroundColor: 'white',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '3px',
-                                fontSize: '12px',
-                                fontFamily: 'monospace'
-                              }}
-                            >
-                              {key}
-                            </kbd>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                    <span>{shortcut.description}</span>
+                    <code style={{
+                      backgroundColor: '#f3f4f6',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}>
+                      {KeyboardShortcutService.getShortcutDisplay(shortcut)}
+                    </code>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setShowShortcutsModal(false)}
-              style={{
-                padding: '12px',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                width: '100%',
-                marginTop: '24px'
-              }}
-            >
-              Close
-            </button>
+                ))}
+              </div>
+            ))}
           </div>
-        </div>
+        </Modal>
       )}
-
-      {/* Legend */}
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#f9fafb',
-        borderRadius: '8px',
-        display: 'flex',
-        gap: '16px',
-        flexWrap: 'wrap',
-        fontSize: '14px'
-      }}>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '2px', marginRight: '4px' }}></span>High Priority</span>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#3b82f6', borderRadius: '2px', marginRight: '4px' }}></span>Medium Priority</span>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px', marginRight: '4px' }}></span>Low Priority</span>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#8b5cf6', border: '2px solid #fff', borderRadius: '2px', marginRight: '4px' }}></span>Milestone</span>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f59e0b', borderRadius: '2px', marginRight: '4px' }}></span>Recurring</span>
-        <span><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#6b7280', borderRadius: '2px', marginRight: '4px' }}></span>Completed</span>
-      </div>
     </div>
   );
 };
+
+// Helper Components
+const StatBadge: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
+  <div style={{
+    padding: '8px 16px',
+    backgroundColor: color + '20',
+    borderLeft: `3px solid ${color}`,
+    borderRadius: '4px',
+    display: 'flex',
+    flexDirection: 'column'
+  }}>
+    <span style={{ fontSize: '12px', color: '#6b7280' }}>{label}</span>
+    <span style={{ fontSize: '20px', fontWeight: 'bold', color }}>{value}</span>
+  </div>
+);
+
+const ActionButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+  <button
+    onClick={onClick}
+    style={{
+      padding: '8px 16px',
+      backgroundColor: '#3b82f6',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontWeight: 500
+    }}
+  >
+    {label}
+  </button>
+);
+
+const FilterSelect: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}> = ({ label, value, onChange, options }) => (
+  <div>
+    <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 }}>
+      {label}
+    </label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        width: '100%',
+        padding: '8px',
+        borderRadius: '4px',
+        border: '1px solid #d1d5db',
+        backgroundColor: 'white'
+      }}
+    >
+      <option value="">All</option>
+      {options.filter(o => o !== '').map(option => (
+        <option key={option} value={option}>
+          {option.charAt(0).toUpperCase() + option.slice(1).replace('-', ' ')}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
+  title,
+  onClose,
+  children
+}) => (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}
+    onClick={onClose}
+  >
+    <div
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '24px',
+        maxWidth: '600px',
+        width: '90%',
+        maxHeight: '80vh',
+        overflow: 'auto'
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>{title}</h2>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#6b7280'
+          }}
+        >
+          ×
+        </button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
 
 export default CalendarView;
