@@ -17,11 +17,16 @@ import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 
-// 🎯 CALENDAR IMPORTS - NEW!
+// 🎯 CALENDAR IMPORTS
 import CalendarView from './CalendarView';
 import TaskDetailModal from './TaskDetailModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../css/calendar.css'; // Make sure you create css/ folder and put calendar.css there!
+import '../css/calendar.css';
+
+// ✅ TRIAL NOTIFICATION SYSTEM IMPORTS - NEW!
+import { TrialBanner, TrialBadge } from './TrialBanner';
+import { TrialManager } from '../lib/TrialManager';
+import { TrialEmailService } from '../lib/TrialEmailService';
 
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar';
 
@@ -54,7 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   
-  // 🎯 CALENDAR STATE - NEW!
+  // 🎯 CALENDAR STATE
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
 
@@ -120,7 +125,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     }
   };
 
-  // 🎯 CALENDAR HANDLERS - NEW!
+  // 🎯 CALENDAR HANDLERS
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setShowTaskModal(true);
@@ -172,7 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     });
   };
 
-  // 🎯 NEW: Handle task rescheduling from drag-and-drop
+  // 🎯 Handle task rescheduling from drag-and-drop
   const handleTaskReschedule = async (taskId: string, newDate: Date, projectId: string) => {
     const updatedProjects = projects.map(project => {
       if (project.id !== projectId) return project;
@@ -203,6 +208,52 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     const notifications = engine.generateNotifications();
     setSmartNotifications(notifications);
   }, [projects]);
+
+  // ✅ TRIAL STATUS CHECK - NEW!
+  useEffect(() => {
+    const checkTrialStatus = async () => {
+      // Check trial status
+      const status = TrialManager.getTrialStatus(localUserData);
+      
+      // Send email notifications if thresholds are met
+      await TrialEmailService.checkAndNotify(localUserData);
+      
+      // If trial fully expired (beyond grace period), redirect to pricing
+      if (status.hasExpired && !status.isInGracePeriod) {
+        console.log('⚠️ Trial fully expired, redirecting to pricing');
+        setCurrentView('pricing');
+      }
+      
+      // Optional: Log trial status for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Trial Status:', {
+          active: status.isActive,
+          daysRemaining: status.daysRemaining,
+          urgency: status.urgencyLevel,
+          showBanner: status.shouldShowBanner
+        });
+      }
+    };
+    
+    checkTrialStatus();
+  }, [localUserData]);
+
+  // ✅ INITIALIZE TRIAL FOR NEW USERS - NEW!
+  useEffect(() => {
+    // One-time initialization for users without trial data
+    if (!localUserData.trialStartDate) {
+      const trialData = TrialManager.initializeTrialForUser();
+      const updatedData = {
+        ...localUserData,
+        ...trialData,
+        isPremium: false
+      };
+      
+      setLocalUserData(updatedData);
+      saveUserData(updatedData);
+      console.log('✅ Initialized trial for existing user');
+    }
+  }, []);
 
   useEffect(() => {
   const loadUser = async () => {
@@ -328,7 +379,6 @@ useEffect(() => {
         return { title: 'Project Management', subtitle: 'Manage projects and tasks with Kanban board' };
       case 'pricing':
         return { title: 'Pricing & Plans', subtitle: 'Choose the right plan for you' };
-      // 🎯 CALENDAR HEADER - NEW!
       case 'calendar':
         return { title: 'Calendar', subtitle: 'View all tasks and project milestones' };
       default:  
@@ -387,7 +437,6 @@ useEffect(() => {
         );
 
       case 'projectDetails':
-        // [Your existing projectDetails case - keep as is, too long to include here]
         return selectedProject ? (
           <div className="space-y-6">
             {/* Keep all your existing project details code */}
@@ -451,7 +500,6 @@ useEffect(() => {
           />
         );
 
-      // 🎯 CALENDAR VIEW - NEW!
       case 'calendar':
         return (
           <CalendarView
@@ -664,29 +712,29 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Methodologies</label>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Development Methodologies</label>
                   {isEditingMethodologies ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean', 'Six Sigma'].map((methodology) => (
-                          <label key={methodology} className="flex items-center space-x-2 p-2 border border-[var(--border-primary)] rounded cursor-pointer hover:bg-[var(--bg-tertiary)]">
+                      <div className="space-y-2">
+                        {['Agile', 'Scrum', 'Kanban', 'Waterfall', 'Lean'].map((methodology) => (
+                          <label key={methodology} className="flex items-center">
                             <input
                               type="checkbox"
                               checked={editedMethodologies.includes(methodology)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setEditedMethodologies(prev => [...prev, methodology]);
+                                  setEditedMethodologies([...editedMethodologies, methodology]);
                                 } else {
-                                  setEditedMethodologies(prev => prev.filter(m => m !== methodology));
+                                  setEditedMethodologies(editedMethodologies.filter(m => m !== methodology));
                                 }
                               }}
-                              className="rounded"
+                              className="mr-2"
                             />
-                            <span className="text-sm text-[var(--text-primary)]">{methodology}</span>
+                            <span className="text-[var(--text-primary)]">{methodology}</span>
                           </label>
                         ))}
                       </div>
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2 mt-4">
                         <button 
                           onClick={async () => {
                             try {
@@ -694,7 +742,7 @@ useEffect(() => {
                               
                               const updatedUserData = { 
                                 ...localUserData, 
-                                methodologies: editedMethodologies
+                                methodologies: editedMethodologies 
                               };
                               
                               setLocalUserData(updatedUserData);
@@ -743,7 +791,7 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Billing Section - NEW! */}
+            {/* Billing Section */}
             <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-6">
               <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Billing & Subscription</h3>
               <div className="space-y-4">
@@ -823,7 +871,7 @@ useEffect(() => {
         {!isMobile && (
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition--colors"
+            className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
       title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -871,7 +919,6 @@ useEffect(() => {
             </button>
           </li>
           
-          {/* 🎯 CALENDAR BUTTON - NEW! */}
           <li>
             <button 
               onClick={() => handleNavClick('calendar')} 
@@ -988,9 +1035,14 @@ useEffect(() => {
               </div>
             </div>
             
-            {/* ADD EXPORT BUTTON AND NOTIFICATION CENTER */}
             <div className="flex items-center gap-3">
-              {/* Only show Export button on screens with project data */}
+              {/* ✅ TRIAL BADGE IN HEADER - NEW! */}
+              <TrialBadge
+                userData={localUserData}
+                onClick={() => setCurrentView('pricing')}
+              />
+
+              {/* Export button */}
               {(['home', 'projectList', 'projectDetails', 'projectManagement', 'timeline', 'calendar'].includes(currentView)) && (
                 <button
                   onClick={() => setShowExportCenter(true)}
@@ -1004,7 +1056,7 @@ useEffect(() => {
                 </button>
               )}
 
-              {/* ADD NOTIFICATION CENTER HERE */}
+              {/* Notification Center */}
               <NotificationCenter 
                 projects={projects}
                 smartNotifications={smartNotifications}
@@ -1016,6 +1068,15 @@ useEffect(() => {
 
         {/* Content */}
         <main className="flex-1 overflow-auto p-4 sm:p-6">
+          {/* ✅ TRIAL BANNER - NEW! Shows at top of content area */}
+          <TrialBanner
+            userData={localUserData}
+            onUpgradeClick={() => setCurrentView('pricing')}
+            onDismiss={() => {
+              console.log('User dismissed trial banner');
+            }}
+          />
+
           {renderViewContent()}
         </main>
       </div>
@@ -1029,7 +1090,7 @@ useEffect(() => {
         />
       )}
 
-      {/* 🎯 TASK DETAIL MODAL - NEW! */}
+      {/* Task Detail Modal */}
       {(() => {
         const taskProject = selectedTask ? projects.find(p => p.tasks.some(t => t.id === selectedTask.id)) || null : null;
         return (
@@ -1044,7 +1105,7 @@ useEffect(() => {
         );
       })()}
 
-      {/* ADD TOAST NOTIFICATIONS HERE */}
+      {/* Toast Notifications */}
       <ToastNotification toasts={toasts} onDismiss={removeToast} />
     </div>
   );
