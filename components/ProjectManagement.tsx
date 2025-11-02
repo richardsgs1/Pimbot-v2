@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import type { Project, Task, Priority, TaskStatus, TeamMember, ProjectStatus } from '../types';
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import KanbanBoard from './KanbanBoard';
-import FileUpload from './FileUpload';
 import { generateUUID, showSuccessNotification } from '../lib/utils';
 
 interface ProjectManagementProps {
@@ -631,19 +630,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                 />
               </div>
-              {isAddingProject && (
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                    Attachments
-                  </label>
-                  <FileUpload
-                    projectId={generateUUID()}
-                    taskId={undefined}
-                    userId={userId}
-                    onFileUploaded={() => {}}
-                  />
-                </div>
-              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
@@ -760,19 +746,6 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   />
                 </div>
               </div>
-              {isAddingTask && selectedProject && (
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                    Attachments
-                  </label>
-                  <FileUpload
-                    projectId={selectedProject.id}
-                    taskId={generateUUID()}
-                    userId={userId}
-                    onFileUploaded={() => {}}
-                  />
-                </div>
-              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
