@@ -48,10 +48,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
       return `File size exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`;
     }
 
-    // Check file type
+    // Check file type by MIME type and file extension
     const allowedTypes = Object.keys(ALLOWED_FILE_TYPES);
-    if (!allowedTypes.includes(file.type)) {
-      return 'File type not allowed. Please upload PDF, images, or documents.';
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    let isAllowed = false;
+
+    // Check if MIME type is allowed
+    if (allowedTypes.includes(file.type)) {
+      isAllowed = true;
+    } else {
+      // Check if file extension matches any allowed types
+      for (const [mimeType, extensions] of Object.entries(ALLOWED_FILE_TYPES)) {
+        if (extensions.some(ext => ext.toLowerCase() === fileExtension)) {
+          isAllowed = true;
+          break;
+        }
+      }
+    }
+
+    if (!isAllowed) {
+      return `File type not allowed. Supported: PDF, images, Word, Excel, PowerPoint, CSV, TXT`;
     }
 
     // Check storage quota

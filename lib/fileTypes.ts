@@ -20,9 +20,13 @@ export const ALLOWED_FILE_TYPES = {
   'image/webp': ['.webp'],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.ms-excel': ['.xls'],
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'application/vnd.ms-powerpoint': ['.ppt'],
   'text/plain': ['.txt'],
   'text/csv': ['.csv'],
+  // Fallback for files with unclear MIME types
+  'application/octet-stream': ['.xlsx', '.xls', '.docx', '.pptx'],
 };
 
 export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB in bytes

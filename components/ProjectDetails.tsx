@@ -224,7 +224,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">Tasks</h3>
         {onAddTask && (
           <button
-            onClick={onAddTask}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddTask();
+            }}
             className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
           >
             + Add Task
@@ -275,7 +278,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">Team Members</h3>
         {onAddTeamMember && (
           <button
-            onClick={onAddTeamMember}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddTeamMember();
+            }}
             className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
           >
             + Add Member
