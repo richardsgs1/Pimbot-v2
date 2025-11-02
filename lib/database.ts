@@ -147,17 +147,47 @@ export const saveProject = async (userId: string, project: Project): Promise<str
     const isValidUuid = project.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(project.id);
 
     if (isValidUuid) {
-      // Update existing project
-      const { data, error } = await supabase
+      // Check if project already exists in database
+      const { data: existingProject, error: checkError } = await supabase
         .from('projects')
-        .update(projectData)
+        .select('id')
         .eq('id', project.id)
         .eq('user_id', userId)
-        .select('id')
         .single();
 
-      if (error) throw error;
-      return data.id;
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 = no rows found, which is expected for new projects
+        throw checkError;
+      }
+
+      if (existingProject) {
+        // Update existing project
+        const { data, error } = await supabase
+          .from('projects')
+          .update(projectData)
+          .eq('id', project.id)
+          .eq('user_id', userId)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        console.log(`Updated project ${project.id}`);
+        return data.id;
+      } else {
+        // Insert new project with the specified UUID
+        const { data, error } = await supabase
+          .from('projects')
+          .insert({
+            id: project.id, // Use the generated UUID
+            ...projectData
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        console.log(`Inserted new project ${project.id}`);
+        return data.id;
+      }
     } else {
       // Insert new project (let Supabase generate UUID)
       const { data, error } = await supabase
@@ -167,6 +197,7 @@ export const saveProject = async (userId: string, project: Project): Promise<str
         .single();
 
       if (error) throw error;
+      console.log(`Inserted new project with auto-generated ID`);
       return data.id;
     }
   } catch (error) {
