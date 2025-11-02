@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import type { Project, Task, Priority, TaskStatus, TeamMember, ProjectStatus } from '../types';
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import KanbanBoard from './KanbanBoard';
+import FileUpload from './FileUpload';
+import { generateUUID, showSuccessNotification } from '../lib/utils';
 
 interface ProjectManagementProps {
   projects: Project[];
   onUpdateProjects: (projects: Project[]) => void;
   onSelectProject: (project: Project | null) => void;
   selectedProject: Project | null;
+  userId?: string;
 }
 
 const ProjectManagement: React.FC<ProjectManagementProps> = ({
@@ -15,6 +18,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   onUpdateProjects,
   onSelectProject,
   selectedProject,
+  userId = '',
 }) => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [isAddingProject, setIsAddingProject] = useState(false);
@@ -72,7 +76,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   const handleCreateProject = () => {
     const now = new Date().toISOString();
     const project: Project = {
-      id: Date.now().toString(),
+      id: generateUUID(), // Use proper UUID instead of Date.now()
       name: newProject.name,
       description: newProject.description,
       manager: newProject.manager,
@@ -91,6 +95,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     };
 
     onUpdateProjects([...projects, project]);
+    onSelectProject(project);
     setIsAddingProject(false);
     setNewProject({
       name: '',
@@ -104,6 +109,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
       budget: 0,
       teamMembers: [],
     });
+    showSuccessNotification(`Project "${project.name}" created successfully!`);
   };
 
   const handleUpdateProject = () => {
@@ -122,6 +128,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     onUpdateProjects(updatedProjects);
     onSelectProject(updatedProject);
     setIsEditingProject(false);
+    showSuccessNotification(`Project "${updatedProject.name}" updated successfully!`);
   };
 
   const handleDeleteProject = () => {
@@ -138,7 +145,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
     const now = new Date().toISOString();
     const task: Task = {
-      id: Date.now().toString(),
+      id: generateUUID(), // Use proper UUID instead of Date.now()
       name: newTask.name,
       description: newTask.description,
       assignees: newTask.assignees,
@@ -174,6 +181,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
       dueDate: '',
       estimatedHours: 0,
     });
+    showSuccessNotification(`Task "${task.name}" created successfully!`);
   };
 
   const handleUpdateTask = () => {
@@ -207,6 +215,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     onSelectProject(updatedProject);
     setIsEditingTask(false);
     setEditingTask(null);
+    showSuccessNotification(`Task "${updatedTask.name}" updated successfully!`);
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -622,6 +631,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                 />
               </div>
+              {isAddingProject && (
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Attachments
+                  </label>
+                  <FileUpload
+                    projectId={generateUUID()}
+                    taskId={undefined}
+                    userId={userId}
+                    onFileUploaded={() => {}}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
@@ -738,6 +760,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   />
                 </div>
               </div>
+              {isAddingTask && selectedProject && (
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Attachments
+                  </label>
+                  <FileUpload
+                    projectId={selectedProject.id}
+                    taskId={generateUUID()}
+                    userId={userId}
+                    onFileUploaded={() => {}}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button

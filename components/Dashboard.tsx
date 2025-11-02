@@ -5,6 +5,7 @@ import Home from './Home';
 import ProjectList from './ProjectList';
 import Chat from './Chat';
 import ProjectManagement from './ProjectManagement';
+import ProjectDetails from './ProjectDetails';
 import DailyBriefing from './DailyBriefing';
 import TimelineView from './TimelineView';
 import ThemeToggle from './ThemeToggle';
@@ -438,9 +439,20 @@ useEffect(() => {
 
       case 'projectDetails':
         return selectedProject ? (
-          <div className="space-y-6">
-            {/* Keep all your existing project details code */}
-          </div>
+          <ProjectDetails
+            project={selectedProject}
+            onMenuClick={() => setShowSidebar(true)}
+            onUpdateProject={(updatedProject) => {
+              const updatedProjects = projects.map(p =>
+                p.id === updatedProject.id ? updatedProject : p
+              );
+              setProjects(updatedProjects);
+              setSelectedProject(updatedProject);
+            }}
+            team={[]}
+            userData={userData}
+            onBack={() => setCurrentView('projectManagement')}
+          />
         ) : (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -451,10 +463,10 @@ useEffect(() => {
                 Please select a project to view details
               </p>
               <button
-                onClick={() => setCurrentView('projectList')}
+                onClick={() => setCurrentView('projectManagement')}
                 className="mt-4 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white font-semibold py-2 px-4 rounded-lg transition-colors"
               >
-                View All Projects
+                Back to Projects
               </button>
             </div>
           </div>
@@ -481,7 +493,7 @@ useEffect(() => {
 
       case 'projectManagement':
       return (
-        <ProjectManagement 
+        <ProjectManagement
           projects={projects}
           onUpdateProjects={setProjects}
           onSelectProject={(project) => {
@@ -489,6 +501,7 @@ useEffect(() => {
             setCurrentView('projectDetails');
           }}
           selectedProject={selectedProject}
+          userId={userData.id}
         />
       );
 
