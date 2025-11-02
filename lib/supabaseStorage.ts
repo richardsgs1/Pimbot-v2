@@ -3,9 +3,18 @@ import type { FileAttachment } from './fileTypes';
 import { MAX_FILE_SIZE } from './fileTypes';
 
 // Initialize Supabase client
-// Make sure these are in your .env.local file
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Use Vite environment variables (not Next.js process.env)
+let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Fallback to hardcoded values if env vars are not set
+if (!supabaseUrl || supabaseUrl.trim() === '') {
+  supabaseUrl = 'https://qfkhxrcbtgllzffnnxhp.supabase.co'
+}
+
+if (!supabaseAnonKey || supabaseAnonKey.trim() === '') {
+  supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFma2h4cmNidGdsbHpmZm5ueGhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwODczNTYsImV4cCI6MjA3NDY2MzM1Nn0.49ZEbRyFRfYew-JRq4tRj_6P7nv6vPrvmQ-IDKc1g5s'
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
