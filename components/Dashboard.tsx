@@ -341,14 +341,27 @@ useEffect(() => {
 // Auto-generate smart notifications when projects change
 useEffect(() => {
   generateSmartNotifications();
-    
+
   // Set up periodic check (every 5 minutes)
   const interval = setInterval(() => {
     generateSmartNotifications();
   }, 5 * 60 * 1000);
-    
+
   return () => clearInterval(interval);
 }, [projects, generateSmartNotifications]);
+
+// Auto-save projects to database when they change
+useEffect(() => {
+  if (projects.length > 0 && localUserData.id) {
+    // Debounce the save to avoid too many requests
+    const saveTimer = setTimeout(() => {
+      console.log('Auto-saving projects to database...');
+      saveProjectsToDb(projects);
+    }, 1000); // Wait 1 second after last change before saving
+
+    return () => clearTimeout(saveTimer);
+  }
+}, [projects, localUserData.id]);
 
   // Update history when view changes programmatically
   useEffect(() => {
