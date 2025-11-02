@@ -87,10 +87,22 @@ const App: React.FC = () => {
 
   const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
     console.log('Login success! User data:', userData);
-    
-    // Clear any stale data
-    localStorage.clear();
-    
+
+    // Clear only app-specific localStorage keys, NOT Supabase session keys
+    // Supabase stores auth session in localStorage under keys like 'sb-<project-id>-auth-token'
+    const keysToKeep = ['sb-qfkhxrcbtgllzffnnxhp-auth-token', 'sb-qfkhxrcbtgllzffnnxhp-auth-user'];
+    const localStorageKeys = Object.keys(localStorage);
+
+    for (const key of localStorageKeys) {
+      // Keep Supabase auth keys and user_id
+      if (!key.includes('sb-') && key !== 'user_id') {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Store the auth UID for later use in database operations
+    localStorage.setItem('user_id', userId);
+
     // Set fresh user data
     const freshUserData = {
       id: userData.id,
