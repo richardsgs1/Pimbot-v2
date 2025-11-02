@@ -345,7 +345,7 @@ export const getTodayUsage = async (userId: string): Promise<UsageTracking | nul
 export const incrementAiQueryCount = async (userId: string): Promise<void> => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Try to increment existing record
     const { error } = await supabase.rpc('increment_ai_queries', {
       p_user_id: userId,
@@ -365,5 +365,301 @@ export const incrementAiQueryCount = async (userId: string): Promise<void> => {
     }
   } catch (error) {
     console.error('Failed to increment AI query count:', error);
+  }
+};
+
+// ============================================
+// FILE MANAGEMENT DATABASE FUNCTIONS
+// ============================================
+
+interface FileRecord {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  file_path: string;
+  project_id?: string;
+  task_id?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Save file metadata to database
+ */
+export const saveFileMetadata = async (
+  fileName: string,
+  fileSize: number,
+  mimeType: string,
+  filePath: string,
+  userId: string,
+  projectId?: string,
+  taskId?: string
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('files')
+      .insert({
+        name: fileName,
+        size: fileSize,
+        type: mimeType,
+        file_path: filePath,
+        created_by: userId,
+        project_id: projectId,
+        task_id: taskId
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+
+    // Update storage quota
+    if (projectId) {
+      await updateStorageQuota(projectId, userId, fileSize);
+    }
+
+    return data.id;
+  } catch (error) {
+    console.error('Failed to save file metadata:', error);
+    return null;
+  }
+};
+
+/**
+ * Get files for a project
+ */
+export const getProjectFiles = async (
+  projectId: string,
+  filters?: {
+    search?: string;
+    type?: string;
+    sortBy?: 'name' | 'size' | 'date';
+    sortOrder?: 'asc' | 'desc';
+  }
+): Promise<FileRecord[]> => {
+  try {
+    let query = supabase
+      .from('files')
+      .select('*')
+      .eq('project_id', projectId);
+
+    if (filters?.search) {
+      query = query.ilike('name', `%${filters.search}%`);
+    }
+
+    if (filters?.type) {
+      query = query.eq('type', filters.type);
+    }
+
+    const sortColumn = filters?.sortBy || 'created_at';
+    const sortOrder = filters?.sortOrder === 'asc' ? { ascending: true } : { ascending: false };
+    query = query.order(sortColumn, sortOrder);
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to get project files:', error);
+    return [];
+  }
+};
+
+/**
+ * Get files for a task
+ */
+export const getTaskFiles = async (
+  taskId: string,
+  filters?: {
+    search?: string;
+    type?: string;
+    sortBy?: 'name' | 'size' | 'date';
+    sortOrder?: 'asc' | 'desc';
+  }
+): Promise<FileRecord[]> => {
+  try {
+    let query = supabase
+      .from('files')
+      .select('*')
+      .eq('task_id', taskId);
+
+    if (filters?.search) {
+      query = query.ilike('name', `%${filters.search}%`);
+    }
+
+    if (filters?.type) {
+      query = query.eq('type', filters.type);
+    }
+
+    const sortColumn = filters?.sortBy || 'created_at';
+    const sortOrder = filters?.sortOrder === 'asc' ? { ascending: true } : { ascending: false };
+    query = query.order(sortColumn, sortOrder);
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to get task files:', error);
+    return [];
+  }
+};
+
+/**
+ * Delete file metadata (should be called after deleting from storage)
+ */
+export const deleteFileMetadata = async (
+  fileId: string,
+  projectId?: string,
+  userId?: string
+): Promise<boolean> => {
+  try {
+    // Get file info to subtract from quota
+    const { data: fileData, error: fetchError } = await supabase
+      .from('files')
+      .select('size')
+      .eq('id', fileId)
+      .single();
+
+    if (!fetchError && fileData && projectId && userId) {
+      await updateStorageQuota(projectId, userId, -fileData.size);
+    }
+
+    const { error } = await supabase
+      .from('files')
+      .delete()
+      .eq('id', fileId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete file metadata:', error);
+    return false;
+  }
+};
+
+/**
+ * Get storage quota for project
+ */
+export const getStorageQuota = async (
+  projectId: string,
+  userId: string
+): Promise<{ used: number; limit: number } | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('file_storage_quota')
+      .select('total_size_bytes, quota_limit_bytes')
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    // Default: 500MB limit
+    const limit = data?.quota_limit_bytes || 500 * 1024 * 1024;
+    const used = data?.total_size_bytes || 0;
+
+    return { used, limit };
+  } catch (error) {
+    console.error('Failed to get storage quota:', error);
+    return null;
+  }
+};
+
+/**
+ * Update storage quota after file upload/delete
+ */
+const updateStorageQuota = async (
+  projectId: string,
+  userId: string,
+  sizeChange: number
+): Promise<void> => {
+  try {
+    const quota = await getStorageQuota(projectId, userId);
+
+    if (!quota) {
+      // Create new quota record
+      const limit = 500 * 1024 * 1024; // 500MB default
+      await supabase
+        .from('file_storage_quota')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          total_size_bytes: Math.max(0, sizeChange),
+          quota_limit_bytes: limit
+        });
+    } else {
+      // Update existing quota
+      const newTotal = Math.max(0, quota.used + sizeChange);
+      await supabase
+        .from('file_storage_quota')
+        .update({ total_size_bytes: newTotal })
+        .eq('project_id', projectId)
+        .eq('user_id', userId);
+    }
+  } catch (error) {
+    console.error('Failed to update storage quota:', error);
+  }
+};
+
+/**
+ * Check if file upload would exceed quota
+ */
+export const checkStorageQuota = async (
+  projectId: string,
+  userId: string,
+  fileSize: number
+): Promise<{ allowed: boolean; message: string }> => {
+  try {
+    const quota = await getStorageQuota(projectId, userId);
+
+    if (!quota) {
+      return { allowed: true, message: 'OK' };
+    }
+
+    const newTotal = quota.used + fileSize;
+    const percentUsed = Math.round((newTotal / quota.limit) * 100);
+
+    if (newTotal > quota.limit) {
+      return {
+        allowed: false,
+        message: `File upload would exceed quota (${percentUsed}% usage)`
+      };
+    }
+
+    if (percentUsed > 90) {
+      return {
+        allowed: true,
+        message: `Warning: ${percentUsed}% of storage quota used`
+      };
+    }
+
+    return { allowed: true, message: 'OK' };
+  } catch (error) {
+    console.error('Failed to check storage quota:', error);
+    return { allowed: true, message: 'OK' };
+  }
+};
+
+/**
+ * Log file access for audit trail
+ */
+export const logFileAccess = async (
+  fileId: string,
+  userId: string | null,
+  action: 'download' | 'preview' | 'delete'
+): Promise<void> => {
+  try {
+    await supabase
+      .from('file_access_log')
+      .insert({
+        file_id: fileId,
+        user_id: userId,
+        action: action
+      });
+  } catch (error) {
+    console.error('Failed to log file access:', error);
+    // Don't throw - logging failure shouldn't break the app
   }
 };

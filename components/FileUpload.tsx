@@ -1,6 +1,7 @@
-import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
+import React, { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, formatFileSize } from '../lib/fileTypes';
 import { uploadFile } from '../lib/supabaseStorage';
+import { checkStorageQuota, getStorageQuota } from '../lib/database';
 import type { FileAttachment } from '../lib/fileTypes';
 
 interface FileUploadProps {
@@ -10,6 +11,7 @@ interface FileUploadProps {
   onFileUploaded: (file: FileAttachment) => void;
   onError?: (error: string) => void;
   disabled?: boolean;
+  showQuotaInfo?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -18,14 +20,29 @@ const FileUpload: React.FC<FileUploadProps> = ({
   userId,
   onFileUploaded,
   onError,
-  disabled = false
+  disabled = false,
+  showQuotaInfo = true
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [quotaInfo, setQuotaInfo] = useState<{ used: number; limit: number } | null>(null);
+  const [uploadSpeed, setUploadSpeed] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const startTimeRef = useRef<number>(0);
 
-  const validateFile = (file: File): string | null => {
+  // Load quota info on mount
+  useEffect(() => {
+    const loadQuota = async () => {
+      if (projectId && showQuotaInfo) {
+        const quota = await getStorageQuota(projectId, userId);
+        setQuotaInfo(quota);
+      }
+    };
+    loadQuota();
+  }, [projectId, userId, showQuotaInfo]);
+
+  const validateFile = async (file: File): Promise<string | null> => {
     // Check file size
     if (file.size > MAX_FILE_SIZE) {
       return `File size exceeds ${formatFileSize(MAX_FILE_SIZE)} limit`;
@@ -37,11 +54,23 @@ const FileUpload: React.FC<FileUploadProps> = ({
       return 'File type not allowed. Please upload PDF, images, or documents.';
     }
 
+    // Check storage quota
+    if (projectId) {
+      const quotaCheck = await checkStorageQuota(projectId, userId, file.size);
+      if (!quotaCheck.allowed) {
+        return quotaCheck.message;
+      }
+      if (quotaCheck.message !== 'OK') {
+        // Warning but still allow upload
+        console.warn(quotaCheck.message);
+      }
+    }
+
     return null;
   };
 
   const handleFileUpload = async (file: File) => {
-    const validationError = validateFile(file);
+    const validationError = await validateFile(file);
     if (validationError) {
       onError?.(validationError);
       return;
@@ -49,34 +78,55 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
     setIsUploading(true);
     setUploadProgress(0);
-
-    // Simulate progress (Supabase doesn't provide real-time progress)
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 10, 90));
-    }, 200);
+    startTimeRef.current = Date.now();
 
     try {
+      // Simulate realistic progress with better estimate
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev < 30) return prev + Math.random() * 10;
+          if (prev < 70) return prev + Math.random() * 5;
+          if (prev < 90) return prev + Math.random() * 2;
+          return 90;
+        });
+
+        // Calculate upload speed
+        if (startTimeRef.current) {
+          const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
+          const bytesPerSecond = file.size / elapsedSeconds;
+          setUploadSpeed(formatFileSize(bytesPerSecond) + '/s');
+        }
+      }, 300);
+
       const attachment = await uploadFile(file, userId, projectId, taskId);
-      
+
       if (attachment) {
         setUploadProgress(100);
         onFileUploaded(attachment);
-        
+
+        // Reload quota after successful upload
+        if (projectId) {
+          const newQuota = await getStorageQuota(projectId, userId);
+          setQuotaInfo(newQuota);
+        }
+
         // Reset after short delay
         setTimeout(() => {
           setIsUploading(false);
           setUploadProgress(0);
+          setUploadSpeed('');
         }, 500);
       } else {
         throw new Error('Upload failed');
       }
+
+      clearInterval(progressInterval);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
       onError?.(errorMessage);
       setIsUploading(false);
       setUploadProgress(0);
-    } finally {
-      clearInterval(progressInterval);
+      setUploadSpeed('');
     }
   };
 
@@ -158,14 +208,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
               </svg>
             </div>
             <div className="text-sm text-[var(--text-secondary)]">
-              Uploading... {uploadProgress}%
+              Uploading... {Math.round(uploadProgress)}%
             </div>
             <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
-              <div 
+              <div
                 className="bg-[var(--accent-primary)] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
+            {uploadSpeed && (
+              <div className="text-xs text-[var(--text-tertiary)] text-center">
+                Speed: {uploadSpeed}
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -182,6 +237,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 PDF, images, docs up to {formatFileSize(MAX_FILE_SIZE)}
               </p>
             </div>
+
+            {/* Storage Quota Info */}
+            {showQuotaInfo && quotaInfo && (
+              <div className="pt-2 border-t border-[var(--border-primary)]">
+                <div className="text-xs text-[var(--text-tertiary)] mb-2">
+                  Storage: {formatFileSize(quotaInfo.used)} / {formatFileSize(quotaInfo.limit)}
+                </div>
+                <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 rounded-full transition-all ${
+                      (quotaInfo.used / quotaInfo.limit) * 100 > 90
+                        ? 'bg-red-500'
+                        : 'bg-[var(--accent-primary)]'
+                    }`}
+                    style={{ width: `${(quotaInfo.used / quotaInfo.limit) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
