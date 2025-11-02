@@ -130,8 +130,11 @@ export const saveProject = async (userId: string, project: Project): Promise<str
     const authUid = authUser.data.user?.id;
 
     if (!authUid) {
+      console.error('Auth check failed - authUser.data:', authUser.data);
       throw new Error('No authenticated user found. Please log in again.');
     }
+
+    console.log(`saveProject: Using auth UID ${authUid} for project ${project.id}`);
 
     const projectData = {
       user_id: authUid, // Use Supabase auth UID for RLS policies
@@ -211,6 +214,10 @@ export const saveProject = async (userId: string, project: Project): Promise<str
     }
   } catch (error) {
     console.error('Failed to save project:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 };
