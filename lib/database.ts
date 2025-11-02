@@ -151,7 +151,8 @@ export const saveProject = async (userId: string, project: Project): Promise<str
       spent: project.spent,
       tasks: project.tasks || [],
       team_members: project.teamMembers || [],
-      attachments: project.attachments || [], // Include attachments
+      // NOTE: Don't save attachments here - they're stored in project.attachments in app state
+      // The database stores file metadata separately in the 'files' table
       updated_at: new Date().toISOString()
     };
 
@@ -234,9 +235,10 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       return [];
     }
 
+    // Select specific columns to avoid schema cache issues with missing columns
     const { data, error } = await supabase
       .from('projects')
-      .select('*')
+      .select('id,user_id,name,description,status,progress,start_date,end_date,due_date,priority,manager,budget,spent,tasks,team_members,tags,journal,archived,created_at,updated_at')
       .eq('user_id', authUid)
       .order('created_at', { ascending: false});
 
@@ -257,7 +259,7 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       spent: p.spent,
       tasks: p.tasks || [],
       teamMembers: p.team_members || [],
-      attachments: p.attachments || [], // Include attachments
+      attachments: (p.attachments || []) as any, // Attachments stored in app state, not DB
       createdAt: p.created_at,
       updatedAt: p.updated_at,
       archived: p.archived || false,
