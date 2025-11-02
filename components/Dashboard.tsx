@@ -452,6 +452,8 @@ useEffect(() => {
             team={[]}
             userData={userData}
             onBack={() => setCurrentView('projectManagement')}
+            onAddTask={() => setCurrentView('projectManagement')}
+            onAddTeamMember={() => setCurrentView('projectManagement')}
           />
         ) : (
           <div className="flex items-center justify-center h-64">

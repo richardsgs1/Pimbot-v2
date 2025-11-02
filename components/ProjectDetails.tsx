@@ -23,15 +23,19 @@ interface ProjectDetailsProps {
   team?: TeamMember[];
   userData: OnboardingData;
   onBack: () => void;
+  onAddTask?: () => void;
+  onAddTeamMember?: () => void;
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ 
-  project, 
-  onMenuClick, 
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({
+  project,
+  onMenuClick,
   onUpdateProject,
   team = [],
   userData,
-  onBack 
+  onBack,
+  onAddTask,
+  onAddTeamMember
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team' | 'journal'>('overview');
   const [newJournalEntry, setNewJournalEntry] = useState('');
@@ -216,6 +220,17 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
 
   const renderTasks = () => (
     <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Tasks</h3>
+        {onAddTask && (
+          <button
+            onClick={onAddTask}
+            className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+          >
+            + Add Task
+          </button>
+        )}
+      </div>
       {safeProject.tasks && safeProject.tasks.length > 0 ? (
         safeProject.tasks.map((task) => (
           <div key={task.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
@@ -255,29 +270,42 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   );
 
   const renderTeam = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {safeProject.teamMembers && safeProject.teamMembers.length > 0 ? (
-        safeProject.teamMembers.map((member) => (
-          <div key={member.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
-            <div className="flex items-center">
-              <div 
-                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
-                style={{ backgroundColor: getAvatarColor(member.name) }}
-              >
-                {member.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h4 className="font-medium text-[var(--text-primary)]">{member.name}</h4>
-                <p className="text-sm text-[var(--text-tertiary)]">{member.role || 'Team Member'}</p>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Team Members</h3>
+        {onAddTeamMember && (
+          <button
+            onClick={onAddTeamMember}
+            className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+          >
+            + Add Member
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {safeProject.teamMembers && safeProject.teamMembers.length > 0 ? (
+          safeProject.teamMembers.map((member) => (
+            <div key={member.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
+              <div className="flex items-center">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4"
+                  style={{ backgroundColor: getAvatarColor(member.name) }}
+                >
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-medium text-[var(--text-primary)]">{member.name}</h4>
+                  <p className="text-sm text-[var(--text-tertiary)]">{member.role || 'Team Member'}</p>
+                </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
+            <p className="text-[var(--text-tertiary)]">No team members assigned</p>
           </div>
-        ))
-      ) : (
-        <div className="col-span-full text-center py-12 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl">
-          <p className="text-[var(--text-tertiary)]">No team members assigned</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 
