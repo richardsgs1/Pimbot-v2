@@ -40,36 +40,32 @@ CREATE POLICY "Users can delete their own projects"
   );
 
 -- Tasks table RLS policies
--- For now, tasks are not directly owned by users, but let's allow project owners to manage them
--- Policy 1: Users can view tasks in their projects
-CREATE POLICY "Users can view tasks in their projects"
+-- For now, tasks are not directly owned by users, but let's allow all authenticated users
+-- Tasks will be properly linked to projects in a future migration
+-- Policy 1: Users can view all tasks (will be restricted when task-project relationship is established)
+CREATE POLICY "Users can view tasks"
   ON tasks FOR SELECT
   USING (
-    id IN (
-      SELECT COALESCE(jsonb_array_elements(tasks)->>'id', '')
-      FROM projects
-      WHERE user_id = auth.uid() AND tasks IS NOT NULL
-    )
-    OR true  -- Allow all for now until task-project relationship is properly established
+    true  -- Allow all authenticated users to view for now
   );
 
 -- Policy 2: Users can insert tasks (basic policy)
 CREATE POLICY "Users can insert tasks"
   ON tasks FOR INSERT
   WITH CHECK (
-    true  -- Allow all users to insert for now
+    true  -- Allow all authenticated users to insert for now
   );
 
 -- Policy 3: Users can update tasks
 CREATE POLICY "Users can update tasks"
   ON tasks FOR UPDATE
   WITH CHECK (
-    true  -- Allow all users to update for now
+    true  -- Allow all authenticated users to update for now
   );
 
 -- Policy 4: Users can delete tasks
 CREATE POLICY "Users can delete tasks"
   ON tasks FOR DELETE
   USING (
-    true  -- Allow all users to delete for now
+    true  -- Allow all authenticated users to delete for now
   );
