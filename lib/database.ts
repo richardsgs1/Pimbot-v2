@@ -124,8 +124,17 @@ export const loadUserData = async (userId: string): Promise<OnboardingData | nul
 
 export const saveProject = async (userId: string, project: Project): Promise<string> => {
   try {
+    // IMPORTANT: Ensure user_id is the Supabase auth UID, not the application user ID
+    // The RLS policies check auth.uid() which must match the user_id column
+    const authUser = await supabase.auth.getUser();
+    const authUid = authUser.data.user?.id;
+
+    if (!authUid) {
+      throw new Error('No authenticated user found. Please log in again.');
+    }
+
     const projectData = {
-      user_id: userId,
+      user_id: authUid, // Use Supabase auth UID for RLS policies
       name: project.name,
       description: project.description,
       status: project.status,
@@ -208,10 +217,20 @@ export const saveProject = async (userId: string, project: Project): Promise<str
 
 export const loadProjects = async (userId: string): Promise<Project[]> => {
   try {
+    // IMPORTANT: Get the Supabase auth UID instead of using the passed userId
+    // The RLS policies check auth.uid() which must match the user_id column
+    const authUser = await supabase.auth.getUser();
+    const authUid = authUser.data.user?.id;
+
+    if (!authUid) {
+      console.log('No authenticated user found. Cannot load projects.');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', authUid)
       .order('created_at', { ascending: false});
 
     if (error) throw error;
@@ -246,11 +265,20 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
 
 export const deleteProject = async (userId: string, projectId: string): Promise<void> => {
   try {
+    // IMPORTANT: Get the Supabase auth UID instead of using the passed userId
+    // The RLS policies check auth.uid() which must match the user_id column
+    const authUser = await supabase.auth.getUser();
+    const authUid = authUser.data.user?.id;
+
+    if (!authUid) {
+      throw new Error('No authenticated user found. Please log in again.');
+    }
+
     const { error } = await supabase
       .from('projects')
       .delete()
       .eq('id', projectId)
-      .eq('user_id', userId);
+      .eq('user_id', authUid);
 
     if (error) throw error;
   } catch (error) {

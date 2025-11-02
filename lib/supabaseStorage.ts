@@ -36,15 +36,26 @@ export const uploadFile = async (
   taskId?: string
 ): Promise<FileAttachment | null> => {
   try {
+    // IMPORTANT: Get the authenticated user's UID for RLS policies
+    // The storage bucket RLS uses auth.uid() which must be in the file path
+    const authUser = await supabase.auth.getUser();
+    const authUid = authUser.data.user?.id;
+
+    if (!authUid) {
+      throw new Error('No authenticated user found. Please log in again.');
+    }
+
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`);
     }
 
     // Create unique file path
+    // Format: {authUid}/{projectId}/{taskId}/{timestamp}-{filename}
+    // RLS policies expect auth.uid() to match the first folder level
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${projectId || 'general'}/${taskId || 'project'}/${timestamp}-${sanitizedName}`;
+    const filePath = `${authUid}/${projectId || 'general'}/${taskId || 'project'}/${timestamp}-${sanitizedName}`;
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
