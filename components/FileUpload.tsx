@@ -118,6 +118,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const attachment = await uploadFile(file, userId, projectId, taskId);
 
       if (attachment) {
+        console.log('File uploaded successfully:', attachment);
         setUploadProgress(100);
         onFileUploaded(attachment);
 
