@@ -235,10 +235,11 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       return [];
     }
 
-    // Select specific columns to avoid schema cache issues with missing columns
+    // Select only columns that actually exist in the schema
+    // Removed: tags, journal, archived (may not exist in all deployments)
     const { data, error } = await supabase
       .from('projects')
-      .select('id,user_id,name,description,status,progress,start_date,end_date,due_date,priority,manager,budget,spent,tasks,team_members,tags,journal,archived,created_at,updated_at')
+      .select('id,user_id,name,description,status,progress,start_date,end_date,due_date,priority,manager,budget,spent,tasks,team_members,created_at,updated_at')
       .eq('user_id', authUid)
       .order('created_at', { ascending: false});
 
@@ -259,12 +260,12 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       spent: p.spent,
       tasks: p.tasks || [],
       teamMembers: p.team_members || [],
-      attachments: (p.attachments || []) as any, // Attachments stored in app state, not DB
+      attachments: [] as any, // Files stored in storage bucket and app state, not DB
       createdAt: p.created_at,
       updatedAt: p.updated_at,
-      archived: p.archived || false,
-      tags: p.tags || [],
-      journal: p.journal || []
+      archived: false, // Not stored in DB yet
+      tags: [], // Not stored in DB yet
+      journal: [] // Not stored in DB yet
     }));
   } catch (error) {
     console.error('Failed to load projects:', error);
