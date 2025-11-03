@@ -55,6 +55,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     priority: 'Medium' as Priority,
     dueDate: '',
   });
+  const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
+  const [newTeamMember, setNewTeamMember] = useState<{
+    name: string;
+    email: string;
+  }>({
+    name: '',
+    email: '',
+  });
 
   const getAvatarColor = (name: string): string => {
     const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
@@ -313,6 +321,31 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
       assignees: [],
       priority: 'Medium' as Priority,
       dueDate: '',
+    });
+  };
+
+  const handleAddNewTeamMember = () => {
+    if (!onUpdateProject || !newTeamMember.name.trim() || !newTeamMember.email.trim()) return;
+
+    const updatedProject = {
+      ...safeProject,
+      teamMembers: [
+        ...(safeProject.teamMembers || []),
+        {
+          id: generateUUID(),
+          name: newTeamMember.name,
+          email: newTeamMember.email,
+          role: 'Team Member',
+          avatar: undefined
+        }
+      ]
+    };
+
+    onUpdateProject(updatedProject);
+    setIsAddingTeamMember(false);
+    setNewTeamMember({
+      name: '',
+      email: '',
     });
   };
 
@@ -650,32 +683,76 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">Team Members</h3>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const name = prompt('Enter team member name:');
-            const email = prompt('Enter team member email:');
-            if (name && email && onUpdateProject) {
-              // Import generateUUID at the top of the file
-              const newMember = {
-                id: Math.random().toString(36).substr(2, 9),
-                name,
-                email,
-                role: 'Team Member',
-                avatar: undefined
-              };
-              const updatedProject = {
-                ...safeProject,
-                teamMembers: [...(safeProject.teamMembers || []), newMember]
-              };
-              onUpdateProject(updatedProject);
-            }
-          }}
-          className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
-        >
-          + Add Member
-        </button>
+        {!isAddingTeamMember && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsAddingTeamMember(true);
+            }}
+            className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+          >
+            + Add Member
+          </button>
+        )}
       </div>
+
+      {/* Add Team Member Form */}
+      {isAddingTeamMember && (
+        <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)] rounded-xl p-4 space-y-4">
+          <h4 className="text-lg font-semibold text-[var(--text-primary)]">Add Team Member</h4>
+
+          {/* Member Name */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Name
+            </label>
+            <input
+              type="text"
+              value={newTeamMember.name}
+              onChange={(e) => setNewTeamMember({ ...newTeamMember, name: e.target.value })}
+              placeholder="Enter member name"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+
+          {/* Member Email */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={newTeamMember.email}
+              onChange={(e) => setNewTeamMember({ ...newTeamMember, email: e.target.value })}
+              placeholder="Enter member email"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-[var(--border-primary)]">
+            <button
+              onClick={handleAddNewTeamMember}
+              disabled={!newTeamMember.name.trim() || !newTeamMember.email.trim()}
+              className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Member
+            </button>
+            <button
+              onClick={() => {
+                setIsAddingTeamMember(false);
+                setNewTeamMember({
+                  name: '',
+                  email: '',
+                });
+              }}
+              className="flex-1 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition-opacity"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {safeProject.teamMembers && safeProject.teamMembers.length > 0 ? (
           safeProject.teamMembers.map((member) => (
