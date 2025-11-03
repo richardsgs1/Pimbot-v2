@@ -24,7 +24,6 @@ interface ProjectDetailsProps {
   userData: OnboardingData;
   onBack: () => void;
   onAddTask?: () => void;
-  onAddTeamMember?: () => void;
 }
 
 const ProjectDetails: React.FC<ProjectDetailsProps> = ({
@@ -34,8 +33,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   team = [],
   userData,
   onBack,
-  onAddTask,
-  onAddTeamMember
+  onAddTask
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team' | 'journal'>('overview');
   const [newJournalEntry, setNewJournalEntry] = useState('');
@@ -280,17 +278,31 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">Team Members</h3>
-        {onAddTeamMember && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddTeamMember();
-            }}
-            className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
-          >
-            + Add Member
-          </button>
-        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const name = prompt('Enter team member name:');
+            const email = prompt('Enter team member email:');
+            if (name && email && onUpdateProject) {
+              // Import generateUUID at the top of the file
+              const newMember = {
+                id: Math.random().toString(36).substr(2, 9),
+                name,
+                email,
+                role: 'Team Member',
+                avatar: undefined
+              };
+              const updatedProject = {
+                ...safeProject,
+                teamMembers: [...(safeProject.teamMembers || []), newMember]
+              };
+              onUpdateProject(updatedProject);
+            }
+          }}
+          className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+        >
+          + Add Member
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {safeProject.teamMembers && safeProject.teamMembers.length > 0 ? (
