@@ -758,6 +758,43 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   rows={3}
                 />
               </div>
+
+              {/* Assign To Team Members */}
+              {selectedProject && selectedProject.teamMembers && selectedProject.teamMembers.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Assign To
+                  </label>
+                  <div className="space-y-2">
+                    {selectedProject.teamMembers.map((member) => (
+                      <label key={member.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newTask.assignees.includes(member.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewTask({
+                                ...newTask,
+                                assignees: [...newTask.assignees, member.id]
+                              });
+                            } else {
+                              setNewTask({
+                                ...newTask,
+                                assignees: newTask.assignees.filter((id) => id !== member.id)
+                              });
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-[var(--border-primary)] bg-[var(--bg-secondary)]"
+                        />
+                        <span className="text-sm text-[var(--text-primary)]">
+                          {member.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
