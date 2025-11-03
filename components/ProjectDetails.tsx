@@ -3,6 +3,7 @@ import type { Project, TeamMember, OnboardingData, Task, Priority, ProjectStatus
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types';
 import FileUpload from './FileUpload';
 import FileList from './FileList';
+import { generateUUID } from '../lib/utils';
 
 // Add the upload and list components to your UI
 // See FILE_ATTACHMENTS_GUIDE.md for full example
@@ -38,6 +39,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team' | 'journal'>('overview');
   const [newJournalEntry, setNewJournalEntry] = useState('');
   const [journal, setJournal] = useState<JournalEntry[]>([]);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [newTask, setNewTask] = useState<{
+    name: string;
+    description: string;
+    assignees: string[];
+    priority: Priority;
+    dueDate: string;
+  }>({
+    name: '',
+    description: '',
+    assignees: [],
+    priority: 'Medium' as Priority,
+    dueDate: '',
+  });
 
   const getAvatarColor = (name: string): string => {
     const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
@@ -220,15 +237,94 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     </div>
   );
 
+  const handleSaveTask = () => {
+    if (!editingTask || !onUpdateProject) return;
+
+    const updatedTasks = safeProject.tasks.map(task =>
+      task.id === editingTask.id ? editingTask : task
+    );
+
+    const completedTasks = updatedTasks.filter(t => t.completed).length;
+    const progress = Math.round((completedTasks / updatedTasks.length) * 100);
+
+    const updatedProject = {
+      ...safeProject,
+      tasks: updatedTasks,
+      progress
+    };
+
+    onUpdateProject(updatedProject);
+    setEditingTaskId(null);
+    setEditingTask(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTaskId(null);
+    setEditingTask(null);
+  };
+
+  const handleDeleteTask = () => {
+    if (!editingTask || !onUpdateProject) return;
+
+    const updatedTasks = safeProject.tasks.filter(task => task.id !== editingTask.id);
+    const completedTasks = updatedTasks.filter(t => t.completed).length;
+    const progress = updatedTasks.length > 0 ? Math.round((completedTasks / updatedTasks.length) * 100) : 0;
+
+    const updatedProject = {
+      ...safeProject,
+      tasks: updatedTasks,
+      progress
+    };
+
+    onUpdateProject(updatedProject);
+    setEditingTaskId(null);
+    setEditingTask(null);
+  };
+
+  const handleAddNewTask = () => {
+    if (!onUpdateProject || !newTask.name.trim()) return;
+
+    const now = new Date().toISOString();
+    const task: Task = {
+      id: generateUUID(),
+      name: newTask.name,
+      description: newTask.description,
+      assignees: newTask.assignees,
+      priority: newTask.priority,
+      dueDate: newTask.dueDate,
+      completed: false,
+      status: 'To Do',
+      estimatedHours: 0,
+      attachments: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const updatedProject = {
+      ...safeProject,
+      tasks: [...safeProject.tasks, task],
+    };
+
+    onUpdateProject(updatedProject);
+    setIsAddingTask(false);
+    setNewTask({
+      name: '',
+      description: '',
+      assignees: [],
+      priority: 'Medium' as Priority,
+      dueDate: '',
+    });
+  };
+
   const renderTasks = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">Tasks</h3>
-        {onAddTask && (
+        {!isAddingTask && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddTask();
+              setIsAddingTask(true);
             }}
             className="px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
           >
@@ -236,34 +332,310 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           </button>
         )}
       </div>
-      {safeProject.tasks && safeProject.tasks.length > 0 ? (
-        safeProject.tasks.map((task) => (
-          <div key={task.id} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center flex-1">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => handleTaskToggle(task.id)}
-                  className="mr-4 w-4 h-4 accent-[var(--accent-primary)]"
-                />
-                <div className="flex-1">
-                  <h4 className={`font-medium ${task.completed ? 'line-through text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
-                    {task.name}
-                  </h4>
-                  <div className="flex items-center space-x-4 mt-1">
-                    {task.dueDate && (
-                      <span className="text-sm text-[var(--text-tertiary)]">
-                        Due: {new Date(task.dueDate).toLocaleDateString()}
-                      </span>
-                    )}
-                    <span className={`inline-flex px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-                </div>
+
+      {/* Add Task Form */}
+      {isAddingTask && (
+        <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)] rounded-xl p-4 space-y-4">
+          <h4 className="text-lg font-semibold text-[var(--text-primary)]">Create New Task</h4>
+
+          {/* Task Name */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Task Name
+            </label>
+            <input
+              type="text"
+              value={newTask.name}
+              onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+              placeholder="Enter task name"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+
+          {/* Task Description */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Description
+            </label>
+            <textarea
+              value={newTask.description}
+              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              placeholder="Enter task description"
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+              rows={3}
+            />
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Priority
+            </label>
+            <select
+              value={newTask.priority}
+              onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as Priority })}
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            >
+              {PRIORITY_VALUES && Object.values(PRIORITY_VALUES).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={newTask.dueDate}
+              onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+            />
+          </div>
+
+          {/* Assign To Team Members */}
+          {safeProject.teamMembers && safeProject.teamMembers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                Assign To
+              </label>
+              <div className="space-y-2">
+                {safeProject.teamMembers.map((member) => (
+                  <label key={member.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newTask.assignees.includes(member.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setNewTask({
+                            ...newTask,
+                            assignees: [...newTask.assignees, member.id]
+                          });
+                        } else {
+                          setNewTask({
+                            ...newTask,
+                            assignees: newTask.assignees.filter((id) => id !== member.id)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 accent-[var(--accent-primary)]"
+                    />
+                    <span className="text-sm text-[var(--text-primary)]">{member.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-[var(--border-primary)]">
+            <button
+              onClick={handleAddNewTask}
+              disabled={!newTask.name.trim()}
+              className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Task
+            </button>
+            <button
+              onClick={() => {
+                setIsAddingTask(false);
+                setNewTask({
+                  name: '',
+                  description: '',
+                  assignees: [],
+                  priority: 'Medium' as Priority,
+                  dueDate: '',
+                });
+              }}
+              className="flex-1 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition-opacity"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {safeProject.tasks && safeProject.tasks.length > 0 ? (
+        safeProject.tasks.map((task) => (
+          <div key={task.id}>
+            {editingTaskId === task.id && editingTask ? (
+              // Edit Mode
+              <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)] rounded-xl p-4 space-y-4">
+                <h4 className="text-lg font-semibold text-[var(--text-primary)]">Edit Task</h4>
+
+                {/* Task Name */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Task Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingTask.name}
+                    onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })}
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                {/* Task Description */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={editingTask.description || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Status
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingTask.completed}
+                      onChange={(e) => setEditingTask({ ...editingTask, completed: e.target.checked })}
+                      className="w-4 h-4 accent-[var(--accent-primary)]"
+                    />
+                    <span className="text-sm text-[var(--text-primary)]">Mark as completed</span>
+                  </label>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={editingTask.priority}
+                    onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as Priority })}
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  >
+                    {PRIORITY_VALUES && Object.values(PRIORITY_VALUES).map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Due Date */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editingTask.dueDate || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                    className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                  />
+                </div>
+
+                {/* Assign To Team Members */}
+                {safeProject.teamMembers && safeProject.teamMembers.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      Assign To
+                    </label>
+                    <div className="space-y-2">
+                      {safeProject.teamMembers.map((member) => (
+                        <label key={member.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editingTask.assignees?.includes(member.id) || false}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditingTask({
+                                  ...editingTask,
+                                  assignees: [...(editingTask.assignees || []), member.id]
+                                });
+                              } else {
+                                setEditingTask({
+                                  ...editingTask,
+                                  assignees: (editingTask.assignees || []).filter((id) => id !== member.id)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4 accent-[var(--accent-primary)]"
+                          />
+                          <span className="text-sm text-[var(--text-primary)]">{member.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t border-[var(--border-primary)]">
+                  <button
+                    onClick={handleSaveTask}
+                    className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+                  >
+                    Save Task
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex-1 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition-opacity"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteTask}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:opacity-80 transition-opacity"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // View Mode - Clickable
+              <div
+                onClick={() => {
+                  setEditingTaskId(task.id);
+                  setEditingTask(task);
+                }}
+                className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4 cursor-pointer hover:border-[var(--accent-primary)] hover:shadow-md transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center flex-1">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleTaskToggle(task.id);
+                      }}
+                      className="mr-4 w-4 h-4 accent-[var(--accent-primary)]"
+                    />
+                    <div className="flex-1">
+                      <h4 className={`font-medium ${task.completed ? 'line-through text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
+                        {task.name}
+                      </h4>
+                      <div className="flex items-center space-x-4 mt-2">
+                        {task.dueDate && (
+                          <span className="text-sm text-[var(--text-tertiary)]">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                        )}
+                        <span className={`inline-flex px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                        {task.assignees && task.assignees.length > 0 && (
+                          <span className="text-xs text-[var(--text-tertiary)]">
+                            Assigned to {task.assignees.length} {task.assignees.length === 1 ? 'person' : 'people'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[var(--text-tertiary)] text-xs">Click to edit</div>
+                </div>
+              </div>
+            )}
           </div>
         ))
       ) : (
