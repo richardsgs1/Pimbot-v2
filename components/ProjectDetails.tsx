@@ -71,6 +71,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     name: '',
     email: '',
   });
+  const [isAddingTeamMemberInCreateTask, setIsAddingTeamMemberInCreateTask] = useState(false);
+  const [newTeamMemberInCreateTask, setNewTeamMemberInCreateTask] = useState<{
+    name: string;
+    email: string;
+  }>({
+    name: '',
+    email: '',
+  });
 
   const getAvatarColor = (name: string): string => {
     const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#06b6d4'];
@@ -392,6 +400,41 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     });
   };
 
+  const handleAddNewTeamMemberInCreateTask = () => {
+    if (!newTeamMemberInCreateTask.name.trim() || !newTeamMemberInCreateTask.email.trim()) return;
+
+    const newMemberId = generateUUID();
+    const newMember = {
+      id: newMemberId,
+      name: newTeamMemberInCreateTask.name,
+      email: newTeamMemberInCreateTask.email,
+      role: 'Team Member',
+      avatar: undefined
+    };
+
+    // Update the project with the new team member
+    if (onUpdateProject) {
+      const updatedProject = {
+        ...safeProject,
+        teamMembers: [...(safeProject.teamMembers || []), newMember]
+      };
+      onUpdateProject(updatedProject);
+    }
+
+    // Assign the new member to the new task
+    setNewTask({
+      ...newTask,
+      assignees: [...newTask.assignees, newMemberId]
+    });
+
+    // Reset the form
+    setIsAddingTeamMemberInCreateTask(false);
+    setNewTeamMemberInCreateTask({
+      name: '',
+      email: '',
+    });
+  };
+
   const renderTasks = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
@@ -472,11 +515,64 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           </div>
 
           {/* Assign To Team Members */}
-          {safeProject.teamMembers && safeProject.teamMembers.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)]">
                 Assign To
               </label>
+              {!isAddingTeamMemberInCreateTask && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTeamMemberInCreateTask(true)}
+                  className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
+                >
+                  + Add Member
+                </button>
+              )}
+            </div>
+
+            {/* Add Team Member Form in Create Task */}
+            {isAddingTeamMemberInCreateTask && (
+              <div className="bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg p-3 mb-3 space-y-2">
+                <input
+                  type="text"
+                  value={newTeamMemberInCreateTask.name}
+                  onChange={(e) => setNewTeamMemberInCreateTask({ ...newTeamMemberInCreateTask, name: e.target.value })}
+                  placeholder="Member name"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-2 text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                />
+                <input
+                  type="email"
+                  value={newTeamMemberInCreateTask.email}
+                  onChange={(e) => setNewTeamMemberInCreateTask({ ...newTeamMemberInCreateTask, email: e.target.value })}
+                  placeholder="Member email"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-2 text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddNewTeamMemberInCreateTask}
+                    disabled={!newTeamMemberInCreateTask.name.trim() || !newTeamMemberInCreateTask.email.trim()}
+                    className="flex-1 px-2 py-1 bg-[var(--accent-primary)] text-white rounded text-xs hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingTeamMemberInCreateTask(false);
+                      setNewTeamMemberInCreateTask({ name: '', email: '' });
+                    }}
+                    className="flex-1 px-2 py-1 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded text-xs hover:opacity-80 transition-opacity"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing Team Members Checkboxes */}
+            {safeProject.teamMembers && safeProject.teamMembers.length > 0 && (
               <div className="space-y-2">
                 {safeProject.teamMembers.map((member) => (
                   <label key={member.id} className="flex items-center gap-2 cursor-pointer">
@@ -502,8 +598,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                   </label>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+            {(!safeProject.teamMembers || safeProject.teamMembers.length === 0) && !isAddingTeamMemberInCreateTask && (
+              <p className="text-xs text-[var(--text-tertiary)] italic">No team members yet. Add one to assign to this task.</p>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4 border-t border-[var(--border-primary)]">
