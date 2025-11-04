@@ -464,7 +464,10 @@ useEffect(() => {
             }}
             team={[]}
             userData={userData}
-            onBack={() => setCurrentView('projectManagement')}
+            onBack={() => {
+              setSelectedProject(null);
+              setCurrentView('projectManagement');
+            }}
           />
         ) : (
           <div className="flex items-center justify-center h-64">
