@@ -6,9 +6,10 @@ import MarkdownRenderer from './MarkdownRenderer';
 interface DailyBriefingProps {
   userData: OnboardingData;
   projects?: Project[];
+  onTileClick?: (tileType: 'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk', projects: Project[]) => void;
 }
 
-const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [] }) => {
+const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [], onTileClick }) => {
   const [briefingContent, setBriefingContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,49 @@ ${priority3}`;
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const getOverdueProjects = (): Project[] => {
+    return projects.filter(p => {
+      const overdueTasks = p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date());
+      return overdueTasks.length > 0;
+    });
+  };
+
+  const getDueThisWeekProjects = (): Project[] => {
+    return projects.filter(p => {
+      if (!p.dueDate) return false;
+      const dueDate = new Date(p.dueDate);
+      const today = new Date();
+      const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return daysUntilDue > 0 && daysUntilDue <= 7;
+    });
+  };
+
+  const getAtRiskProjects = (): Project[] => {
+    return projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk);
+  };
+
+  const handleTileClick = (tileType: 'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk') => {
+    if (!onTileClick) return;
+
+    let filteredProjects: Project[] = [];
+    switch (tileType) {
+      case 'totalProjects':
+        filteredProjects = projects;
+        break;
+      case 'overdue':
+        filteredProjects = getOverdueProjects();
+        break;
+      case 'dueThisWeek':
+        filteredProjects = getDueThisWeekProjects();
+        break;
+      case 'atRisk':
+        filteredProjects = getAtRiskProjects();
+        break;
+    }
+
+    onTileClick(tileType, filteredProjects);
   };
 
   const getTLDRSummary = (): JSX.Element => {
@@ -256,27 +300,40 @@ ${priority3}`;
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-        <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+        <button
+          onClick={() => handleTileClick('totalProjects')}
+          disabled={projects.length === 0}
+          className="bg-[var(--bg-tertiary)] rounded-lg p-3 hover:bg-[var(--accent-primary)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-left"
+        >
           <div className="text-2xl font-bold text-[var(--text-primary)]">{projects.length}</div>
           <div className="text-xs text-[var(--text-tertiary)]">Total Projects</div>
-        </div>
+        </button>
         {metrics.atRisk > 0 && (
-          <div className="bg-yellow-500/10 rounded-lg p-3">
+          <button
+            onClick={() => handleTileClick('atRisk')}
+            className="bg-yellow-500/10 rounded-lg p-3 hover:bg-yellow-500/20 transition-colors cursor-pointer text-left"
+          >
             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{metrics.atRisk}</div>
             <div className="text-xs text-yellow-600 dark:text-yellow-400">At Risk</div>
-          </div>
+          </button>
         )}
         {metrics.overdueTasks > 0 && (
-          <div className="bg-red-500/10 rounded-lg p-3">
+          <button
+            onClick={() => handleTileClick('overdue')}
+            className="bg-red-500/10 rounded-lg p-3 hover:bg-red-500/20 transition-colors cursor-pointer text-left"
+          >
             <div className="text-2xl font-bold text-red-600 dark:text-red-400">{metrics.overdueTasks}</div>
             <div className="text-xs text-red-600 dark:text-red-400">Overdue</div>
-          </div>
+          </button>
         )}
         {metrics.completingSoon > 0 && (
-          <div className="bg-green-500/10 rounded-lg p-3">
+          <button
+            onClick={() => handleTileClick('dueThisWeek')}
+            className="bg-green-500/10 rounded-lg p-3 hover:bg-green-500/20 transition-colors cursor-pointer text-left"
+          >
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.completingSoon}</div>
             <div className="text-xs text-green-600 dark:text-green-400">Due This Week</div>
-          </div>
+          </button>
         )}
       </div>
     </div>

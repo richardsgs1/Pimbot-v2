@@ -412,7 +412,15 @@ useEffect(() => {
       case 'home':
         return (
           <div className="space-y-6">
-            <DailyBriefing userData={userData} projects={projects} />
+            <DailyBriefing
+              userData={userData}
+              projects={projects}
+              onTileClick={(tileType, filteredProjects) => {
+                console.log(`Clicked ${tileType} with ${filteredProjects.length} projects`);
+                // You can navigate to projectManagement view or filter projects here
+                // For now, just logging the action
+              }}
+            />
             <Home 
               projects={projects} 
               userData={userData}
