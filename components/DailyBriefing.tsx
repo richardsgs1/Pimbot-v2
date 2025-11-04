@@ -15,6 +15,10 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [], 
   const [error, setError] = useState<string | null>(null);
   const [showFullBriefing, setShowFullBriefing] = useState(false);
 
+  React.useEffect(() => {
+    console.log('DailyBriefing mounted. Projects:', projects.length, 'onTileClick callback:', !!onTileClick);
+  }, [onTileClick, projects]);
+
   // Calculate key metrics
   const metrics = {
     atRisk: projects.filter(p => p.status === PROJECT_STATUS_VALUES.AtRisk).length,
@@ -154,7 +158,11 @@ ${priority3}`;
   };
 
   const handleTileClick = (tileType: 'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk') => {
-    if (!onTileClick) return;
+    console.log('Tile clicked:', tileType, 'onTileClick callback:', onTileClick);
+    if (!onTileClick) {
+      console.log('No onTileClick callback provided');
+      return;
+    }
 
     let filteredProjects: Project[] = [];
     switch (tileType) {
@@ -172,6 +180,7 @@ ${priority3}`;
         break;
     }
 
+    console.log('Calling onTileClick with:', tileType, filteredProjects);
     onTileClick(tileType, filteredProjects);
   };
 
@@ -301,17 +310,21 @@ ${priority3}`;
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
         <button
+          type="button"
           onClick={() => handleTileClick('totalProjects')}
           disabled={projects.length === 0}
-          className="bg-[var(--bg-tertiary)] rounded-lg p-3 hover:bg-[var(--accent-primary)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-left"
+          className="bg-[var(--bg-tertiary)] rounded-lg p-3 hover:bg-[var(--accent-primary)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-left border-0"
+          style={{ appearance: 'none' }}
         >
           <div className="text-2xl font-bold text-[var(--text-primary)]">{projects.length}</div>
           <div className="text-xs text-[var(--text-tertiary)]">Total Projects</div>
         </button>
         {metrics.atRisk > 0 && (
           <button
+            type="button"
             onClick={() => handleTileClick('atRisk')}
-            className="bg-yellow-500/10 rounded-lg p-3 hover:bg-yellow-500/20 transition-colors cursor-pointer text-left"
+            className="bg-yellow-500/10 rounded-lg p-3 hover:bg-yellow-500/20 transition-colors cursor-pointer text-left border-0"
+            style={{ appearance: 'none' }}
           >
             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{metrics.atRisk}</div>
             <div className="text-xs text-yellow-600 dark:text-yellow-400">At Risk</div>
@@ -319,8 +332,10 @@ ${priority3}`;
         )}
         {metrics.overdueTasks > 0 && (
           <button
+            type="button"
             onClick={() => handleTileClick('overdue')}
-            className="bg-red-500/10 rounded-lg p-3 hover:bg-red-500/20 transition-colors cursor-pointer text-left"
+            className="bg-red-500/10 rounded-lg p-3 hover:bg-red-500/20 transition-colors cursor-pointer text-left border-0"
+            style={{ appearance: 'none' }}
           >
             <div className="text-2xl font-bold text-red-600 dark:text-red-400">{metrics.overdueTasks}</div>
             <div className="text-xs text-red-600 dark:text-red-400">Overdue</div>
@@ -328,8 +343,10 @@ ${priority3}`;
         )}
         {metrics.completingSoon > 0 && (
           <button
+            type="button"
             onClick={() => handleTileClick('dueThisWeek')}
-            className="bg-green-500/10 rounded-lg p-3 hover:bg-green-500/20 transition-colors cursor-pointer text-left"
+            className="bg-green-500/10 rounded-lg p-3 hover:bg-green-500/20 transition-colors cursor-pointer text-left border-0"
+            style={{ appearance: 'none' }}
           >
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.completingSoon}</div>
             <div className="text-xs text-green-600 dark:text-green-400">Due This Week</div>
