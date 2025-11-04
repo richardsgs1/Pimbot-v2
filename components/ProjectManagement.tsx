@@ -267,9 +267,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     setIsEditingProject(true);
   };
 
+  // Close modal when selectedProject becomes null
+  React.useEffect(() => {
+    if (!selectedProject) {
+      setIsEditingProject(false);
+      setIsAddingTask(false);
+      setIsEditingTask(false);
+      setEditingTask(null);
+    }
+  }, [selectedProject]);
+
   const getFilteredProjects = () => {
     let filtered = projects;
-    
+
     if (searchQuery) {
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -393,7 +403,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   Edit
                 </button>
                 <button
-                  onClick={() => onSelectProject(null)}
+                  onClick={() => {
+                    setIsEditingProject(false);
+                    onSelectProject(null);
+                  }}
                   className="px-3 py-1.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition-opacity"
                 >
                   Close
