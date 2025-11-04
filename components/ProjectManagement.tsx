@@ -10,6 +10,8 @@ interface ProjectManagementProps {
   onSelectProject: (project: Project | null) => void;
   selectedProject: Project | null;
   userId?: string;
+  activeTileFilter?: 'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk' | null;
+  onClearTileFilter?: () => void;
 }
 
 const ProjectManagement: React.FC<ProjectManagementProps> = ({
@@ -18,6 +20,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   onSelectProject,
   selectedProject,
   userId = '',
+  activeTileFilter,
+  onClearTileFilter,
 }) => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [isAddingProject, setIsAddingProject] = useState(false);
@@ -27,6 +31,22 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Get filter display name
+  const getFilterDisplayName = (): string => {
+    switch (activeTileFilter) {
+      case 'totalProjects':
+        return 'All Projects';
+      case 'overdue':
+        return 'Overdue Projects';
+      case 'dueThisWeek':
+        return 'Due This Week';
+      case 'atRisk':
+        return 'At Risk Projects';
+      default:
+        return '';
+    }
+  };
 
   // New Project Form State - explicitly typed
   const [newProject, setNewProject] = useState<{
@@ -300,6 +320,24 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        {/* Active Filter Banner */}
+        {activeTileFilter && (
+          <div className="mb-4 p-3 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[var(--accent-primary)]">
+                Showing: {getFilterDisplayName()}
+              </span>
+            </div>
+            {onClearTileFilter && (
+              <button
+                onClick={onClearTileFilter}
+                className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Project Management</h1>
           <div className="flex items-center gap-2">

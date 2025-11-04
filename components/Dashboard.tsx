@@ -59,7 +59,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
-  
+  const [tileFilter, setTileFilter] = useState<'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk' | null>(null);
+
   // 🎯 CALENDAR STATE
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -407,6 +408,33 @@ useEffect(() => {
     }
   };
 
+  // Get filtered projects based on tile filter
+  const getFilteredProjects = (): Project[] => {
+    if (!tileFilter) return projects;
+
+    switch (tileFilter) {
+      case 'totalProjects':
+        return projects;
+      case 'overdue':
+        return projects.filter(p => {
+          const overdueTasks = p.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date());
+          return overdueTasks.length > 0;
+        });
+      case 'dueThisWeek':
+        return projects.filter(p => {
+          if (!p.dueDate) return false;
+          const dueDate = new Date(p.dueDate);
+          const today = new Date();
+          const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          return daysUntilDue > 0 && daysUntilDue <= 7;
+        });
+      case 'atRisk':
+        return projects.filter(p => p.status === 'At Risk');
+      default:
+        return projects;
+    }
+  };
+
   const renderViewContent = () => {
     switch (currentView) {
       case 'home':
@@ -417,8 +445,15 @@ useEffect(() => {
               projects={projects}
               onTileClick={(tileType, filteredProjects) => {
                 console.log(`Clicked ${tileType} with ${filteredProjects.length} projects`);
-                // You can navigate to projectManagement view or filter projects here
-                // For now, just logging the action
+                // Set the tile filter
+                setTileFilter(tileType);
+                // Navigate to Project Management view
+                setCurrentView('projectManagement');
+                setShowSidebar(false);
+                setSelectedProject(null);
+
+                // Update browser history
+                window.history.pushState({ view: 'projectManagement' }, '', '#projectManagement');
               }}
             />
             <Home 
@@ -525,7 +560,7 @@ useEffect(() => {
       case 'projectManagement':
       return (
         <ProjectManagement
-          projects={projects}
+          projects={getFilteredProjects()}
           onUpdateProjects={setProjects}
           onSelectProject={(project) => {
             setSelectedProject(project);
@@ -533,6 +568,8 @@ useEffect(() => {
           }}
           selectedProject={selectedProject}
           userId={userData.id}
+          activeTileFilter={tileFilter}
+          onClearTileFilter={() => setTileFilter(null)}
         />
       );
 
