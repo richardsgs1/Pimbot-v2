@@ -314,10 +314,17 @@ const saveProjectsToDb = async (projectsToSave: Project[]) => {
 };
 
   const handleNavClick = (view: View) => {
+    console.log('handleNavClick called with view:', view);
     setCurrentView(view);
     setProjectFilter(null);
     setShowSidebar(false);
-    
+
+    // Clear selected project when navigating to projectManagement
+    if (view === 'projectManagement') {
+      console.log('Navigating to Project Management - clearing selectedProject');
+      setSelectedProject(null);
+    }
+
     // Update browser history
     window.history.pushState({ view }, '', `#${view}`);
   };
