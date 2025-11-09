@@ -70,7 +70,12 @@ COMMENT ON TABLE public.task_templates IS 'Stores task templates for users to re
 COMMENT ON COLUMN public.task_templates.id IS 'Unique template identifier';
 COMMENT ON COLUMN public.task_templates.user_id IS 'Foreign key to auth.users, ensures data isolation';
 COMMENT ON COLUMN public.task_templates.name IS 'Template name, must be unique per user';
+COMMENT ON COLUMN public.task_templates.description IS 'Template description for user reference';
 COMMENT ON COLUMN public.task_templates.category IS 'Category for organizing templates';
+COMMENT ON COLUMN public.task_templates.default_priority IS 'Default priority level when template is used';
+COMMENT ON COLUMN public.task_templates.default_estimated_hours IS 'Default estimated hours for tasks created from template';
 COMMENT ON COLUMN public.task_templates.subtasks IS 'JSON array of subtask objects to be applied when template is used';
 COMMENT ON COLUMN public.task_templates.default_assignees IS 'JSON array of user IDs to assign when template is used';
 COMMENT ON COLUMN public.task_templates.tags IS 'JSON array of tags for the template';
+COMMENT ON COLUMN public.task_templates.created_at IS 'Timestamp when template was created';
+COMMENT ON COLUMN public.task_templates.updated_at IS 'Timestamp when template was last modified';

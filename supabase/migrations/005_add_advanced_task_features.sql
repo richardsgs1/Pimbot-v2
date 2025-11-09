@@ -29,29 +29,6 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_template BOOLEAN DEFAULT false;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS template_category TEXT;
 
 -- ============================================
--- CREATE TASK TEMPLATES TABLE
--- ============================================
-
-CREATE TABLE IF NOT EXISTS task_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  category TEXT NOT NULL,
-  default_priority TEXT,
-  default_estimated_hours INTEGER,
-  subtasks JSONB DEFAULT '[]'::jsonb,
-  default_assignees JSONB DEFAULT '[]'::jsonb,
-  tags JSONB DEFAULT '[]'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Create index for user_id and category
-CREATE INDEX IF NOT EXISTS idx_task_templates_user_id ON task_templates(user_id);
-CREATE INDEX IF NOT EXISTS idx_task_templates_category ON task_templates(category);
-
--- ============================================
 -- CREATE TASK DEPENDENCIES TRACKING TABLE
 -- (Optional - for explicit dependency queries)
 -- ============================================
@@ -103,6 +80,5 @@ COMMENT ON COLUMN tasks.occurrence_number IS 'Which instance this is (1st, 2nd, 
 COMMENT ON COLUMN tasks.is_template IS 'True if this task is saved as a reusable template';
 COMMENT ON COLUMN tasks.template_category IS 'Category for organizing task templates (e.g., "Weekly Review")';
 
-COMMENT ON TABLE task_templates IS 'Saved task templates for reuse across projects';
 COMMENT ON TABLE task_dependencies IS 'Explicit dependency relationships for efficient queries';
 COMMENT ON TABLE recurring_task_instances IS 'Tracking of generated instances from recurring tasks';
