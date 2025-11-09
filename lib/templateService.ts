@@ -43,14 +43,17 @@ export const templateService = {
       }
 
       if (data && data.length > 0) {
+        // Convert database format to application format
+        const convertedData = data.map(dbTemplate => this.convertFromDb(dbTemplate));
+
         // Cache to localStorage for offline access
         try {
-          localStorage.setItem('pimbot_task_templates', JSON.stringify(data));
+          localStorage.setItem('pimbot_task_templates', JSON.stringify(convertedData));
         } catch (storageError) {
           console.warn('Failed to cache templates to localStorage:', storageError);
           // Continue even if cache fails
         }
-        return data as TaskTemplate[];
+        return convertedData;
       }
 
       return [];
@@ -67,7 +70,14 @@ export const templateService = {
     try {
       const now = new Date().toISOString();
       const newTemplate = {
-        ...template,
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        default_priority: template.defaultPriority,
+        default_estimated_hours: template.defaultEstimatedHours,
+        subtasks: template.subtasks || [],
+        default_assignees: template.defaultAssignees || [],
+        tags: template.tags || [],
         user_id: userId,
         created_at: now,
         updated_at: now,
@@ -99,10 +109,19 @@ export const templateService = {
    */
   async updateTemplate(templateId: string, updates: Partial<Omit<TaskTemplate, 'id' | 'userId' | 'createdAt'>>): Promise<TaskTemplate> {
     try {
-      const updateData = {
-        ...updates,
+      const updateData: any = {
         updated_at: new Date().toISOString(),
       };
+
+      // Convert camelCase to snake_case
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.defaultPriority !== undefined) updateData.default_priority = updates.defaultPriority;
+      if (updates.defaultEstimatedHours !== undefined) updateData.default_estimated_hours = updates.defaultEstimatedHours;
+      if (updates.subtasks !== undefined) updateData.subtasks = updates.subtasks;
+      if (updates.defaultAssignees !== undefined) updateData.default_assignees = updates.defaultAssignees;
+      if (updates.tags !== undefined) updateData.tags = updates.tags;
 
       const { data, error } = await supabase
         .from('task_templates')
