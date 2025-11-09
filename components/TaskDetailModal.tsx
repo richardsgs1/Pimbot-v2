@@ -13,6 +13,7 @@ interface TaskDetailModalProps {
   project: Project | null;
   isOpen: boolean;
   onClose: () => void;
+  userId?: string; // Add userId for template operations
   onEdit?: (task: Task, projectId: string) => void;
   onDelete?: (taskId: string, projectId: string) => void;
   onToggleComplete?: (taskId: string, projectId: string, completed: boolean) => void;
@@ -31,6 +32,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   project,
   isOpen,
   onClose,
+  userId,
   onEdit,
   onDelete,
   onToggleComplete,
@@ -301,6 +303,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             <TaskTemplateManager
               task={task}
               templates={templates}
+              userId={userId || ''}
               onSaveTemplate={onSaveTemplate}
               onLoadTemplate={(template) => {
                 if (onLoadTemplate && onUpdateTask) {

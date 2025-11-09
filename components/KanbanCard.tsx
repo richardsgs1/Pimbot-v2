@@ -21,7 +21,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ task, onEdit }) => {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : task.isBlocked ? 0.6 : 1,
   };
 
   const priorityColors: Record<Priority, string> = {
@@ -38,12 +38,23 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ task, onEdit }) => {
       {...attributes}
       {...listeners}
       onClick={() => onEdit(task)}
-      className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg p-4 mb-3 cursor-pointer hover:border-[var(--accent-primary)] transition-colors"
+      className={`bg-[var(--bg-secondary)] border rounded-lg p-4 mb-3 transition-colors ${
+        task.isBlocked
+          ? 'border-red-500/50 cursor-not-allowed hover:border-red-500/50'
+          : 'border-[var(--border-primary)] cursor-pointer hover:border-[var(--accent-primary)]'
+      }`}
     >
-      {/* Title */}
-      <h4 className="font-semibold text-[var(--text-primary)] mb-2 line-clamp-2">
-        {task.name}
-      </h4>
+      {/* Title with Blocked Indicator */}
+      <div className="flex items-center gap-2 mb-2">
+        <h4 className="font-semibold text-[var(--text-primary)] line-clamp-2 flex-1">
+          {task.name}
+        </h4>
+        {task.isBlocked && (
+          <span className="px-1.5 py-0.5 text-xs bg-red-500/20 text-red-400 rounded flex-shrink-0" title="Blocked by dependencies">
+            ⛔
+          </span>
+        )}
+      </div>
 
       {/* Description */}
       {task.description && (

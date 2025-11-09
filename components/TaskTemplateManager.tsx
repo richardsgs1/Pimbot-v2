@@ -5,6 +5,7 @@ import { generateUUID } from '../lib/utils';
 interface TaskTemplateManagerProps {
   task: Task;
   templates: TaskTemplate[];
+  userId: string; // Add userId prop from auth context
   onSaveTemplate: (template: TaskTemplate) => void;
   onLoadTemplate: (template: TaskTemplate) => void;
   onDeleteTemplate: (templateId: string) => void;
@@ -13,6 +14,7 @@ interface TaskTemplateManagerProps {
 const TaskTemplateManager: React.FC<TaskTemplateManagerProps> = ({
   task,
   templates,
+  userId,
   onSaveTemplate,
   onLoadTemplate,
   onDeleteTemplate,
@@ -31,9 +33,14 @@ const TaskTemplateManager: React.FC<TaskTemplateManagerProps> = ({
       return;
     }
 
+    if (!userId) {
+      alert('Error: User not authenticated. Please log in.');
+      return;
+    }
+
     const newTemplate: TaskTemplate = {
       id: generateUUID(),
-      userId: 'current-user', // This should come from auth context
+      userId: userId, // Use auth context user ID
       name: templateName,
       description: task.description,
       category: templateCategory,

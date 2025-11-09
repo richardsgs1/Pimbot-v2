@@ -3,6 +3,7 @@ import type { Project, Task, Priority, TaskStatus, TeamMember, ProjectStatus } f
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import KanbanBoard from './KanbanBoard';
 import { generateUUID, showSuccessNotification } from '../lib/utils';
+import { dependencyResolver } from '../lib/DependencyResolver';
 
 interface ProjectManagementProps {
   projects: Project[];
@@ -218,23 +219,43 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
+    // If task was just marked as completed, update blocked status of dependent tasks
+    let taskWithDependencyUpdates = updatedTask;
+    if (!editingTask.completed && newTask.status === TaskStatusEnum.Done) {
+      // Task is being marked complete, update dependencies
+      const updatedProjectWithDeps = {
+        ...selectedProject,
+        tasks: selectedProject.tasks.map(t =>
+          t.id === editingTask.id ? updatedTask : t
+        ),
+      };
+
+      // Update blocked status for all dependent tasks
+      const updatedProjectWithBlockedStatus = dependencyResolver.updateBlockedStatus(updatedProjectWithDeps);
+
+      taskWithDependencyUpdates = updatedProjectWithBlockedStatus.tasks.find(t => t.id === editingTask.id) || updatedTask;
+    }
+
     const updatedProject = {
       ...selectedProject,
       tasks: selectedProject.tasks.map(t =>
-        t.id === editingTask.id ? updatedTask : t
+        t.id === editingTask.id ? taskWithDependencyUpdates : t
       ),
       updatedAt: new Date().toISOString(),
     };
 
+    // Update blocked status for the whole project
+    const finalProject = dependencyResolver.updateBlockedStatus(updatedProject);
+
     const updatedProjects = projects.map(p =>
-      p.id === selectedProject.id ? updatedProject : p
+      p.id === selectedProject.id ? finalProject : p
     );
 
     onUpdateProjects(updatedProjects);
-    onSelectProject(updatedProject);
+    onSelectProject(finalProject);
     setIsEditingTask(false);
     setEditingTask(null);
-    showSuccessNotification(`Task "${updatedTask.name}" updated successfully!`);
+    showSuccessNotification(`Task "${taskWithDependencyUpdates.name}" updated successfully!`);
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -495,13 +516,42 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     {selectedProject.tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="p-3 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg"
+                        className={`p-3 bg-[var(--bg-secondary)] border rounded-lg transition-colors ${
+                          task.isBlocked
+                            ? 'border-red-500/50 opacity-75'
+                            : 'border-[var(--border-primary)]'
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h4 className="font-medium text-[var(--text-primary)]">{task.name}</h4>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-[var(--text-primary)]">{task.name}</h4>
+                              {/* Advanced Features Indicators */}
+                              <div className="flex gap-1">
+                                {task.isBlocked && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-red-500/20 text-red-400 rounded" title="Task is blocked by dependencies">
+                                    ⛔ Blocked
+                                  </span>
+                                )}
+                                {task.dependencies && task.dependencies.length > 0 && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded" title={`Depends on ${task.dependencies.length} task(s)`}>
+                                    ⛓️ {task.dependencies.length}
+                                  </span>
+                                )}
+                                {task.subtasks && task.subtasks.length > 0 && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded" title={`${task.subtasks.length} subtask(s)`}>
+                                    ✓ {task.subtasks.length}
+                                  </span>
+                                )}
+                                {task.isRecurring && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded" title="Recurring task">
+                                    🔁 Recurring
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                             <p className="text-sm text-[var(--text-secondary)] mt-1">{task.description}</p>
-                            <div className="flex items-center gap-4 mt-2 text-xs">
+                            <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
                               <span className={`px-2 py-0.5 rounded ${
                                 task.status === 'Done' ? 'bg-green-500/20 text-green-400' :
                                 task.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400' :
@@ -522,7 +572,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                               )}
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-shrink-0 ml-2">
                             <button
                               onClick={() => handleEditTask(task)}
                               className="px-2 py-1 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded hover:opacity-80"

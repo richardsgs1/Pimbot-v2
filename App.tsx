@@ -3,10 +3,11 @@ import LoginScreen from './components/LoginScreen';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import { ThemeProvider } from './components/ThemeContext';
-import type { OnboardingData } from './types';
+import type { OnboardingData, TaskTemplate } from './types';
 import PricingPage from './components/PricingPage';
 import SubscriptionSuccess from './components/SubscriptionSuccess';
 import { supabase } from './lib/supabase';
+import templateService from './lib/templateService';
 
 type AppState = 'login' | 'onboarding' | 'dashboard' | 'subscriptionSuccess' | 'pricing';
 
@@ -24,9 +25,70 @@ const App: React.FC = () => {
     email: '',
   });
 
+  // Task Templates State - persisted to Supabase with localStorage fallback
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+  // Load task templates from Supabase on auth check
+  const loadTemplates = useCallback(async (userId: string) => {
+    try {
+      setIsLoadingTemplates(true);
+      const templates = await templateService.loadTemplates(userId);
+      setTaskTemplates(templates);
+      console.log('Loaded', templates.length, 'task templates from Supabase');
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      // Falls back to localStorage automatically in templateService
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
+  // Template management callbacks - now use Supabase
+  const handleSaveTemplate = useCallback(async (template: TaskTemplate) => {
+    const userId = onboardingData.id;
+    if (!userId) {
+      console.error('Cannot save template: no user ID');
+      return;
+    }
+
+    try {
+      const savedTemplate = await templateService.saveTemplate(userId, {
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        defaultPriority: template.defaultPriority,
+        defaultEstimatedHours: template.defaultEstimatedHours,
+        subtasks: template.subtasks,
+        defaultAssignees: template.defaultAssignees,
+        tags: template.tags,
+      });
+
+      setTaskTemplates(prev => [...prev, savedTemplate]);
+      console.log('Template saved to Supabase:', template.name);
+    } catch (error) {
+      console.error('Failed to save template:', error);
+    }
+  }, [onboardingData.id]);
+
+  const handleLoadTemplate = useCallback((template: TaskTemplate) => {
+    // Template loading is handled by the component
+    console.log('Template loaded:', template.name);
+  }, []);
+
+  const handleDeleteTemplate = useCallback(async (templateId: string) => {
+    try {
+      await templateService.deleteTemplate(templateId);
+      setTaskTemplates(prev => prev.filter(t => t.id !== templateId));
+      console.log('Template deleted from Supabase:', templateId);
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+    }
+  }, []);
+
   const checkAuthAndRedirect = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
       console.log('No session, redirecting to login');
       setAppState('login');
@@ -42,7 +104,7 @@ const App: React.FC = () => {
 
     if (userData) {
       console.log('Loaded user data from database:', userData);
-      
+
       setOnboardingData({
         id: userData.id,
         name: userData.name,
@@ -52,6 +114,9 @@ const App: React.FC = () => {
         tools: userData.tools || [],
         hasSeenPricing: userData.has_seen_pricing || false,
       });
+
+      // Load user's task templates from Supabase
+      await loadTemplates(userData.id);
 
       // Determine state based on user's onboarding AND subscription status
       if (!userData.onboarding_completed || !userData.skill_level) {
@@ -65,9 +130,9 @@ const App: React.FC = () => {
         setAppState('dashboard');
       }
     }
-    
+
     setIsCheckingAuth(false);
-  }, []);
+  }, [loadTemplates]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -172,7 +237,16 @@ const App: React.FC = () => {
       case 'subscriptionSuccess':
         return <SubscriptionSuccess sessionId={stripeSessionId!} onContinue={handleSubscriptionSuccess} />;
       case 'dashboard':
-        return <Dashboard userData={onboardingData} onLogout={handleLogout} />;
+        return (
+          <Dashboard
+            userData={onboardingData}
+            onLogout={handleLogout}
+            templates={taskTemplates}
+            onSaveTemplate={handleSaveTemplate}
+            onLoadTemplate={handleLoadTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+          />
+        );
       default:
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
     }
