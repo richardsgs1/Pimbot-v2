@@ -1,5 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect, useCallback } from 'react';
-import type { OnboardingData, Project, TeamMember, Task } from '../types';
+import type { OnboardingData, Project, TeamMember, Task, TaskTemplate } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import Home from './Home';
 import ProjectList from './ProjectList';
@@ -17,6 +17,7 @@ import ExportCenter from './ExportCenter';
 import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
+import templateService from '../lib/templateService';
 
 // 🎯 CALENDAR IMPORTS
 import CalendarView from './CalendarView';
@@ -64,6 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   // 🎯 CALENDAR STATE
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+
+  // 📋 TASK TEMPLATE STATE
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   // ADD THESE TOAST HELPER FUNCTIONS HERE:
   const addToast = (toast: Omit<Toast, 'id'>) => {
@@ -169,6 +174,62 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     });
   };
 
+  // Template handlers
+  const handleSaveTemplate = async (template: TaskTemplate) => {
+    try {
+      const savedTemplate = await templateService.saveTemplate(localUserData.id, {
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        defaultPriority: template.defaultPriority,
+        defaultEstimatedHours: template.defaultEstimatedHours,
+        subtasks: template.subtasks,
+        defaultAssignees: template.defaultAssignees,
+        tags: template.tags,
+      });
+      setTaskTemplates([savedTemplate, ...taskTemplates]);
+      addToast({
+        type: 'success',
+        title: 'Success',
+        message: `Template "${template.name}" saved!`
+      });
+    } catch (error) {
+      console.error('Failed to save template:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save template'
+      });
+    }
+  };
+
+  const handleLoadTemplate = async (template: TaskTemplate) => {
+    addToast({
+      type: 'info',
+      title: 'Template Loaded',
+      message: `Loaded template "${template.name}"`
+    });
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await templateService.deleteTemplate(templateId);
+      setTaskTemplates(taskTemplates.filter(t => t.id !== templateId));
+      addToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Template deleted'
+      });
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete template'
+      });
+    }
+  };
+
   const handleDateSelect = (date: Date) => {
     // Navigate to project management to create new task with pre-filled date
     setCurrentView('projectManagement');
@@ -260,11 +321,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   useEffect(() => {
   const loadUser = async () => {
     const userId = await getUserId();
-    
+
     if (userId) {
       console.log('Loading user data from database...');
       const dbUserData = await loadUserData(userId);
-      
+
       if (dbUserData) {
         console.log('User data loaded from database');
         setLocalUserData(dbUserData);
@@ -272,10 +333,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         setEditedEmail(dbUserData.email || '');
         setEditedSkillLevel(dbUserData.skillLevel);
         setEditedMethodologies(dbUserData.methodologies || []);
-        
+
         console.log('Loading projects from database...');
         const dbProjects = await loadProjects(userId);
-        
+
         if (dbProjects.length > 0) {
           console.log(`Loaded ${dbProjects.length} projects from database`);
           setProjects(dbProjects);
@@ -283,6 +344,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           // New user with no projects - leave empty or add demo projects
           console.log('No projects found - showing empty slate');
           setProjects([]); // Empty slate for new users
+        }
+
+        // Load task templates
+        console.log('Loading task templates...');
+        try {
+          setIsLoadingTemplates(true);
+          const templates = await templateService.loadTemplates(userId);
+          console.log(`Loaded ${templates.length} task templates`);
+          setTaskTemplates(templates);
+        } catch (error) {
+          console.error('Failed to load task templates:', error);
+          addToast({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to load task templates',
+            duration: 3000
+          });
+        } finally {
+          setIsLoadingTemplates(false);
         }
       }
     } else {
@@ -1180,8 +1260,24 @@ useEffect(() => {
             project={taskProject}
             isOpen={showTaskModal}
             onClose={() => setShowTaskModal(false)}
+            userId={localUserData.id}
             onToggleComplete={handleTaskComplete}
             onDelete={handleTaskDelete}
+            templates={taskTemplates}
+            onSaveTemplate={handleSaveTemplate}
+            onLoadTemplate={handleLoadTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onUpdateTask={(updates) => {
+              // Handle task updates for template loading
+              if (selectedTask) {
+                const updatedProjects = projects.map(p => ({
+                  ...p,
+                  tasks: p.tasks.map(t => t.id === selectedTask.id ? { ...t, ...updates } : t)
+                }));
+                setProjects(updatedProjects);
+                saveProjectsToDb(updatedProjects);
+              }
+            }}
           />
         );
       })()}
