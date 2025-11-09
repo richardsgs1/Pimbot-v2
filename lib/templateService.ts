@@ -228,7 +228,7 @@ export const templateService = {
   /**
    * Convert database format to application format
    */
-  private convertFromDb(dbTemplate: any): TaskTemplate {
+  convertFromDb(dbTemplate: any): TaskTemplate {
     return {
       id: dbTemplate.id,
       userId: dbTemplate.user_id,
@@ -248,7 +248,7 @@ export const templateService = {
   /**
    * Load templates from localStorage as fallback
    */
-  private loadFromLocalStorage(): TaskTemplate[] {
+  loadFromLocalStorage(): TaskTemplate[] {
     try {
       const cached = localStorage.getItem('pimbot_task_templates');
       return cached ? JSON.parse(cached) : [];
