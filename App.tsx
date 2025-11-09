@@ -18,7 +18,7 @@ const App: React.FC = () => {
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     id: '',
-    skillLevel: null as any,
+    skillLevel: 'beginner',
     methodologies: [],
     tools: [],
     name: '',

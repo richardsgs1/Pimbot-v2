@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { OnboardingData } from '../types';
 
 interface LoginScreenProps {
-  onLoginSuccess: (userId: string, email: string, userData: any) => void;
+  onLoginSuccess: (userId: string, email: string, userData: Partial<OnboardingData>) => void;
 }
 
 const RobotIcon: React.FC = () => (
@@ -56,14 +57,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         console.log('User profile created successfully!');
 
         // Success - new user needs onboarding
-        onLoginSuccess(authData.user.id, authData.user.email!, { 
-          id: authData.user.id, 
+        onLoginSuccess(authData.user.id, authData.user.email!, {
+          id: authData.user.id,
           email: authData.user.email,
           name,
-          skill_level: null,
+          skillLevel: 'Beginner',
           methodologies: [],
           tools: [],
-          onboarding_completed: false 
+          onboardingCompleted: false
         });
 
       } else {
@@ -91,9 +92,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         // Success - pass full user data
         onLoginSuccess(authData.user.id, authData.user.email!, userData);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message || 'Authentication failed');
+      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
