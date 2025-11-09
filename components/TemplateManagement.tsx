@@ -36,6 +36,7 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({
   });
 
   const [tagInput, setTagInput] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Get unique categories
   const categories = Array.from(new Set(templates.map(t => t.category))).sort();
@@ -50,10 +51,17 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({
   });
 
   const handleCreateTemplate = () => {
-    if (!formData.name.trim() || !formData.category.trim()) {
-      alert('Please fill in template name and category');
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setValidationError('Template name is required');
       return;
     }
+    if (!formData.category.trim()) {
+      setValidationError('Category is required');
+      return;
+    }
+
+    setValidationError(null);
 
     const newTemplate: TaskTemplate = {
       id: generateUUID(),
@@ -133,6 +141,14 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({
       {isCreatingTemplate && (
         <div className="border-b border-[var(--border-primary)] p-6 bg-[var(--bg-secondary)]">
           <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">Create New Template</h2>
+
+          {/* Validation Error Message */}
+          {validationError && (
+            <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <p className="text-red-400 text-sm font-medium">{validationError}</p>
+            </div>
+          )}
+
           <div className="space-y-4">
             {/* Name */}
             <div>
@@ -201,7 +217,7 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({
                 </label>
                 <select
                   value={formData.defaultPriority}
-                  onChange={(e) => setFormData(prev => ({ ...prev, defaultPriority: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, defaultPriority: e.target.value as any }))}
                   className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                 >
                   <option value={PRIORITY_VALUES.Low}>Low</option>
