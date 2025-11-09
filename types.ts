@@ -134,7 +134,43 @@ export interface TeamMember {
   avatar?: string;
 }
 
-// Task
+// Subtask (for task decomposition)
+export interface Subtask {
+  id: string;
+  name: string;
+  completed: boolean;
+  estimatedHours?: number;
+  assignees?: string[];
+  order?: number; // For ordering subtasks
+}
+
+// Recurrence Pattern (for recurring tasks)
+export interface RecurrencePattern {
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+  interval?: number; // Every N weeks/months (default 1)
+  daysOfWeek?: number[]; // For weekly: 0-6 (0=Sunday)
+  dayOfMonth?: number; // For monthly: 1-31
+  endDate?: string; // ISO date or null for infinite
+  maxOccurrences?: number; // Or number limit
+}
+
+// Task Template (for saving and reusing task configurations)
+export interface TaskTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  category: string;
+  defaultPriority?: Priority;
+  defaultEstimatedHours?: number;
+  subtasks?: Subtask[];
+  defaultAssignees?: string[];
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Task (extended with advanced features)
 export interface Task {
   id: string;
   name: string;
@@ -151,6 +187,29 @@ export interface Task {
   attachments: FileAttachment[];
   createdAt: string;
   updatedAt: string;
+
+  // ============================================
+  // ADVANCED TASK FEATURES - NEW FIELDS
+  // ============================================
+
+  // Task Dependencies
+  dependencies?: string[]; // Array of task IDs this task depends on
+  dependentTaskIds?: string[]; // Array of task IDs that depend on this one
+  isBlocked?: boolean; // True if any dependency is incomplete
+
+  // Subtasks
+  subtasks?: Subtask[]; // Array of subtasks for task decomposition
+  subtaskProgress?: number; // Percentage of subtasks completed (0-100)
+
+  // Recurring Tasks
+  isRecurring?: boolean; // True if this is a recurring task template
+  recurrencePattern?: RecurrencePattern; // Pattern for generating instances
+  originalTaskId?: string; // Reference to original template for instances
+  occurrenceNumber?: number; // Which instance this is (1st, 2nd, etc.)
+
+  // Task Templates
+  isTemplate?: boolean; // True if this task is saved as a template
+  templateCategory?: string; // Category for organization
 }
 
 // Journal Entry
