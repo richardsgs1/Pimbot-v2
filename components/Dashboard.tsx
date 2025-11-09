@@ -18,6 +18,7 @@ import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 import templateService from '../lib/templateService';
+import { initializeSampleTemplates } from '../lib/sampleTemplates';
 
 // 🎯 CALENDAR IMPORTS
 import CalendarView from './CalendarView';
@@ -350,6 +351,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         console.log('Loading task templates...');
         try {
           setIsLoadingTemplates(true);
+
+          // Initialize sample templates for new users (one-time)
+          await initializeSampleTemplates(userId, templateService);
+
+          // Load all templates (including newly created samples)
           const templates = await templateService.loadTemplates(userId);
           console.log(`Loaded ${templates.length} task templates`);
           setTaskTemplates(templates);
