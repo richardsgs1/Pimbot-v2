@@ -492,7 +492,9 @@ useEffect(() => {
         return { title: 'Pricing & Plans', subtitle: 'Choose the right plan for you' };
       case 'calendar':
         return { title: 'Calendar', subtitle: 'View all tasks and project milestones' };
-      default:  
+      case 'templates':
+        return { title: 'Task Templates', subtitle: 'Create and manage reusable task templates' };
+      default:
         return { title: 'Dashboard', subtitle: 'PiMbOt AI' };
     }
   };
@@ -545,8 +547,8 @@ useEffect(() => {
                 window.history.pushState({ view: 'projectManagement' }, '', '#projectManagement');
               }}
             />
-            <Home 
-              projects={projects} 
+            <Home
+              projects={projects}
               userData={userData}
               onSelectProject={(id: string) => {
                 const project = projects.find(p => p.id === id);
@@ -558,6 +560,10 @@ useEffect(() => {
               onMenuClick={(filter: string) => {
                 if (filter.startsWith('projects-')) {
                   setProjectFilter(filter.replace('projects-', ''));
+                  setCurrentView('projectList');
+                } else if (filter === 'templates') {
+                  setCurrentView('templates');
+                } else if (filter === 'analytics') {
                   setCurrentView('projectList');
                 } else {
                   setCurrentView('projectList');
