@@ -31,7 +31,10 @@ import { TrialBanner, TrialBadge } from './TrialBanner';
 import { TrialManager } from '../lib/TrialManager';
 import { TrialEmailService } from '../lib/TrialEmailService';
 
-type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar';
+// 📋 TEMPLATE MANAGEMENT
+import TemplateManagement from './TemplateManagement';
+
+type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar' | 'templates';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -674,6 +677,18 @@ useEffect(() => {
             onTaskClick={handleTaskClick}
             onDateSelect={handleDateSelect}
             onTaskReschedule={handleTaskReschedule}
+          />
+        );
+
+      case 'templates':
+        return (
+          <TemplateManagement
+            templates={taskTemplates}
+            userId={userData.id}
+            onSaveTemplate={handleSaveTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onLoadTemplate={handleLoadTemplate}
+            onMenuClick={() => setShowSidebar(true)}
           />
         );
 
