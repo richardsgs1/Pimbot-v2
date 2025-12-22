@@ -733,3 +733,315 @@ export const logFileAccess = async (
     // Don't throw - logging failure shouldn't break the app
   }
 };
+
+// ============================================
+// TASK DEPENDENCY DATABASE FUNCTIONS
+// ============================================
+
+import type { TaskDependency, TaskDependencyDB } from '../types';
+
+/**
+ * Create a task dependency relationship
+ */
+export const createTaskDependency = async (
+  dependentTaskId: string,
+  blockingTaskId: string
+): Promise<TaskDependency | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('task_dependencies')
+      .insert({
+        dependent_task_id: dependentTaskId,
+        blocking_task_id: blockingTaskId
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      dependentTaskId: data.dependent_task_id,
+      blockingTaskId: data.blocking_task_id,
+      createdAt: data.created_at
+    };
+  } catch (error) {
+    console.error('Failed to create task dependency:', error);
+    return null;
+  }
+};
+
+/**
+ * Get all dependencies for a task (tasks this task depends on)
+ */
+export const getTaskDependencies = async (
+  taskId: string
+): Promise<TaskDependency[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('task_dependencies')
+      .select('*')
+      .eq('dependent_task_id', taskId);
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      id: d.id,
+      dependentTaskId: d.dependent_task_id,
+      blockingTaskId: d.blocking_task_id,
+      createdAt: d.created_at
+    }));
+  } catch (error) {
+    console.error('Failed to get task dependencies:', error);
+    return [];
+  }
+};
+
+/**
+ * Get all dependent tasks (tasks that depend on this task)
+ */
+export const getDependentTasks = async (
+  taskId: string
+): Promise<TaskDependency[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('task_dependencies')
+      .select('*')
+      .eq('blocking_task_id', taskId);
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      id: d.id,
+      dependentTaskId: d.dependent_task_id,
+      blockingTaskId: d.blocking_task_id,
+      createdAt: d.created_at
+    }));
+  } catch (error) {
+    console.error('Failed to get dependent tasks:', error);
+    return [];
+  }
+};
+
+/**
+ * Delete a task dependency
+ */
+export const deleteTaskDependency = async (
+  dependentTaskId: string,
+  blockingTaskId: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('task_dependencies')
+      .delete()
+      .eq('dependent_task_id', dependentTaskId)
+      .eq('blocking_task_id', blockingTaskId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete task dependency:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete all dependencies for a task (when task is deleted)
+ */
+export const deleteAllTaskDependencies = async (
+  taskId: string
+): Promise<boolean> => {
+  try {
+    // Delete where this task is dependent
+    await supabase
+      .from('task_dependencies')
+      .delete()
+      .eq('dependent_task_id', taskId);
+
+    // Delete where this task is blocking
+    await supabase
+      .from('task_dependencies')
+      .delete()
+      .eq('blocking_task_id', taskId);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to delete all task dependencies:', error);
+    return false;
+  }
+};
+
+// ============================================
+// RECURRING TASK INSTANCE DATABASE FUNCTIONS
+// ============================================
+
+import type { RecurringTaskInstance, RecurringTaskInstanceDB } from '../types';
+
+/**
+ * Create a recurring task instance record
+ */
+export const createRecurringTaskInstance = async (
+  originalTaskId: string,
+  generatedTaskId: string,
+  occurrenceNumber: number,
+  scheduledDate: string
+): Promise<RecurringTaskInstance | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('recurring_task_instances')
+      .insert({
+        original_task_id: originalTaskId,
+        generated_task_id: generatedTaskId,
+        occurrence_number: occurrenceNumber,
+        scheduled_date: scheduledDate
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      originalTaskId: data.original_task_id,
+      generatedTaskId: data.generated_task_id,
+      occurrenceNumber: data.occurrence_number,
+      scheduledDate: data.scheduled_date,
+      createdAt: data.created_at
+    };
+  } catch (error) {
+    console.error('Failed to create recurring task instance:', error);
+    return null;
+  }
+};
+
+/**
+ * Get all instances for a recurring task
+ */
+export const getRecurringTaskInstances = async (
+  originalTaskId: string
+): Promise<RecurringTaskInstance[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('recurring_task_instances')
+      .select('*')
+      .eq('original_task_id', originalTaskId)
+      .order('occurrence_number', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      id: d.id,
+      originalTaskId: d.original_task_id,
+      generatedTaskId: d.generated_task_id,
+      occurrenceNumber: d.occurrence_number,
+      scheduledDate: d.scheduled_date,
+      createdAt: d.created_at
+    }));
+  } catch (error) {
+    console.error('Failed to get recurring task instances:', error);
+    return [];
+  }
+};
+
+/**
+ * Get instances scheduled within a date range
+ */
+export const getRecurringTaskInstancesByDateRange = async (
+  startDate: string,
+  endDate: string
+): Promise<RecurringTaskInstance[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('recurring_task_instances')
+      .select('*')
+      .gte('scheduled_date', startDate)
+      .lte('scheduled_date', endDate)
+      .order('scheduled_date', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      id: d.id,
+      originalTaskId: d.original_task_id,
+      generatedTaskId: d.generated_task_id,
+      occurrenceNumber: d.occurrence_number,
+      scheduledDate: d.scheduled_date,
+      createdAt: d.created_at
+    }));
+  } catch (error) {
+    console.error('Failed to get recurring task instances by date range:', error);
+    return [];
+  }
+};
+
+/**
+ * Get the latest instance for a recurring task
+ */
+export const getLatestRecurringTaskInstance = async (
+  originalTaskId: string
+): Promise<RecurringTaskInstance | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('recurring_task_instances')
+      .select('*')
+      .eq('original_task_id', originalTaskId)
+      .order('occurrence_number', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      originalTaskId: data.original_task_id,
+      generatedTaskId: data.generated_task_id,
+      occurrenceNumber: data.occurrence_number,
+      scheduledDate: data.scheduled_date,
+      createdAt: data.created_at
+    };
+  } catch (error) {
+    console.error('Failed to get latest recurring task instance:', error);
+    return null;
+  }
+};
+
+/**
+ * Delete recurring task instance
+ */
+export const deleteRecurringTaskInstance = async (
+  instanceId: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('recurring_task_instances')
+      .delete()
+      .eq('id', instanceId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete recurring task instance:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete all instances for a recurring task (when template is deleted)
+ */
+export const deleteAllRecurringTaskInstances = async (
+  originalTaskId: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('recurring_task_instances')
+      .delete()
+      .eq('original_task_id', originalTaskId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete all recurring task instances:', error);
+    return false;
+  }
+};
