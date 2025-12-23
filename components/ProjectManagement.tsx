@@ -4,6 +4,7 @@ import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } 
 import KanbanBoard from './KanbanBoard';
 import { generateUUID, showSuccessNotification } from '../lib/utils';
 import { dependencyResolver } from '../lib/DependencyResolver';
+import TaskDetailModal from './TaskDetailModal';
 
 interface ProjectManagementProps {
   projects: Project[];
@@ -32,6 +33,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
 
   // Get filter display name
   const getFilterDisplayName = (): string => {
@@ -288,6 +291,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
       estimatedHours: task.estimatedHours || 0,
     });
     setIsEditingTask(true);
+  };
+
+  const handleViewTaskDetails = (task: Task) => {
+    setSelectedTaskForDetail(task);
+    setShowTaskDetailModal(true);
   };
 
   const handleEditProject = () => {
@@ -573,6 +581,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                             </div>
                           </div>
                           <div className="flex gap-2 flex-shrink-0 ml-2">
+                            <button
+                              onClick={() => handleViewTaskDetails(task)}
+                              className="px-2 py-1 text-sm bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30"
+                            >
+                              View Details
+                            </button>
                             <button
                               onClick={() => handleEditTask(task)}
                               className="px-2 py-1 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded hover:opacity-80"
@@ -973,6 +987,55 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {showTaskDetailModal && selectedTaskForDetail && selectedProject && (
+        <TaskDetailModal
+          task={selectedTaskForDetail}
+          project={selectedProject}
+          onClose={() => {
+            setShowTaskDetailModal(false);
+            setSelectedTaskForDetail(null);
+          }}
+          onUpdateTask={(taskId: string, updates: Partial<Task>) => {
+            if (!selectedProject) return;
+
+            const updatedProject = {
+              ...selectedProject,
+              tasks: selectedProject.tasks.map(t =>
+                t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+              ),
+              updatedAt: new Date().toISOString(),
+            };
+
+            const updatedProjects = projects.map(p =>
+              p.id === selectedProject.id ? updatedProject : p
+            );
+
+            onUpdateProjects(updatedProjects);
+            onSelectProject(updatedProject);
+            setSelectedTaskForDetail(updatedProject.tasks.find(t => t.id === taskId) || null);
+          }}
+          onDeleteTask={(taskId: string) => {
+            if (!selectedProject) return;
+
+            const updatedProject = {
+              ...selectedProject,
+              tasks: selectedProject.tasks.filter(t => t.id !== taskId),
+              updatedAt: new Date().toISOString(),
+            };
+
+            const updatedProjects = projects.map(p =>
+              p.id === selectedProject.id ? updatedProject : p
+            );
+
+            onUpdateProjects(updatedProjects);
+            onSelectProject(updatedProject);
+            setShowTaskDetailModal(false);
+            setSelectedTaskForDetail(null);
+          }}
+        />
       )}
     </div>
   );
