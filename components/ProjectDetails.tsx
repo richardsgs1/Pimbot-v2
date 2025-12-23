@@ -864,8 +864,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('View Details clicked for task:', task);
                         setSelectedTaskForDetail(task);
                         setShowTaskDetailModal(true);
+                        console.log('Modal state should be true now');
                       }}
                       className="px-3 py-1.5 text-sm bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
                     >
@@ -1109,6 +1111,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
       </div>
 
       {/* Task Detail Modal */}
+      {(() => {
+        console.log('Modal render check:', { showTaskDetailModal, selectedTaskForDetail: !!selectedTaskForDetail });
+        return null;
+      })()}
       {showTaskDetailModal && selectedTaskForDetail && (
         <TaskDetailModal
           task={selectedTaskForDetail}
