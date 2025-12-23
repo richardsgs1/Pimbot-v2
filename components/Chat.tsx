@@ -5,7 +5,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import TimelineGenerator from './TimelineGenerator';
 import TeamCapacityAnalysis from './TeamCapacityAnalysis';
 import RiskReport from './RiskReport';
-import { IntentDetector } from '@/lib/IntentDetector';
+import type { IntentDetector as IntentDetectorType } from '@/lib/IntentDetector';
 import IntentActionForms from './IntentActionForms';
 import { TaskMetadataExtractor } from '@/lib/TaskMetadataExtractor';
 import type { ExtractedTaskData } from '@/lib/TaskMetadataExtractor';
@@ -243,13 +243,14 @@ Provide helpful, context-aware advice based on their current portfolio status an
     const messageToSend = overrideMessage || inputMessage;
     if (!messageToSend.trim() || isStreaming) return;
 
-    // NEW Intent Detection for advanced features
+    // NEW Intent Detection for advanced features (dynamic import)
+    const { IntentDetector } = await import('../lib/IntentDetector');
     const detector = new IntentDetector(projects);
     const detectedIntentResult = detector.detect(messageToSend);
 
     if (detectedIntentResult && detectedIntentResult.confidence > 0.7) {
       setDetectedIntent(detectedIntentResult);
-      
+
       if (detectedIntentResult.type === 'update-status') {
         setShowStatusForm(true);
         setInputMessage('');
