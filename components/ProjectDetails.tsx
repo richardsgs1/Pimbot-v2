@@ -1119,15 +1119,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
         <TaskDetailModal
           task={selectedTaskForDetail}
           project={safeProject}
+          isOpen={true}
           onClose={() => {
             setShowTaskDetailModal(false);
             setSelectedTaskForDetail(null);
           }}
-          onUpdateTask={(taskId: string, updates: Partial<Task>) => {
-            if (!onUpdateProject) return;
+          onUpdateTask={(updates) => {
+            if (!onUpdateProject || !selectedTaskForDetail) return;
 
             const updatedTasks = safeProject.tasks.map(t =>
-              t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+              t.id === selectedTaskForDetail.id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
             );
 
             const updatedProject = {
@@ -1137,9 +1138,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
             };
 
             onUpdateProject(updatedProject);
-            setSelectedTaskForDetail(updatedTasks.find(t => t.id === taskId) || null);
+            setSelectedTaskForDetail(updatedTasks.find(t => t.id === selectedTaskForDetail.id) || null);
           }}
-          onDeleteTask={(taskId: string) => {
+          onDelete={(taskId: string, projectId: string) => {
             if (!onUpdateProject) return;
 
             const updatedTasks = safeProject.tasks.filter(t => t.id !== taskId);
