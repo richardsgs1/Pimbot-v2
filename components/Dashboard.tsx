@@ -1,5 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect, useCallback } from 'react';
-import type { OnboardingData, Project, TeamMember, Task } from '../types';
+import type { OnboardingData, Project, TeamMember, Task, TaskTemplate } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import Home from './Home';
 import ProjectList from './ProjectList';
@@ -17,6 +17,8 @@ import ExportCenter from './ExportCenter';
 import PricingPage from './PricingPage';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
+import templateService from '../lib/templateService';
+import { initializeSampleTemplates } from '../lib/sampleTemplates';
 
 // 🎯 CALENDAR IMPORTS
 import CalendarView from './CalendarView';
@@ -29,7 +31,10 @@ import { TrialBanner, TrialBadge } from './TrialBanner';
 import { TrialManager } from '../lib/TrialManager';
 import { TrialEmailService } from '../lib/TrialEmailService';
 
-type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar';
+// 📋 TEMPLATE MANAGEMENT
+import TemplateManagement from './TemplateManagement';
+
+type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar' | 'templates';
 
 interface DashboardProps {
   userData: OnboardingData;
@@ -64,6 +69,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   // 🎯 CALENDAR STATE
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+
+  // 📋 TASK TEMPLATE STATE
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   // ADD THESE TOAST HELPER FUNCTIONS HERE:
   const addToast = (toast: Omit<Toast, 'id'>) => {
@@ -169,6 +178,62 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     });
   };
 
+  // Template handlers
+  const handleSaveTemplate = async (template: TaskTemplate) => {
+    try {
+      const savedTemplate = await templateService.saveTemplate(localUserData.id, {
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        defaultPriority: template.defaultPriority,
+        defaultEstimatedHours: template.defaultEstimatedHours,
+        subtasks: template.subtasks,
+        defaultAssignees: template.defaultAssignees,
+        tags: template.tags,
+      });
+      setTaskTemplates([savedTemplate, ...taskTemplates]);
+      addToast({
+        type: 'success',
+        title: 'Success',
+        message: `Template "${template.name}" saved!`
+      });
+    } catch (error) {
+      console.error('Failed to save template:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save template'
+      });
+    }
+  };
+
+  const handleLoadTemplate = async (template: TaskTemplate) => {
+    addToast({
+      type: 'info',
+      title: 'Template Loaded',
+      message: `Loaded template "${template.name}"`
+    });
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await templateService.deleteTemplate(templateId);
+      setTaskTemplates(taskTemplates.filter(t => t.id !== templateId));
+      addToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Template deleted'
+      });
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete template'
+      });
+    }
+  };
+
   const handleDateSelect = (date: Date) => {
     // Navigate to project management to create new task with pre-filled date
     setCurrentView('projectManagement');
@@ -260,11 +325,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   useEffect(() => {
   const loadUser = async () => {
     const userId = await getUserId();
-    
+
     if (userId) {
       console.log('Loading user data from database...');
       const dbUserData = await loadUserData(userId);
-      
+
       if (dbUserData) {
         console.log('User data loaded from database');
         setLocalUserData(dbUserData);
@@ -272,10 +337,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         setEditedEmail(dbUserData.email || '');
         setEditedSkillLevel(dbUserData.skillLevel);
         setEditedMethodologies(dbUserData.methodologies || []);
-        
+
         console.log('Loading projects from database...');
         const dbProjects = await loadProjects(userId);
-        
+
         if (dbProjects.length > 0) {
           console.log(`Loaded ${dbProjects.length} projects from database`);
           setProjects(dbProjects);
@@ -283,6 +348,30 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           // New user with no projects - leave empty or add demo projects
           console.log('No projects found - showing empty slate');
           setProjects([]); // Empty slate for new users
+        }
+
+        // Load task templates
+        console.log('Loading task templates...');
+        try {
+          setIsLoadingTemplates(true);
+
+          // Initialize sample templates for new users (one-time)
+          await initializeSampleTemplates(userId, templateService);
+
+          // Load all templates (including newly created samples)
+          const templates = await templateService.loadTemplates(userId);
+          console.log(`Loaded ${templates.length} task templates`);
+          setTaskTemplates(templates);
+        } catch (error) {
+          console.error('Failed to load task templates:', error);
+          addToast({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to load task templates',
+            duration: 3000
+          });
+        } finally {
+          setIsLoadingTemplates(false);
         }
       }
     } else {
@@ -403,7 +492,9 @@ useEffect(() => {
         return { title: 'Pricing & Plans', subtitle: 'Choose the right plan for you' };
       case 'calendar':
         return { title: 'Calendar', subtitle: 'View all tasks and project milestones' };
-      default:  
+      case 'templates':
+        return { title: 'Task Templates', subtitle: 'Create and manage reusable task templates' };
+      default:
         return { title: 'Dashboard', subtitle: 'PiMbOt AI' };
     }
   };
@@ -456,8 +547,8 @@ useEffect(() => {
                 window.history.pushState({ view: 'projectManagement' }, '', '#projectManagement');
               }}
             />
-            <Home 
-              projects={projects} 
+            <Home
+              projects={projects}
               userData={userData}
               onSelectProject={(id: string) => {
                 const project = projects.find(p => p.id === id);
@@ -469,6 +560,10 @@ useEffect(() => {
               onMenuClick={(filter: string) => {
                 if (filter.startsWith('projects-')) {
                   setProjectFilter(filter.replace('projects-', ''));
+                  setCurrentView('projectList');
+                } else if (filter === 'templates') {
+                  setCurrentView('templates');
+                } else if (filter === 'analytics') {
                   setCurrentView('projectList');
                 } else {
                   setCurrentView('projectList');
@@ -588,6 +683,18 @@ useEffect(() => {
             onTaskClick={handleTaskClick}
             onDateSelect={handleDateSelect}
             onTaskReschedule={handleTaskReschedule}
+          />
+        );
+
+      case 'templates':
+        return (
+          <TemplateManagement
+            templates={taskTemplates}
+            userId={userData.id}
+            onSaveTemplate={handleSaveTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onLoadTemplate={handleLoadTemplate}
+            onMenuClick={() => setShowSidebar(true)}
           />
         );
 
@@ -1019,11 +1126,11 @@ useEffect(() => {
           </li>
           
           <li>
-            <button 
-              onClick={() => handleNavClick('chat')} 
+            <button
+              onClick={() => handleNavClick('chat')}
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'chat' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                currentView === 'chat'
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
             >
@@ -1033,6 +1140,24 @@ useEffect(() => {
                 </svg>
               </SidebarIcon>
               {!sidebarCollapsed && "AI Assistant"}
+            </button>
+          </li>
+
+          <li>
+            <button
+              onClick={() => handleNavClick('templates')}
+              className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
+                currentView === 'templates'
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
+                  : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+              }`}
+            >
+              <SidebarIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </SidebarIcon>
+              {!sidebarCollapsed && "Templates"}
             </button>
           </li>
         </ul>
@@ -1180,8 +1305,24 @@ useEffect(() => {
             project={taskProject}
             isOpen={showTaskModal}
             onClose={() => setShowTaskModal(false)}
+            userId={localUserData.id}
             onToggleComplete={handleTaskComplete}
             onDelete={handleTaskDelete}
+            templates={taskTemplates}
+            onSaveTemplate={handleSaveTemplate}
+            onLoadTemplate={handleLoadTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
+            onUpdateTask={(updates) => {
+              // Handle task updates for template loading
+              if (selectedTask) {
+                const updatedProjects = projects.map(p => ({
+                  ...p,
+                  tasks: p.tasks.map(t => t.id === selectedTask.id ? { ...t, ...updates } : t)
+                }));
+                setProjects(updatedProjects);
+                saveProjectsToDb(updatedProjects);
+              }
+            }}
           />
         );
       })()}

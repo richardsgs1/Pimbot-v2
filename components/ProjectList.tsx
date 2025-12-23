@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Project, ProjectStatus, TeamMember } from '../types';
 import { PROJECT_STATUS_VALUES } from '../types';
+import TemplateSelector from './TemplateSelector';
 
 interface ProjectListProps {
   projects: Project[];
@@ -20,6 +21,8 @@ const ProjectList: React.FC<ProjectListProps> = ({
   onClearFilter
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showCreateMode, setShowCreateMode] = useState<'choice' | 'form' | null>(null);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -136,15 +139,28 @@ const ProjectList: React.FC<ProjectListProps> = ({
             )}
           </div>
         </div>
-        <button 
-          onClick={() => setShowCreateForm(true)}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Project
-        </button>
+        {showCreateMode === null && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowCreateMode('form')}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              New Project
+            </button>
+            <button
+              onClick={() => setShowCreateMode('choice')}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Use Template
+            </button>
+          </div>
+        )}
       </div>
       
       <p className="text-slate-400 mb-4">{getFilterDescription()}</p>
@@ -174,7 +190,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
         </div>
       )}
 
-      {showCreateForm && (
+      {showCreateMode === 'form' && (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 mb-4">
           <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -303,21 +319,31 @@ const ProjectList: React.FC<ProjectListProps> = ({
           </div>
 
           <div className="flex gap-2 mt-6">
-            <button 
+            <button
               onClick={handleCreateProject}
               disabled={!newProject.name.trim() || !newProject.dueDate}
               className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
             >
               Create Project
             </button>
-            <button 
-              onClick={() => setShowCreateForm(false)}
+            <button
+              onClick={() => setShowCreateMode(null)}
               className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
             >
               Cancel
             </button>
           </div>
         </div>
+      )}
+
+      {showCreateMode === 'choice' && (
+        <TemplateSelector
+          onSelect={(project) => {
+            onProjectCreated(project);
+            setShowCreateMode(null);
+          }}
+          onClose={() => setShowCreateMode(null)}
+        />
       )}
 
       <div className="bg-slate-800 border border-slate-700 rounded-lg">
@@ -358,8 +384,8 @@ const ProjectList: React.FC<ProjectListProps> = ({
               }
             </p>
             {!projectFilter || projectFilter === 'all' ? (
-              <button 
-                onClick={() => setShowCreateForm(true)}
+              <button
+                onClick={() => setShowCreateMode('form')}
                 className="text-cyan-400 hover:text-cyan-300 font-medium"
               >
                 Create your first project →

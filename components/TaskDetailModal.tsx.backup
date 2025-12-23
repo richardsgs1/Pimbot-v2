@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import type { Task, Project, TaskStatus, TeamMember, TaskTemplate } from '../types';
 import { PRIORITY_VALUES, TaskStatus as TaskStatusEnum } from '../types';
-import { TaskDependencyManager } from './TaskDependencyManager';
+import TaskDependencies from './TaskDependencies';
 import SubtaskManager from './SubtaskManager';
-import { RecurringTaskManager } from './RecurringTaskManager';
-import { TaskTemplateSelector } from './TaskTemplateSelector';
+import RecurringTaskSetup from './RecurringTaskSetup';
+import TaskTemplateManager from './TaskTemplateManager';
 import { dependencyResolver } from '../lib/DependencyResolver';
 import { subtaskCalculator } from '../lib/SubtaskCalculator';
 
@@ -279,14 +279,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </div>
           )}
 
-          {activeTab === 'dependencies' && project && (
-            <TaskDependencyManager
+          {activeTab === 'dependencies' && onUpdateTask && (
+            <TaskDependencies
               task={task}
               project={project}
-              onUpdate={(updatedTask) => {
-                onUpdateTask?.(updatedTask);
-                onEdit?.(updatedTask, project.id);
-              }}
+              onUpdateTask={onUpdateTask}
             />
           )}
 
@@ -298,38 +295,32 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             />
           )}
 
-          {activeTab === 'recurring' && (
-            <RecurringTaskManager
-              task={task}
-              onUpdate={(updatedTask) => {
-                onUpdateTask?.(updatedTask);
-                onEdit?.(updatedTask, project.id);
-              }}
-            />
+          {activeTab === 'recurring' && onUpdateTask && (
+            <RecurringTaskSetup task={task} onUpdateTask={onUpdateTask} />
           )}
 
-          {activeTab === 'templates' && userId && (
-            <TaskTemplateSelector
+          {activeTab === 'templates' && onSaveTemplate && onLoadTemplate && onDeleteTemplate && (
+            <TaskTemplateManager
               task={task}
               templates={templates}
-              userId={userId}
-              onSaveAsTemplate={(template) => {
-                onSaveTemplate?.(template);
+              userId={userId || ''}
+              onSaveTemplate={onSaveTemplate}
+              onLoadTemplate={(template) => {
+                if (onLoadTemplate && onUpdateTask) {
+                  onLoadTemplate(template);
+                  onUpdateTask({
+                    name: template.name,
+                    description: template.description,
+                    priority: template.defaultPriority || task.priority,
+                    estimatedHours: template.defaultEstimatedHours || task.estimatedHours,
+                    subtasks: template.subtasks || task.subtasks,
+                    assignees: template.defaultAssignees || task.assignees,
+                    tags: template.tags || task.tags,
+                    updatedAt: new Date().toISOString(),
+                  });
+                }
               }}
-              onCreateFromTemplate={(newTask) => {
-                // Apply template properties to current task
-                onUpdateTask?.({
-                  name: newTask.name,
-                  description: newTask.description,
-                  priority: newTask.priority,
-                  estimatedHours: newTask.estimatedHours,
-                  subtasks: newTask.subtasks,
-                  assignees: newTask.assignees,
-                  tags: newTask.tags,
-                  updatedAt: new Date().toISOString(),
-                });
-                onLoadTemplate?.(newTask as any);
-              }}
+              onDeleteTemplate={onDeleteTemplate}
             />
           )}
         </div>

@@ -72,11 +72,6 @@ Provide helpful, practical project management advice. Tailor your response to th
 
 // Daily briefing
 async function handleBriefing(req: VercelRequest, res: VercelResponse, data: any) {
-  console.log('=== BRIEFING DEBUG ===');
-  console.log('Full request body:', JSON.stringify(req.body, null, 2));
-  console.log('Data parameter:', JSON.stringify(data, null, 2));
-  console.log('=====================');
-  
   const { userData, projects, prompt } = data;
   
   try {

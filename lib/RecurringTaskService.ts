@@ -1,5 +1,17 @@
-import type { Task } from '../types';
+import type {
+  Task,
+  RecurrencePattern,
+  NextOccurrence,
+  RecurringTaskGenerationResult,
+  RecurringTaskInstance
+} from '../types';
 import moment from 'moment';
+import {
+  createRecurringTaskInstance,
+  getRecurringTaskInstances,
+  getLatestRecurringTaskInstance,
+  deleteAllRecurringTaskInstances
+} from './database';
 
 export interface RecurrenceRule {
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -230,5 +242,250 @@ export class RecurringTaskService {
       interval: 1,
       endDate
     };
+  }
+
+  // ============================================
+  // NEW: DATABASE-INTEGRATED METHODS
+  // ============================================
+
+  /**
+   * Calculate the next occurrence date for a recurring task
+   */
+  static calculateNextOccurrence(
+    pattern: RecurrencePattern,
+    fromDate?: string
+  ): NextOccurrence | null {
+    const baseDate = fromDate ? moment(fromDate) : moment();
+    const nextDate = this.getNextOccurrence(baseDate, {
+      frequency: pattern.frequency,
+      interval: pattern.interval || 1,
+      daysOfWeek: pattern.daysOfWeek,
+      dayOfMonth: pattern.dayOfMonth,
+      endDate: pattern.endDate ? new Date(pattern.endDate) : undefined,
+      occurrences: pattern.maxOccurrences
+    });
+
+    // Check if we've reached the end
+    let isLastOccurrence = false;
+    if (pattern.endDate && nextDate.isAfter(moment(pattern.endDate))) {
+      isLastOccurrence = true;
+    }
+
+    // We'll need to track occurrence number externally
+    // For now, return a placeholder
+    return {
+      date: nextDate.toISOString(),
+      occurrenceNumber: 1,
+      isLastOccurrence
+    };
+  }
+
+  /**
+   * Generate a new task instance from a recurring task template
+   */
+  static async generateTaskInstance(
+    templateTask: Task,
+    scheduledDate: string,
+    occurrenceNumber: number
+  ): Promise<RecurringTaskGenerationResult> {
+    try {
+      if (!templateTask.isRecurring || !templateTask.recurrencePattern) {
+        return {
+          success: false,
+          error: 'Task is not a recurring task template'
+        };
+      }
+
+      // Create the new task instance
+      const generatedTask: Task = {
+        ...templateTask,
+        id: `${templateTask.id}-instance-${occurrenceNumber}-${Date.now()}`,
+        name: `${templateTask.name}`,
+        dueDate: scheduledDate,
+        startDate: scheduledDate,
+        isRecurring: false, // Instance is not recurring
+        recurrencePattern: undefined,
+        originalTaskId: templateTask.id,
+        occurrenceNumber,
+        completed: false,
+        status: templateTask.status,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Save instance tracking to database
+      const instance = await createRecurringTaskInstance(
+        templateTask.id,
+        generatedTask.id,
+        occurrenceNumber,
+        scheduledDate
+      );
+
+      if (!instance) {
+        return {
+          success: false,
+          error: 'Failed to create instance record in database'
+        };
+      }
+
+      // Calculate next scheduled date
+      const nextOccurrence = this.calculateNextOccurrence(
+        templateTask.recurrencePattern,
+        scheduledDate
+      );
+
+      return {
+        success: true,
+        generatedTask,
+        instance,
+        nextScheduledDate: nextOccurrence?.date
+      };
+    } catch (error) {
+      console.error('Error generating task instance:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Get all instances for a recurring task template
+   */
+  static async getTaskInstances(
+    templateTaskId: string
+  ): Promise<RecurringTaskInstance[]> {
+    return await getRecurringTaskInstances(templateTaskId);
+  }
+
+  /**
+   * Get the next occurrence number for a recurring task
+   */
+  static async getNextOccurrenceNumber(
+    templateTaskId: string
+  ): Promise<number> {
+    const latestInstance = await getLatestRecurringTaskInstance(templateTaskId);
+    return latestInstance ? latestInstance.occurrenceNumber + 1 : 1;
+  }
+
+  /**
+   * Delete all instances for a recurring task template
+   */
+  static async deleteAllInstances(templateTaskId: string): Promise<boolean> {
+    return await deleteAllRecurringTaskInstances(templateTaskId);
+  }
+
+  /**
+   * Check if it's time to generate a new instance
+   */
+  static shouldGenerateInstance(
+    pattern: RecurrencePattern,
+    lastGeneratedDate?: string
+  ): boolean {
+    if (!lastGeneratedDate) return true;
+
+    const now = moment();
+    const lastGenerated = moment(lastGeneratedDate);
+    const nextDue = this.getNextOccurrence(lastGenerated, {
+      frequency: pattern.frequency,
+      interval: pattern.interval || 1,
+      daysOfWeek: pattern.daysOfWeek,
+      dayOfMonth: pattern.dayOfMonth,
+      endDate: pattern.endDate ? new Date(pattern.endDate) : undefined
+    });
+
+    // Generate if we're past or at the next due date
+    return now.isSameOrAfter(nextDue);
+  }
+
+  /**
+   * Get upcoming instances that should be generated
+   */
+  static getUpcomingInstances(
+    pattern: RecurrencePattern,
+    fromDate: string,
+    lookAheadDays = 30
+  ): string[] {
+    const upcoming: string[] = [];
+    const start = moment(fromDate);
+    const end = moment(fromDate).add(lookAheadDays, 'days');
+
+    let currentDate = start.clone();
+    let count = 0;
+    const maxOccurrences = pattern.maxOccurrences || 100;
+
+    while (count < maxOccurrences && currentDate.isBefore(end)) {
+      if (pattern.endDate && currentDate.isAfter(moment(pattern.endDate))) {
+        break;
+      }
+
+      upcoming.push(currentDate.toISOString());
+      currentDate = this.getNextOccurrence(currentDate, {
+        frequency: pattern.frequency,
+        interval: pattern.interval || 1,
+        daysOfWeek: pattern.daysOfWeek,
+        dayOfMonth: pattern.dayOfMonth,
+        endDate: pattern.endDate ? new Date(pattern.endDate) : undefined
+      });
+      count++;
+    }
+
+    return upcoming;
+  }
+
+  /**
+   * Convert RecurrencePattern to RecurrenceRule (for compatibility)
+   */
+  static patternToRule(pattern: RecurrencePattern): RecurrenceRule {
+    return {
+      frequency: pattern.frequency,
+      interval: pattern.interval || 1,
+      daysOfWeek: pattern.daysOfWeek,
+      dayOfMonth: pattern.dayOfMonth,
+      endDate: pattern.endDate ? new Date(pattern.endDate) : undefined,
+      occurrences: pattern.maxOccurrences
+    };
+  }
+
+  /**
+   * Convert RecurrenceRule to RecurrencePattern (for compatibility)
+   */
+  static ruleToPattern(rule: RecurrenceRule): RecurrencePattern {
+    return {
+      frequency: rule.frequency,
+      interval: rule.interval,
+      daysOfWeek: rule.daysOfWeek,
+      dayOfMonth: rule.dayOfMonth,
+      endDate: rule.endDate?.toISOString(),
+      maxOccurrences: rule.occurrences
+    };
+  }
+
+  /**
+   * Check if a recurring task has reached its end condition
+   */
+  static hasReachedEnd(
+    pattern: RecurrencePattern,
+    occurrenceNumber: number,
+    currentDate: string
+  ): boolean {
+    // Check max occurrences
+    if (pattern.maxOccurrences && occurrenceNumber >= pattern.maxOccurrences) {
+      return true;
+    }
+
+    // Check end date
+    if (pattern.endDate && moment(currentDate).isAfter(moment(pattern.endDate))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get human-readable recurrence description from RecurrencePattern
+   */
+  static getPatternDescription(pattern: RecurrencePattern): string {
+    return this.getRecurrenceDescription(this.patternToRule(pattern));
   }
 }
