@@ -4,6 +4,7 @@ import { PRIORITY_VALUES, PROJECT_STATUS_VALUES } from '../types';
 import FileUpload from './FileUpload';
 import FileList from './FileList';
 import { generateUUID } from '../lib/utils';
+import TaskDetailModal from './TaskDetailModal';
 
 // Add the upload and list components to your UI
 // See FILE_ATTACHMENTS_GUIDE.md for full example
@@ -42,6 +43,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState<{
     name: string;
     description: string;
@@ -823,14 +826,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                 </div>
               </div>
             ) : (
-              // View Mode - Clickable
-              <div
-                onClick={() => {
-                  setEditingTaskId(task.id);
-                  setEditingTask(task);
-                }}
-                className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4 cursor-pointer hover:border-[var(--accent-primary)] hover:shadow-md transition-all"
-              >
+              // View Mode - with Action Buttons
+              <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-xl p-4 hover:border-[var(--accent-primary)] hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
                     <input
@@ -863,7 +860,28 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="text-[var(--text-tertiary)] text-xs">Click to edit</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTaskForDetail(task);
+                        setShowTaskDetailModal(true);
+                      }}
+                      className="px-3 py-1.5 text-sm bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTaskId(task.id);
+                        setEditingTask(task);
+                      }}
+                      className="px-3 py-1.5 text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition-opacity"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1089,6 +1107,49 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           {activeTab === 'journal' && renderJournal()}
         </div>
       </div>
+
+      {/* Task Detail Modal */}
+      {showTaskDetailModal && selectedTaskForDetail && (
+        <TaskDetailModal
+          task={selectedTaskForDetail}
+          project={safeProject}
+          onClose={() => {
+            setShowTaskDetailModal(false);
+            setSelectedTaskForDetail(null);
+          }}
+          onUpdateTask={(taskId: string, updates: Partial<Task>) => {
+            if (!onUpdateProject) return;
+
+            const updatedTasks = safeProject.tasks.map(t =>
+              t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+            );
+
+            const updatedProject = {
+              ...safeProject,
+              tasks: updatedTasks,
+              updatedAt: new Date().toISOString(),
+            };
+
+            onUpdateProject(updatedProject);
+            setSelectedTaskForDetail(updatedTasks.find(t => t.id === taskId) || null);
+          }}
+          onDeleteTask={(taskId: string) => {
+            if (!onUpdateProject) return;
+
+            const updatedTasks = safeProject.tasks.filter(t => t.id !== taskId);
+
+            const updatedProject = {
+              ...safeProject,
+              tasks: updatedTasks,
+              updatedAt: new Date().toISOString(),
+            };
+
+            onUpdateProject(updatedProject);
+            setShowTaskDetailModal(false);
+            setSelectedTaskForDetail(null);
+          }}
+        />
+      )}
     </div>
   );
 };
