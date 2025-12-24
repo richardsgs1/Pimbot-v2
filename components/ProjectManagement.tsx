@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Project, Task, Priority, TaskStatus, TeamMember, ProjectStatus } from '../types';
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import KanbanBoard from './KanbanBoard';
+import ProjectKanbanBoard from './ProjectKanbanBoard';
 import { generateUUID, showSuccessNotification } from '../lib/utils';
 import { dependencyResolver } from '../lib/DependencyResolver';
 import TaskDetailModal from './TaskDetailModal';
@@ -450,9 +451,18 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
             ))}
           </div>
         ) : (
-          <div className="text-[var(--text-secondary)]">
-            Kanban view coming soon...
-          </div>
+          <ProjectKanbanBoard
+            projects={filteredProjects}
+            onSelectProject={onSelectProject}
+            onUpdateProjectStatus={(projectId: string, newStatus: ProjectStatus) => {
+              const updatedProjects = projects.map(p =>
+                p.id === projectId
+                  ? { ...p, status: newStatus, updatedAt: new Date().toISOString() }
+                  : p
+              );
+              onUpdateProjects(updatedProjects);
+            }}
+          />
         )}
       </div>
 
