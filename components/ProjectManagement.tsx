@@ -3,6 +3,9 @@ import type { Project, Task, Priority, TaskStatus, TeamMember, ProjectStatus } f
 import { PRIORITY_VALUES, PROJECT_STATUS_VALUES, TaskStatus as TaskStatusEnum } from '../types';
 import KanbanBoard from './KanbanBoard';
 import ProjectKanbanBoard from './ProjectKanbanBoard';
+import EmptyState from './EmptyState';
+import LoadingSpinner from './LoadingSpinner';
+import FormField from './FormField';
 import { generateUUID, showSuccessNotification } from '../lib/utils';
 import { dependencyResolver } from '../lib/DependencyResolver';
 import TaskDetailModal from './TaskDetailModal';
@@ -36,6 +39,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
+
+  // Loading states
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [isSavingTask, setIsSavingTask] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   // Get filter display name
   const getFilterDisplayName = (): string => {
@@ -97,43 +105,48 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     estimatedHours: 0,
   });
 
-  const handleCreateProject = () => {
-    const now = new Date().toISOString();
-    const project: Project = {
-      id: generateUUID(), // Use proper UUID instead of Date.now()
-      name: newProject.name,
-      description: newProject.description,
-      manager: newProject.manager,
-      status: newProject.status,
-      priority: newProject.priority,
-      startDate: newProject.startDate,
-      endDate: newProject.endDate,
-      dueDate: newProject.dueDate,
-      budget: newProject.budget,
-      teamMembers: newProject.teamMembers,
-      tasks: [],
-      attachments: [],
-      progress: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
+  const handleCreateProject = async () => {
+    setIsSavingProject(true);
+    try {
+      const now = new Date().toISOString();
+      const project: Project = {
+        id: generateUUID(), // Use proper UUID instead of Date.now()
+        name: newProject.name,
+        description: newProject.description,
+        manager: newProject.manager,
+        status: newProject.status,
+        priority: newProject.priority,
+        startDate: newProject.startDate,
+        endDate: newProject.endDate,
+        dueDate: newProject.dueDate,
+        budget: newProject.budget,
+        teamMembers: newProject.teamMembers,
+        tasks: [],
+        attachments: [],
+        progress: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    onUpdateProjects([...projects, project]);
-    onSelectProject(project);
-    setIsAddingProject(false);
-    setNewProject({
-      name: '',
-      description: '',
-      manager: '',
-      status: PROJECT_STATUS_VALUES.Planning,
-      priority: PRIORITY_VALUES.Medium,
-      startDate: '',
-      endDate: '',
-      dueDate: '',
-      budget: 0,
-      teamMembers: [],
-    });
-    showSuccessNotification(`Project "${project.name}" created successfully!`);
+      onUpdateProjects([...projects, project]);
+      onSelectProject(project);
+      setIsAddingProject(false);
+      setNewProject({
+        name: '',
+        description: '',
+        manager: '',
+        status: PROJECT_STATUS_VALUES.Planning,
+        priority: PRIORITY_VALUES.Medium,
+        startDate: '',
+        endDate: '',
+        dueDate: '',
+        budget: 0,
+        teamMembers: [],
+      });
+      showSuccessNotification(`Project "${project.name}" created successfully!`);
+    } finally {
+      setIsSavingProject(false);
+    }
   };
 
   const handleUpdateProject = () => {
@@ -164,48 +177,53 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     onSelectProject(null);
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!selectedProject) return;
 
-    const now = new Date().toISOString();
-    const task: Task = {
-      id: generateUUID(), // Use proper UUID instead of Date.now()
-      name: newTask.name,
-      description: newTask.description,
-      assignees: newTask.assignees,
-      status: newTask.status,
-      priority: newTask.priority,
-      dueDate: newTask.dueDate,
-      estimatedHours: newTask.estimatedHours,
-      completed: false,
-      attachments: [],
-      createdAt: now,
-      updatedAt: now,
-    };
+    setIsSavingTask(true);
+    try {
+      const now = new Date().toISOString();
+      const task: Task = {
+        id: generateUUID(), // Use proper UUID instead of Date.now()
+        name: newTask.name,
+        description: newTask.description,
+        assignees: newTask.assignees,
+        status: newTask.status,
+        priority: newTask.priority,
+        dueDate: newTask.dueDate,
+        estimatedHours: newTask.estimatedHours,
+        completed: false,
+        attachments: [],
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    const updatedProject = {
-      ...selectedProject,
-      tasks: [...selectedProject.tasks, task],
-      updatedAt: now,
-    };
+      const updatedProject = {
+        ...selectedProject,
+        tasks: [...selectedProject.tasks, task],
+        updatedAt: now,
+      };
 
-    const updatedProjects = projects.map(p =>
-      p.id === selectedProject.id ? updatedProject : p
-    );
+      const updatedProjects = projects.map(p =>
+        p.id === selectedProject.id ? updatedProject : p
+      );
 
-    onUpdateProjects(updatedProjects);
-    onSelectProject(updatedProject);
-    setIsAddingTask(false);
-    setNewTask({
-      name: '',
-      description: '',
-      assignees: [],
-      status: TaskStatusEnum.ToDo,
-      priority: PRIORITY_VALUES.Medium,
-      dueDate: '',
-      estimatedHours: 0,
-    });
-    showSuccessNotification(`Task "${task.name}" created successfully!`);
+      onUpdateProjects(updatedProjects);
+      onSelectProject(updatedProject);
+      setIsAddingTask(false);
+      setNewTask({
+        name: '',
+        description: '',
+        assignees: [],
+        status: TaskStatusEnum.ToDo,
+        priority: PRIORITY_VALUES.Medium,
+        dueDate: '',
+        estimatedHours: 0,
+      });
+      showSuccessNotification(`Task "${task.name}" created successfully!`);
+    } finally {
+      setIsSavingTask(false);
+    }
   };
 
   const handleUpdateTask = () => {
@@ -262,22 +280,28 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     showSuccessNotification(`Task "${taskWithDependencyUpdates.name}" updated successfully!`);
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     if (!selectedProject) return;
     if (!confirm('Are you sure you want to delete this task?')) return;
 
-    const updatedProject = {
-      ...selectedProject,
-      tasks: selectedProject.tasks.filter(t => t.id !== taskId),
-      updatedAt: new Date().toISOString(),
-    };
+    setIsDeletingTask(true);
+    try {
+      const updatedProject = {
+        ...selectedProject,
+        tasks: selectedProject.tasks.filter(t => t.id !== taskId),
+        updatedAt: new Date().toISOString(),
+      };
 
-    const updatedProjects = projects.map(p =>
-      p.id === selectedProject.id ? updatedProject : p
-    );
+      const updatedProjects = projects.map(p =>
+        p.id === selectedProject.id ? updatedProject : p
+      );
 
-    onUpdateProjects(updatedProjects);
-    onSelectProject(updatedProject);
+      onUpdateProjects(updatedProjects);
+      onSelectProject(updatedProject);
+      showSuccessNotification('Task deleted successfully!');
+    } finally {
+      setIsDeletingTask(false);
+    }
   };
 
   const handleEditTask = (task: Task) => {
@@ -426,7 +450,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {viewMode === 'list' ? (
+        {filteredProjects.length === 0 ? (
+          <EmptyState
+            icon="📁"
+            title="No Projects Found"
+            description={
+              activeTileFilter
+                ? `No projects match the "${getFilterDisplayName()}" filter. Try clearing the filter or creating a new project.`
+                : "Get started by creating your first project. Projects help you organize tasks and track progress."
+            }
+            actionLabel="Create Project"
+            onAction={() => setIsAddingProject(true)}
+          />
+        ) : viewMode === 'list' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProjects.map((project) => (
               <div
@@ -614,7 +650,13 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                       </div>
                     ))}
                     {selectedProject.tasks.length === 0 && (
-                      <p className="text-center text-[var(--text-tertiary)] py-8">No tasks yet. Add one to get started!</p>
+                      <EmptyState
+                        icon="✓"
+                        title="No Tasks Yet"
+                        description="Create your first task to start tracking work in this project."
+                        actionLabel="Add Task"
+                        onAction={() => setIsAddingTask(true)}
+                      />
                     )}
                   </div>
                 ) : (
@@ -654,44 +696,35 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               {isAddingProject ? 'New Project' : 'Edit Project'}
             </h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Project Name
-                </label>
+              <FormField label="Project Name" required>
                 <input
                   type="text"
                   value={newProject.name}
                   onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  placeholder="Enter project name"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Description
-                </label>
+              </FormField>
+              <FormField label="Description">
                 <textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   rows={3}
+                  placeholder="Describe your project"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Project Manager
-                </label>
+              </FormField>
+              <FormField label="Project Manager">
                 <input
                   type="text"
                   value={newProject.manager}
                   onChange={(e) => setNewProject({ ...newProject, manager: e.target.value })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  placeholder="Who is managing this project?"
                 />
-              </div>
+              </FormField>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Status
-                  </label>
+                <FormField label="Status">
                   <select
                     value={newProject.status}
                     onChange={(e) => setNewProject({ ...newProject, status: e.target.value as ProjectStatus })}
@@ -703,11 +736,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     <option value="On Hold">On Hold</option>
                     <option value="Completed">Completed</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Priority
-                  </label>
+                </FormField>
+                <FormField label="Priority">
                   <select
                     value={newProject.priority}
                     onChange={(e) => setNewProject({ ...newProject, priority: e.target.value as Priority })}
@@ -718,50 +748,39 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
                   </select>
-                </div>
+                </FormField>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Start Date
-                  </label>
+                <FormField label="Start Date">
                   <input
                     type="date"
                     value={newProject.startDate}
                     onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
                     className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Due Date
-                  </label>
+                </FormField>
+                <FormField label="Due Date">
                   <input
                     type="date"
                     value={newProject.dueDate}
                     onChange={(e) => setNewProject({ ...newProject, dueDate: e.target.value })}
                     className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   />
-                </div>
+                </FormField>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Budget
-                </label>
+              <FormField label="Budget" hint="Enter the project budget in dollars">
                 <input
                   type="number"
                   value={newProject.budget}
                   onChange={(e) => setNewProject({ ...newProject, budget: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  placeholder="0"
                 />
-              </div>
+              </FormField>
 
               {/* Team Members Section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-[var(--text-secondary)]">
-                    Team Members
-                  </label>
+              <FormField label="Team Members">
+                <div className="space-y-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -785,51 +804,56 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   >
                     + Add Member
                   </button>
-                </div>
 
-                {newProject.teamMembers.length > 0 ? (
-                  <div className="space-y-2 mb-3">
-                    {newProject.teamMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-lg"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-[var(--text-primary)]">
-                            {member.name}
-                          </div>
-                          <div className="text-xs text-[var(--text-tertiary)]">
-                            {member.email}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewProject({
-                              ...newProject,
-                              teamMembers: newProject.teamMembers.filter((m) => m.id !== member.id)
-                            });
-                          }}
-                          className="text-red-500 hover:text-red-400 transition-colors text-sm"
+                  {newProject.teamMembers.length > 0 ? (
+                    <div className="space-y-2">
+                      {newProject.teamMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-lg"
                         >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--text-tertiary)] italic">
-                    No team members added yet
-                  </p>
-                )}
-              </div>
+                          <div>
+                            <div className="text-sm font-medium text-[var(--text-primary)]">
+                              {member.name}
+                            </div>
+                            <div className="text-xs text-[var(--text-tertiary)]">
+                              {member.email}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewProject({
+                                ...newProject,
+                                teamMembers: newProject.teamMembers.filter((m) => m.id !== member.id)
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-400 transition-colors text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[var(--text-tertiary)] italic">
+                      No team members added yet
+                    </p>
+                  )}
+                </div>
+              </FormField>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={isAddingProject ? handleCreateProject : handleUpdateProject}
-                className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+                disabled={isSavingProject}
+                className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isAddingProject ? 'Create Project' : 'Update Project'}
+                {isSavingProject && <LoadingSpinner size="sm" />}
+                {isSavingProject
+                  ? 'Saving...'
+                  : (isAddingProject ? 'Create Project' : 'Update Project')
+                }
               </button>
               <button
                 onClick={() => {
@@ -861,35 +885,28 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               {isAddingTask ? 'New Task' : 'Edit Task'}
             </h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Task Name
-                </label>
+              <FormField label="Task Name" required>
                 <input
                   type="text"
                   value={newTask.name}
                   onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  placeholder="Enter task name"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Description
-                </label>
+              </FormField>
+              <FormField label="Description">
                 <textarea
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                   className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   rows={3}
+                  placeholder="Describe the task"
                 />
-              </div>
+              </FormField>
 
               {/* Assign To Team Members */}
               {selectedProject && selectedProject.teamMembers && selectedProject.teamMembers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                    Assign To
-                  </label>
+                <FormField label="Assign To">
                   <div className="space-y-2">
                     {selectedProject.teamMembers.map((member) => (
                       <label key={member.id} className="flex items-center gap-2 cursor-pointer">
@@ -917,14 +934,11 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                       </label>
                     ))}
                   </div>
-                </div>
+                </FormField>
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Status
-                  </label>
+                <FormField label="Status">
                   <select
                     value={newTask.status}
                     onChange={(e) => setNewTask({ ...newTask, status: e.target.value as TaskStatus })}
@@ -935,11 +949,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     <option value="Done">Done</option>
                     <option value="On Hold">On Hold</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Priority
-                  </label>
+                </FormField>
+                <FormField label="Priority">
                   <select
                     value={newTask.priority}
                     onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as Priority })}
@@ -950,39 +961,39 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>
                   </select>
-                </div>
+                </FormField>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Due Date
-                  </label>
+                <FormField label="Due Date">
                   <input
                     type="date"
                     value={newTask.dueDate}
                     onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
                     className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                    Estimated Hours
-                  </label>
+                </FormField>
+                <FormField label="Estimated Hours" hint="How long will this task take?">
                   <input
                     type="number"
                     value={newTask.estimatedHours}
                     onChange={(e) => setNewTask({ ...newTask, estimatedHours: Number(e.target.value) })}
                     className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                    placeholder="0"
                   />
-                </div>
+                </FormField>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={isAddingTask ? handleCreateTask : handleUpdateTask}
-                className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
+                disabled={isSavingTask}
+                className="flex-1 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isAddingTask ? 'Create Task' : 'Update Task'}
+                {isSavingTask && <LoadingSpinner size="sm" />}
+                {isSavingTask
+                  ? 'Saving...'
+                  : (isAddingTask ? 'Create Task' : 'Update Task')
+                }
               </button>
               <button
                 onClick={() => {
