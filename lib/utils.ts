@@ -28,7 +28,7 @@ export function isValidUUID(uuid: string): boolean {
  */
 export function showSuccessNotification(message: string): void {
   // This will be implemented when toast system is set up
-  console.log('✅ Success:', message);
+  
 }
 
 /**
@@ -36,5 +36,5 @@ export function showSuccessNotification(message: string): void {
  * @param message - Error message to display
  */
 export function showErrorNotification(message: string): void {
-  console.error('❌ Error:', message);
+  
 }

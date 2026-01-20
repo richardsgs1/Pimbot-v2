@@ -50,7 +50,7 @@ export const uploadFile = async (
       });
 
     if (error) {
-      console.error('Upload error:', error);
+      
       throw error;
     }
 
@@ -79,7 +79,7 @@ export const uploadFile = async (
 
     return attachment;
   } catch (error) {
-    console.error('Error uploading file:', error);
+    
     return null;
   }
 };
@@ -103,13 +103,13 @@ export const deleteFile = async (fileUrl: string): Promise<boolean> => {
       .remove([filePath]);
 
     if (error) {
-      console.error('Delete error:', error);
+      
       throw error;
     }
 
     return true;
   } catch (error) {
-    console.error('Error deleting file:', error);
+    
     return false;
   }
 };

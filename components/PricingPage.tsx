@@ -35,31 +35,27 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
         .update({ has_seen_pricing: true })
         .eq('id', userData.id);
       
-      console.log('Marked user as having seen pricing');
+      
       onComplete();
     } catch (error) {
-      console.error('Error updating has_seen_pricing:', error);
+      
       onComplete();
     }
   };
 
   const handleCheckout = async (tier: 'starter' | 'pro' | 'team') => {
-    console.log('🚀 PRICINGPAGE.TSX VERSION 3.0 LOADED');
-    
     if (!userData || !userData.id) {
       alert('Please complete your profile first');
-      console.log('New user, no ID yet');
+      
       return;
     }
 
-    console.log('User ID:', userData.id);
-    console.log('User Email:', userData.email);
+    
+    
 
     setLoadingPlan(tier);
 
     try {
-      console.log(`Creating checkout session for ${tier} (${billingCycle})`);
-
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {
@@ -80,10 +76,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ userData, onComplete }) => {
 
       const { url } = await response.json();
       
-      console.log('Redirecting to Stripe:', url);
+      
       window.location.href = url;
     } catch (error) {
-      console.error('Checkout error:', error);
+      
       alert('Failed to start checkout. Please try again.');
     } finally {
       setLoadingPlan(null);

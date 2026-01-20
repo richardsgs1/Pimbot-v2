@@ -20,19 +20,19 @@ let TeamViewService: any = null;
 try {
   FilterPresetService = require('../lib/FilterPresetService').FilterPresetService;
 } catch (e) {
-  console.warn('FilterPresetService not available');
+  
 }
 
 try {
   PushNotificationService = require('../lib/PushNotificationService').PushNotificationService;
 } catch (e) {
-  console.warn('PushNotificationService not available');
+  
 }
 
 try {
   TeamViewService = require('../lib/TeamViewService').TeamViewService;
 } catch (e) {
-  console.warn('TeamViewService not available');
+  
 }
 
 const localizer = momentLocalizer(moment);
@@ -220,9 +220,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if ('serviceWorker' in navigator) {
       try {
         await navigator.serviceWorker.register('/service-worker.js');
-        console.log('✅ PWA registered');
+        
       } catch (error) {
-        console.warn('PWA registration failed:', error);
+        
       }
     }
   };
@@ -404,7 +404,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       }
       setShowExportModal(false);
     } catch (error) {
-      console.error('Export failed:', error);
+      
       alert('Export failed. Please try again.');
     }
   };

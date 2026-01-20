@@ -26,7 +26,7 @@ export const templateService = {
   async loadTemplates(userId: string): Promise<TaskTemplate[]> {
     // Validate user ID
     if (!isValidUserId(userId)) {
-      console.error('Invalid or missing userId:', userId);
+      
       throw new Error('User authentication required. Please log in.');
     }
 
@@ -38,7 +38,7 @@ export const templateService = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Failed to load templates from Supabase, falling back to localStorage:', error);
+        
         return this.loadFromLocalStorage();
       }
 
@@ -50,7 +50,7 @@ export const templateService = {
         try {
           localStorage.setItem('pimbot_task_templates', JSON.stringify(convertedData));
         } catch (storageError) {
-          console.warn('Failed to cache templates to localStorage:', storageError);
+          
           // Continue even if cache fails
         }
         return convertedData;
@@ -58,7 +58,7 @@ export const templateService = {
 
       return [];
     } catch (error) {
-      console.warn('Error loading templates, using localStorage fallback:', error);
+      
       return this.loadFromLocalStorage();
     }
   },
@@ -99,7 +99,7 @@ export const templateService = {
 
       return savedTemplate;
     } catch (error) {
-      console.error('Failed to save template to Supabase:', error);
+      
       throw error;
     }
   },
@@ -141,7 +141,7 @@ export const templateService = {
 
       return updatedTemplate;
     } catch (error) {
-      console.error('Failed to update template:', error);
+      
       throw error;
     }
   },
@@ -163,7 +163,7 @@ export const templateService = {
       const updated = cached.filter(t => t.id !== templateId);
       localStorage.setItem('pimbot_task_templates', JSON.stringify(updated));
     } catch (error) {
-      console.error('Failed to delete template:', error);
+      
       throw error;
     }
   },
@@ -183,7 +183,7 @@ export const templateService = {
       if (error) throw error;
       return (data || []) as TaskTemplate[];
     } catch (error) {
-      console.error('Failed to get templates by category:', error);
+      
       return [];
     }
   },
@@ -203,7 +203,7 @@ export const templateService = {
       if (error) throw error;
       return (data || []) as TaskTemplate[];
     } catch (error) {
-      console.error('Failed to search templates:', error);
+      
       return [];
     }
   },
@@ -216,7 +216,7 @@ export const templateService = {
       const templates = await this.loadTemplates(userId);
       return Array.from(new Set(templates.map(t => t.category))).sort();
     } catch (error) {
-      console.error('Failed to get categories:', error);
+      
       return [];
     }
   },
@@ -229,7 +229,7 @@ export const templateService = {
       const subscription = supabase
         .from(`task_templates:user_id=eq.${userId}`)
         .on('*', (payload) => {
-          console.log('Template changed:', payload);
+          
           // Reload templates on any change
           this.loadTemplates(userId).then(templates => onUpdate(templates));
         })
@@ -237,7 +237,7 @@ export const templateService = {
 
       return subscription;
     } catch (error) {
-      console.error('Failed to subscribe to template changes:', error);
+      
       return null;
     }
   },
@@ -272,7 +272,7 @@ export const templateService = {
       const cached = localStorage.getItem('pimbot_task_templates');
       return cached ? JSON.parse(cached) : [];
     } catch (error) {
-      console.warn('Failed to load templates from localStorage:', error);
+      
       return [];
     }
   },

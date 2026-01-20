@@ -37,7 +37,7 @@ export class PushNotificationService {
   // Request notification permission
   async requestPermission(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.warn('Notifications not supported');
+      
       return false;
     }
 
@@ -50,7 +50,7 @@ export class PushNotificationService {
       this.permission = permission;
       return permission === 'granted';
     } catch (error) {
-      console.error('Permission request failed:', error);
+      
       return false;
     }
   }
@@ -58,16 +58,16 @@ export class PushNotificationService {
   // Register service worker for push notifications
   async registerServiceWorker(): Promise<boolean> {
     if (!('serviceWorker' in navigator)) {
-      console.warn('Service Workers not supported');
+      
       return false;
     }
 
     try {
       this.registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registered:', this.registration);
+      
       return true;
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      
       return false;
     }
   }

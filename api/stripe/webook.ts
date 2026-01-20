@@ -55,11 +55,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
   }
 
-  console.log('Received event:', event.type);
+  
 
   try {
     switch (event.type) {
@@ -95,12 +95,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        
     }
 
     return res.status(200).json({ received: true });
   } catch (error: any) {
-    console.error('Webhook handler error:', error);
+    
     return res.status(500).json({ error: error.message });
   }
 }
@@ -111,7 +111,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const customerId = session.customer as string;
 
   if (!userId) {
-    console.error('No user ID in checkout session');
+    
     return;
   }
 
@@ -122,7 +122,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .eq('id', userId);
 
   if (error) {
-    console.error('Error updating user with customer ID:', error);
+    
   }
 }
 
@@ -142,7 +142,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     .single();
 
   if (userError || !user) {
-    console.error('User not found for customer:', customerId);
+    
     return;
   }
 
@@ -167,9 +167,9 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     });
 
   if (subError) {
-    console.error('Error upserting subscription:', subError);
+    
   } else {
-    console.log(`Subscription ${status} for user ${user.id}`);
+    
   }
 }
 
@@ -196,7 +196,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('Error updating canceled subscription:', error);
+    
   }
 }
 
@@ -207,7 +207,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     ? invoice.subscription 
     : invoice.subscription?.id;
 
-  console.log(`Payment succeeded for customer ${customerId}, subscription ${subscriptionId}`);
+  
   
   // You could log this in a payments table if needed
 }
@@ -216,7 +216,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   
-  console.log(`Payment failed for customer ${customerId}`);
+  
   
   // You could send an email notification here
   // or update subscription status to 'past_due'

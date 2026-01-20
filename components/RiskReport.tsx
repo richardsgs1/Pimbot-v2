@@ -177,7 +177,7 @@ Keep response under 200 words, actionable and specific.`;
       const data = await response.json();
       setAiInsights(data.text || data.content);
     } catch (error) {
-      console.error('Error generating AI insights:', error);
+      
       setAiInsights('Failed to generate insights. Please try again.');
     } finally {
       setIsGenerating(false);

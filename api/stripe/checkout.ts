@@ -73,7 +73,7 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error: any) {
-    console.error('Stripe checkout error:', error);
+    
     return res.status(500).json({ 
       error: error.message || 'Failed to create checkout session' 
     });

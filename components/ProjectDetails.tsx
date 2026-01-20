@@ -235,16 +235,16 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
           projectId={safeProject.id}
           userId={userData.id}
           onFileUploaded={(newFile: FileAttachment) => {
-            console.log('File upload callback - new file:', newFile);
+            
             if (onUpdateProject) {
               const updatedProject = {
                 ...safeProject,
                 attachments: [...(safeProject.attachments || []), newFile]
               };
-              console.log('Updated project with attachment:', updatedProject);
+              
               onUpdateProject(updatedProject);
             } else {
-              console.warn('onUpdateProject callback not provided');
+              
             }
           }}
         />

@@ -690,9 +690,20 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
       {/* Add/Edit Project Modal */}
       {(isAddingProject || isEditingProject) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full">
-            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="project-modal-title"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setIsAddingProject(false);
+              setIsEditingProject(false);
+            }
+          }}
+        >
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 id="project-modal-title" className="text-xl font-bold text-[var(--text-primary)] mb-4">
               {isAddingProject ? 'New Project' : 'Edit Project'}
             </h3>
             <div className="space-y-4">
@@ -879,9 +890,20 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
       {/* Add/Edit Task Modal */}
       {(isAddingTask || isEditingTask) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full">
-            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-modal-title"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setIsAddingTask(false);
+              setIsEditingTask(false);
+            }
+          }}
+        >
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 id="task-modal-title" className="text-xl font-bold text-[var(--text-primary)] mb-4">
               {isAddingTask ? 'New Task' : 'Edit Task'}
             </h3>
             <div className="space-y-4">

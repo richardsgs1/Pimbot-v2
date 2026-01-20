@@ -193,14 +193,6 @@ P.S. This is an automated final notice. Your account will be archived tomorrow.`
     const upgradeUrl = window.location.origin + '/pricing';
     template.body = template.body.replace(/\[UPGRADE_LINK\]/g, upgradeUrl);
 
-    // Log for development
-    console.log('📧 Preparing to send email notification:', {
-      to: userData.email,
-      type: notificationType,
-      subject: template.subject,
-      preview: template.body.substring(0, 100) + '...'
-    });
-
     try {
       // Send via Mailgun serverless function
       const response = await fetch('/api/send-trial-email', {
@@ -216,24 +208,13 @@ P.S. This is an automated final notice. Your account will be archived tomorrow.`
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ Failed to send email:', {
-          status: response.status,
-          error: errorData
-        });
         return false;
       }
 
-      const result = await response.json();
-      console.log('✅ Email sent successfully via Mailgun:', {
-        messageId: result.messageId,
-        type: notificationType,
-        to: userData.email
-      });
-
+      await response.json();
       return true;
     } catch (error) {
-      console.error('❌ Email send error:', error);
+      
       return false;
     }
   }
@@ -270,7 +251,7 @@ P.S. This is an automated final notice. Your account will be archived tomorrow.`
       );
 
       if (success) {
-        console.log(`✅ Sent ${notificationCheck.type} notification to ${userData.email}`);
+        
         
         // TODO: Update user record in Supabase with:
         // await supabase.from('users').update({
@@ -286,7 +267,7 @@ P.S. This is an automated final notice. Your account will be archived tomorrow.`
         };
       }
     } catch (error) {
-      console.error('Notification check failed:', error);
+      
       return { 
         sent: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -346,8 +327,6 @@ P.S. This is an automated final notice. Your account will be archived tomorrow.`
    * Sends a test email to verify Mailgun is configured correctly
    */
   static async sendTestEmail(toEmail: string): Promise<boolean> {
-    console.log('🧪 Sending test email to:', toEmail);
-    
     try {
       const response = await fetch('/api/send-trial-email', {
         method: 'POST',
@@ -369,15 +348,15 @@ Sent at: ${new Date().toLocaleString()}
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('❌ Test email failed:', error);
+        
         return false;
       }
 
       const result = await response.json();
-      console.log('✅ Test email sent successfully:', result);
+      
       return true;
     } catch (error) {
-      console.error('❌ Test email error:', error);
+      
       return false;
     }
   }
@@ -392,7 +371,7 @@ Sent at: ${new Date().toLocaleString()}
 const user = await getCurrentUser();
 const result = await TrialEmailService.checkAndNotify(user);
 if (result.sent) {
-  console.log(`Sent ${result.type} email`);
+  
 }
 
 // Example 2: Manually send a specific notification
@@ -400,7 +379,7 @@ await TrialEmailService.sendTrialNotification(user, 'trial-3-days');
 
 // Example 3: Preview template before sending
 const preview = TrialEmailService.previewTemplate('trial-7-days', user);
-console.log(preview.subject, preview.body);
+
 
 // Example 4: Send test email
 await TrialEmailService.sendTestEmail('your-email@example.com');
@@ -408,7 +387,7 @@ await TrialEmailService.sendTestEmail('your-email@example.com');
 // Example 5: Batch process users (for cron jobs)
 const users = await getAllTrialUsers();
 const batchResult = await TrialEmailService.checkMultipleUsers(users);
-console.log(`Sent ${batchResult.sent}/${batchResult.total} emails`);
+
 
 */
 

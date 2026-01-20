@@ -92,7 +92,7 @@ export default async function handler(
     const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@yourdomain.com';
 
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-      console.error('❌ Mailgun not configured properly');
+      
       return res.status(500).json({
         error: 'Email service not configured',
         message: 'Please check MAILGUN_API_KEY and MAILGUN_DOMAIN in environment variables'
@@ -142,7 +142,7 @@ export default async function handler(
     const mailgunData = await mailgunResponse.json();
 
     if (!mailgunResponse.ok) {
-      console.error('❌ Mailgun API error:', mailgunData);
+      
       
       // Handle specific Mailgun errors
       if (mailgunResponse.status === 401) {
@@ -162,9 +162,7 @@ export default async function handler(
       throw new Error(mailgunData.message || 'Failed to send email');
     }
 
-    // Log success
-    console.log(`✅ Sent ${notificationType} email to ${to}`);
-    console.log(`📧 Mailgun Message ID: ${mailgunData.id}`);
+    // Email sent successfully
 
     // Success response
     return res.status(200).json({
@@ -175,7 +173,7 @@ export default async function handler(
     });
 
   } catch (error: any) {
-    console.error('❌ Email send error:', error);
+    
 
     // Generic error
     return res.status(500).json({

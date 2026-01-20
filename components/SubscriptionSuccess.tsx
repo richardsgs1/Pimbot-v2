@@ -19,7 +19,7 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
           return;
         }
 
-        console.log('Verifying subscription with session:', sessionId);
+        
 
         // Verify the subscription first
         const response = await fetch('/api/stripe/verify-session', {
@@ -35,25 +35,25 @@ const SubscriptionSuccess: React.FC<SubscriptionSuccessProps> = ({ sessionId, on
         }
 
         const data = await response.json();
-        console.log('Subscription verified:', data);
+        
 
         // Try to refresh the session first
         const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
 
         if (session) {
-          console.log('Session refreshed successfully! Going to dashboard...');
+          
           setLoading(false);
           setTimeout(() => {
             onContinue();
           }, 2000);
         } else {
           // No valid session to refresh
-          console.log('No session to refresh, user needs to log in');
+          
           setError('Please log in to access your dashboard');
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error verifying subscription:', err);
+        
         setError('Failed to verify subscription. Please contact support.');
         setLoading(false);
       }

@@ -93,7 +93,7 @@ export class RecurringTaskService {
 
       // Safety check
       if (occurrenceCount >= maxOccurrences) {
-        console.warn('Reached maximum occurrences limit');
+        
         break;
       }
     }
@@ -341,7 +341,7 @@ export class RecurringTaskService {
         nextScheduledDate: nextOccurrence?.date
       };
     } catch (error) {
-      console.error('Error generating task instance:', error);
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

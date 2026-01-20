@@ -113,15 +113,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onOnboardingComplete, initialDa
         .eq('id', initialData.id);
 
       if (error) {
-        console.error('Error saving onboarding:', error);
+        
         alert('Failed to save your preferences. Please try again.');
         return;
       }
 
-      console.log('Onboarding saved successfully!');
+      
       onOnboardingComplete(completedData);
     } catch (err) {
-      console.error('Unexpected error:', err);
+      
       alert('An error occurred. Please try again.');
     }
   };

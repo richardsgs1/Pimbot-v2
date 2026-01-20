@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error) {
-    console.error('API Error:', error);
+    
     return res.status(500).json({ 
       error: error instanceof Error ? error.message : 'Internal server error' 
     });
@@ -65,7 +65,7 @@ Provide helpful, practical project management advice. Tailor your response to th
 
     return res.json({ content: response.text });
   } catch (error) {
-    console.error('Generate error:', error);
+    
     return res.status(500).json({ error: 'Failed to generate response' });
   }
 }
@@ -95,7 +95,7 @@ Keep it under 200 words and actionable.`;
     
     return res.json({ briefing: response.text });
   } catch (error) {
-    console.error('Briefing error:', error);
+    
     return res.status(500).json({ error: 'Failed to generate briefing' });
   }
 }
@@ -124,7 +124,7 @@ Keep response under 300 words.`;
     
     return res.json({ summary: response.text });
   } catch (error) {
-    console.error('Portfolio summary error:', error);
+    
     return res.status(500).json({ error: 'Failed to generate portfolio summary' });
   }
 }
@@ -153,7 +153,7 @@ Keep under 150 words.`;
     
     return res.json({ healthSummary: response.text });
   } catch (error) {
-    console.error('Health summary error:', error);
+    
     return res.status(500).json({ error: 'Failed to generate health summary' });
   }
 }
@@ -177,7 +177,7 @@ Create a professional, clear, and actionable ${type}.`;
     
     return res.json({ communication: response.text });
   } catch (error) {
-    console.error('Communication draft error:', error);
+    
     return res.status(500).json({ error: 'Failed to draft communication' });
   }
 }
@@ -201,7 +201,7 @@ Provide a brief, helpful summary of what this search likely indicates and sugges
     
     return res.json({ summary: response.text });
   } catch (error) {
-    console.error('Search summary error:', error);
+    
     return res.status(500).json({ error: 'Failed to summarize search' });
   }
 }
@@ -224,7 +224,7 @@ Suggest 3-5 specific, actionable tasks that would move this project forward. Con
     
     return res.json({ suggestions: response.text });
   } catch (error) {
-    console.error('Task suggestion error:', error);
+    
     return res.status(500).json({ error: 'Failed to suggest tasks' });
   }
 }
@@ -247,7 +247,7 @@ Provide key insights, patterns, and recommendations based on the journal activit
     
     return res.json({ summary: response.text });
   } catch (error) {
-    console.error('Journal summary error:', error);
+    
     return res.status(500).json({ error: 'Failed to summarize journal' });
   }
 }

@@ -81,7 +81,7 @@ Format as a numbered list with task name and brief description.`;
       setAiSuggestions(data.response || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate suggestions');
-      console.error('Error generating task suggestions:', err);
+      
     } finally {
       setIsLoading(false);
     }

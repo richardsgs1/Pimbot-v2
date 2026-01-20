@@ -184,22 +184,22 @@ export async function initializeSampleTemplates(
 
     // Only seed if user has no templates (first time)
     if (existingTemplates.length === 0) {
-      console.log('Seeding sample templates for new user...');
+      
 
       // Save each sample template
       for (const template of SAMPLE_TASK_TEMPLATES) {
         try {
           await templateService.saveTemplate(userId, template);
         } catch (error) {
-          console.warn(`Failed to save sample template "${template.name}":`, error);
+          
           // Continue with next template even if one fails
         }
       }
 
-      console.log(`Successfully seeded ${SAMPLE_TASK_TEMPLATES.length} sample templates`);
+      
     }
   } catch (error) {
-    console.error('Error initializing sample templates:', error);
+    
     // Don't throw - this is non-critical initialization
   }
 }

@@ -1,16 +1,26 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 
 interface MarkdownRendererProps {
   content: string;
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+  // Sanitize HTML to prevent XSS attacks
+  const sanitize = (html: string): string => {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['strong', 'em', 'code', 'br'],
+      ALLOWED_ATTR: ['class'],
+    });
+  };
+
   const inlineRender = (text: string) => {
-    return text
+    const html = text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g, '<code class="bg-slate-700 text-cyan-400 rounded px-1.5 py-1 text-sm font-mono">$1</code>')
       .replace(/\n/g, '<br />');
+    return sanitize(html);
   };
 
   const renderBlock = (block: string, index: number) => {

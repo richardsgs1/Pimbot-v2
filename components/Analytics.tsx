@@ -189,7 +189,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      console.error("Portfolio summary error:", errorMessage);
+      
       setPortfolioError(errorMessage);
     } finally {
       setIsPortfolioLoading(false);
@@ -329,7 +329,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ projects, onUpdateProject, team, 
 
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-        console.error("Summary generation error:", errorMessage);
+        
         setSummaryError(`Failed to generate summary for ${project.name}.`);
     } finally {
         setLoadingSummaryId(null);

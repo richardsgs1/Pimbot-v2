@@ -35,9 +35,7 @@ const App: React.FC = () => {
       setIsLoadingTemplates(true);
       const templates = await templateService.loadTemplates(userId);
       setTaskTemplates(templates);
-      console.log('Loaded', templates.length, 'task templates from Supabase');
-    } catch (error) {
-      console.error('Failed to load templates:', error);
+    } catch {
       // Falls back to localStorage automatically in templateService
     } finally {
       setIsLoadingTemplates(false);
@@ -48,7 +46,6 @@ const App: React.FC = () => {
   const handleSaveTemplate = useCallback(async (template: TaskTemplate) => {
     const userId = onboardingData.id;
     if (!userId) {
-      console.error('Cannot save template: no user ID');
       return;
     }
 
@@ -65,24 +62,21 @@ const App: React.FC = () => {
       });
 
       setTaskTemplates(prev => [...prev, savedTemplate]);
-      console.log('Template saved to Supabase:', template.name);
-    } catch (error) {
-      console.error('Failed to save template:', error);
+    } catch {
+      // Silently fail - user will see template not appear
     }
   }, [onboardingData.id]);
 
-  const handleLoadTemplate = useCallback((template: TaskTemplate) => {
+  const handleLoadTemplate = useCallback((_template: TaskTemplate) => {
     // Template loading is handled by the component
-    console.log('Template loaded:', template.name);
   }, []);
 
   const handleDeleteTemplate = useCallback(async (templateId: string) => {
     try {
       await templateService.deleteTemplate(templateId);
       setTaskTemplates(prev => prev.filter(t => t.id !== templateId));
-      console.log('Template deleted from Supabase:', templateId);
-    } catch (error) {
-      console.error('Failed to delete template:', error);
+    } catch {
+      // Silently fail - user will see template not removed
     }
   }, []);
 
@@ -90,21 +84,18 @@ const App: React.FC = () => {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      console.log('No session, redirecting to login');
       setAppState('login');
       setIsCheckingAuth(false);
       return;
     }
 
-    const { data: userData, error } = await supabase
+    const { data: userData } = await supabase
       .from('users')
       .select('*')
       .eq('id', session.user.id)
       .single();
 
     if (userData) {
-      console.log('Loaded user data from database:', userData);
-
       setOnboardingData({
         id: userData.id,
         name: userData.name,
@@ -137,22 +128,19 @@ const App: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
-    
+
     if (sessionId) {
-      console.log('Stripe redirect detected, session ID:', sessionId);
       setStripeSessionId(sessionId);
       setAppState('subscriptionSuccess');
       setIsCheckingAuth(false);
       window.history.replaceState({}, '', '/');
       return;
     }
-    
+
     checkAuthAndRedirect();
   }, [checkAuthAndRedirect]);
 
-  const handleLoginSuccess = useCallback((userId: string, email: string, userData: any) => {
-    console.log('Login success! User data:', userData);
-
+  const handleLoginSuccess = useCallback((userId: string, email: string, userData: OnboardingData & { skill_level?: string; onboarding_completed?: boolean; subscription_id?: string; has_seen_pricing?: boolean }) => {
     // Clear only app-specific localStorage keys, NOT Supabase session keys
     // Supabase stores auth session in localStorage under keys like 'sb-<project-id>-auth-token'
     const keysToKeep = ['sb-qfkhxrcbtgllzffnnxhp-auth-token', 'sb-qfkhxrcbtgllzffnnxhp-auth-user'];
@@ -192,20 +180,15 @@ const App: React.FC = () => {
   }, []);
 
   const handleOnboardingComplete = useCallback((data: OnboardingData) => {
-    console.log('🎯 Onboarding complete, data:', data);
     setOnboardingData(data);
-    console.log('🎯 Setting state to pricing');
     setAppState('pricing');
-    console.log('🎯 State should now be pricing');
   }, []);
 
   const handleSubscriptionSuccess = useCallback(async () => {
-    console.log('Subscription verified, reloading user data...');
     await checkAuthAndRedirect();
   }, [checkAuthAndRedirect]);
 
   const handleLogout = useCallback(async () => {
-    console.log('Logging out...');
     
     // Sign out from Supabase (this is critical!)
     await supabase.auth.signOut();

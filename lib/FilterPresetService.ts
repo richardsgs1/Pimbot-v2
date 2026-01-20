@@ -30,7 +30,7 @@ export class FilterPresetService {
       const presets: FilterPreset[] = JSON.parse(data);
       return [...this.getBuiltInPresets(), ...presets];
     } catch (error) {
-      console.error('Failed to load presets:', error);
+      
       return this.getBuiltInPresets();
     }
   }
@@ -62,7 +62,7 @@ export class FilterPresetService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(presets));
     } catch (error) {
-      console.error('Failed to save preset:', error);
+      
     }
 
     return newPreset;
@@ -82,7 +82,7 @@ export class FilterPresetService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(presets));
     } catch (error) {
-      console.error('Failed to update preset:', error);
+      
     }
   }
 
@@ -95,7 +95,7 @@ export class FilterPresetService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(presets));
     } catch (error) {
-      console.error('Failed to delete preset:', error);
+      
     }
   }
 
@@ -149,7 +149,7 @@ export class FilterPresetService {
     try {
       localStorage.removeItem(this.STORAGE_KEY);
     } catch (error) {
-      console.error('Failed to clear presets:', error);
+      
     }
   }
 }

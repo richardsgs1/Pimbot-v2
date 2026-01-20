@@ -15,6 +15,7 @@ import TaskSuggestions from './TaskSuggestions';
 import { SmartNotificationEngine } from '../lib/SmartNotificationEngine';
 import ExportCenter from './ExportCenter';
 import PricingPage from './PricingPage';
+import ErrorBoundary from './ErrorBoundary';
 import type { SmartNotification } from '../lib/SmartNotificationEngine';
 import { saveUserData, getUserId, loadUserData, loadProjects, saveProject, deleteProject } from '../lib/database'
 import templateService from '../lib/templateService';
@@ -197,8 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         title: 'Success',
         message: `Template "${template.name}" saved!`
       });
-    } catch (error) {
-      console.error('Failed to save template:', error);
+    } catch {
       addToast({
         type: 'error',
         title: 'Error',
@@ -224,8 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         title: 'Success',
         message: 'Template deleted'
       });
-    } catch (error) {
-      console.error('Failed to delete template:', error);
+    } catch {
       addToast({
         type: 'error',
         title: 'Error',
@@ -281,27 +280,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     const checkTrialStatus = async () => {
       // Check trial status
       const status = TrialManager.getTrialStatus(localUserData);
-      
+
       // Send email notifications if thresholds are met
       await TrialEmailService.checkAndNotify(localUserData);
-      
+
       // If trial fully expired (beyond grace period), redirect to pricing
       if (status.hasExpired && !status.isInGracePeriod) {
-        console.log('⚠️ Trial fully expired, redirecting to pricing');
         setCurrentView('pricing');
       }
-      
-      // Optional: Log trial status for debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Trial Status:', {
-          active: status.isActive,
-          daysRemaining: status.daysRemaining,
-          urgency: status.urgencyLevel,
-          showBanner: status.shouldShowBanner
-        });
-      }
     };
-    
+
     checkTrialStatus();
   }, [localUserData]);
 
@@ -315,10 +303,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
         ...trialData,
         isPremium: false
       };
-      
+
       setLocalUserData(updatedData);
       saveUserData(updatedData);
-      console.log('✅ Initialized trial for existing user');
     }
   }, []);
 
@@ -327,31 +314,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
     const userId = await getUserId();
 
     if (userId) {
-      console.log('Loading user data from database...');
       const dbUserData = await loadUserData(userId);
 
       if (dbUserData) {
-        console.log('User data loaded from database');
         setLocalUserData(dbUserData);
         setEditedName(dbUserData.name);
         setEditedEmail(dbUserData.email || '');
         setEditedSkillLevel(dbUserData.skillLevel);
         setEditedMethodologies(dbUserData.methodologies || []);
 
-        console.log('Loading projects from database...');
         const dbProjects = await loadProjects(userId);
 
         if (dbProjects.length > 0) {
-          console.log(`Loaded ${dbProjects.length} projects from database`);
           setProjects(dbProjects);
         } else {
           // New user with no projects - leave empty or add demo projects
-          console.log('No projects found - showing empty slate');
           setProjects([]); // Empty slate for new users
         }
 
         // Load task templates
-        console.log('Loading task templates...');
         try {
           setIsLoadingTemplates(true);
 
@@ -360,10 +341,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 
           // Load all templates (including newly created samples)
           const templates = await templateService.loadTemplates(userId);
-          console.log(`Loaded ${templates.length} task templates`);
           setTaskTemplates(templates);
-        } catch (error) {
-          console.error('Failed to load task templates:', error);
+        } catch {
           addToast({
             type: 'error',
             title: 'Error',
@@ -374,8 +353,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
           setIsLoadingTemplates(false);
         }
       }
-    } else {
-      console.log('No user ID found');
     }
   };
 
@@ -386,32 +363,25 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
 const saveProjectsToDb = async (projectsToSave: Project[]) => {
   const userId = localUserData.id;
   if (!userId) {
-    console.log('No user ID, skipping project save');
     return;
   }
 
   try {
-    console.log(`Saving ${projectsToSave.length} projects to database...`);
-    
     for (const project of projectsToSave) {
       await saveProject(userId, project);
     }
-    
-    console.log('Projects saved successfully!');
-  } catch (error) {
-    console.error('Failed to save projects:', error);
+  } catch {
+    // Silently fail - the user will see data not persisting on refresh
   }
 };
 
   const handleNavClick = (view: View) => {
-    console.log('handleNavClick called with view:', view);
     setCurrentView(view);
     setProjectFilter(null);
     setShowSidebar(false);
 
     // Clear selected project when navigating to projectManagement
     if (view === 'projectManagement') {
-      console.log('Navigating to Project Management - clearing selectedProject');
       setSelectedProject(null);
     }
 
@@ -452,7 +422,6 @@ useEffect(() => {
   if (projects.length > 0 && localUserData.id) {
     // Debounce the save to avoid too many requests
     const saveTimer = setTimeout(() => {
-      console.log('Auto-saving projects to database...');
       saveProjectsToDb(projects);
     }, 1000); // Wait 1 second after last change before saving
 
@@ -534,8 +503,7 @@ useEffect(() => {
             <DailyBriefing
               userData={userData}
               projects={projects}
-              onTileClick={(tileType, filteredProjects) => {
-                console.log(`Clicked ${tileType} with ${filteredProjects.length} projects`);
+              onTileClick={(tileType) => {
                 // Set the tile filter
                 setTileFilter(tileType);
                 // Navigate to Project Management view
@@ -728,24 +696,19 @@ useEffect(() => {
                         onChange={(e) => setEditedName(e.target.value)}
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                       />
-                      <button 
+                      <button
                         onClick={async () => {
                           try {
-                            console.log('Saving name to database...');
-                            
-                            const updatedUserData = { 
-                              ...localUserData, 
-                              name: editedName 
+                            const updatedUserData = {
+                              ...localUserData,
+                              name: editedName
                             };
-                            
+
                             setLocalUserData(updatedUserData);
-                            
+
                             await saveUserData(updatedUserData);
-                            console.log('Name saved successfully!');
                             setIsEditingName(false);
-                            
-                          } catch (error) {
-                            console.error('Failed to save name:', error);
+                          } catch {
                             alert('Failed to save to database, but changes saved locally');
                             setIsEditingName(false);
                           }
@@ -790,24 +753,19 @@ useEffect(() => {
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
                       </select>
-                      <button 
+                      <button
                         onClick={async () => {
                           try {
-                            console.log('Saving skill level to database...');
-                            
-                            const updatedUserData = { 
-                              ...localUserData, 
-                              skillLevel: editedSkillLevel 
+                            const updatedUserData = {
+                              ...localUserData,
+                              skillLevel: editedSkillLevel
                             };
-                            
+
                             setLocalUserData(updatedUserData);
-                            
+
                             await saveUserData(updatedUserData);
-                            console.log('Skill level saved successfully!');
                             setIsEditingSkill(false);
-                            
-                          } catch (error) {
-                            console.error('Failed to save skill level:', error);
+                          } catch {
                             alert('Failed to save to database, but changes saved locally');
                             setIsEditingSkill(false);
                           }
@@ -850,24 +808,19 @@ useEffect(() => {
                         className="flex-1 p-3 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]"
                         placeholder="your.email@example.com"
                       />
-                      <button 
+                      <button
                         onClick={async () => {
                           try {
-                            console.log('Saving email to database...');
-                            
-                            const updatedUserData = { 
-                              ...localUserData, 
+                            const updatedUserData = {
+                              ...localUserData,
                               email: editedEmail
                             };
-                            
+
                             setLocalUserData(updatedUserData);
-                            
+
                             await saveUserData(updatedUserData);
-                            console.log('Email saved successfully!');
                             setIsEditingEmail(false);
-                            
-                          } catch (error) {
-                            console.error('Failed to save email:', error);
+                          } catch {
                             alert('Failed to save to database, but changes saved locally');
                             setIsEditingEmail(false);
                           }
@@ -923,24 +876,19 @@ useEffect(() => {
                         ))}
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <button 
+                        <button
                           onClick={async () => {
                             try {
-                              console.log('Saving methodologies to database...');
-                              
-                              const updatedUserData = { 
-                                ...localUserData, 
-                                methodologies: editedMethodologies 
+                              const updatedUserData = {
+                                ...localUserData,
+                                methodologies: editedMethodologies
                               };
-                              
+
                               setLocalUserData(updatedUserData);
-                              
+
                               await saveUserData(updatedUserData);
-                              console.log('Methodologies saved successfully!');
                               setIsEditingMethodologies(false);
-                              
-                            } catch (error) {
-                              console.error('Failed to save methodologies:', error);
+                            } catch {
                               alert('Failed to save to database, but changes saved locally');
                               setIsEditingMethodologies(false);
                             }
@@ -1279,11 +1227,13 @@ useEffect(() => {
             userData={localUserData}
             onUpgradeClick={() => setCurrentView('pricing')}
             onDismiss={() => {
-              console.log('User dismissed trial banner');
+              // User dismissed the trial banner
             }}
           />
 
-          {renderViewContent()}
+          <ErrorBoundary>
+            {renderViewContent()}
+          </ErrorBoundary>
         </main>
       </div>
       

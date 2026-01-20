@@ -16,7 +16,7 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [], 
   const [showFullBriefing, setShowFullBriefing] = useState(false);
 
   React.useEffect(() => {
-    console.log('DailyBriefing mounted. Projects:', projects.length, 'onTileClick callback:', !!onTileClick);
+    
   }, [onTileClick, projects]);
 
   // Calculate key metrics
@@ -64,7 +64,7 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ userData, projects = [], 
       const data = await response.json();
       setBriefingContent(data.briefing || data.content || 'No briefing content available');
     } catch (error) {
-      console.error('Error generating daily briefing:', error);
+      
       setBriefingContent(getFallbackBriefing());
     } finally {
       setIsLoading(false);
@@ -158,9 +158,9 @@ ${priority3}`;
   };
 
   const handleTileClick = (tileType: 'totalProjects' | 'overdue' | 'dueThisWeek' | 'atRisk') => {
-    console.log('Tile clicked:', tileType, 'onTileClick callback:', onTileClick);
+    
     if (!onTileClick) {
-      console.log('No onTileClick callback provided');
+      
       return;
     }
 
@@ -180,7 +180,7 @@ ${priority3}`;
         break;
     }
 
-    console.log('Calling onTileClick with:', tileType, filteredProjects);
+    
     onTileClick(tileType, filteredProjects);
   };
 

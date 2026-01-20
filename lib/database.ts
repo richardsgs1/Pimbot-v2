@@ -67,7 +67,7 @@ export const saveUserData = async (userData: Partial<OnboardingData> & { id?: st
     if (error) throw error
     return data.id
   } catch (error) {
-    console.error('Database operation failed:', error)
+    // Database operation failed silently
     throw error
   }
 }
@@ -88,7 +88,7 @@ export const getUserId = async (): Promise<string | null> => {
       return user.id;
     }
   } catch (error) {
-    console.error('Error getting user from Supabase:', error);
+    // Error getting user from Supabase
   }
   
   return null;
@@ -103,7 +103,7 @@ export const loadUserData = async (userId: string): Promise<OnboardingData | nul
       .single()
 
     if (error) {
-      console.error('Failed to load user data:', error)
+      
       return null
     }
 
@@ -117,7 +117,7 @@ export const loadUserData = async (userId: string): Promise<OnboardingData | nul
       tools: data.tools || []
     }
   } catch (error) {
-    console.error('Error loading user data:', error)
+    
     return null
   }
 }
@@ -130,11 +130,11 @@ export const saveProject = async (userId: string, project: Project): Promise<str
     const authUid = authUser.data.user?.id;
 
     if (!authUid) {
-      console.error('Auth check failed - authUser.data:', authUser.data);
+      
       throw new Error('No authenticated user found. Please log in again.');
     }
 
-    console.log(`saveProject: Using auth UID ${authUid} for project ${project.id}`);
+    
 
     const projectData = {
       user_id: authUid, // Use Supabase auth UID for RLS policies
@@ -185,7 +185,7 @@ export const saveProject = async (userId: string, project: Project): Promise<str
           .single();
 
         if (error) throw error;
-        console.log(`Updated project ${project.id}`);
+        
         return data.id;
       } else {
         // Insert new project with the specified UUID
@@ -199,7 +199,7 @@ export const saveProject = async (userId: string, project: Project): Promise<str
           .single();
 
         if (error) throw error;
-        console.log(`Inserted new project ${project.id}`);
+        
         return data.id;
       }
     } else {
@@ -211,14 +211,14 @@ export const saveProject = async (userId: string, project: Project): Promise<str
         .single();
 
       if (error) throw error;
-      console.log(`Inserted new project with auto-generated ID`);
+      
       return data.id;
     }
   } catch (error) {
-    console.error('Failed to save project:', error);
+    
     if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      
+      
     }
     throw error;
   }
@@ -232,7 +232,7 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
     const authUid = authUser.data.user?.id;
 
     if (!authUid) {
-      console.log('No authenticated user found. Cannot load projects.');
+      
       return [];
     }
 
@@ -269,7 +269,7 @@ export const loadProjects = async (userId: string): Promise<Project[]> => {
       journal: [] // Not stored in DB yet
     }));
   } catch (error) {
-    console.error('Failed to load projects:', error);
+    
     return [];
   }
 };
@@ -293,7 +293,7 @@ export const deleteProject = async (userId: string, projectId: string): Promise<
 
     if (error) throw error;
   } catch (error) {
-    console.error('Failed to delete project:', error);
+    
     throw error;
   }
 };
@@ -311,7 +311,7 @@ export const getUserSubscription = async (userId: string): Promise<UserSubscript
       .single();
 
     if (error) {
-      console.error('Failed to load subscription:', error);
+      
       return null;
     }
 
@@ -330,17 +330,17 @@ export const getUserSubscription = async (userId: string): Promise<UserSubscript
       updatedAt: new Date(data.updated_at)
     };
   } catch (error) {
-    console.error('Error loading subscription:', error);
+    
     return null;
   }
 };
 
 export const updateSubscription = async (
-  userId: string, 
+  userId: string,
   updates: Partial<UserSubscription>
 ): Promise<void> => {
   try {
-    const updateData: any = {};
+    const updateData: Record<string, string | boolean> = {};
     
     if (updates.tier) updateData.tier = updates.tier;
     if (updates.status) updateData.status = updates.status;
@@ -360,7 +360,7 @@ export const updateSubscription = async (
 
     if (error) throw error;
   } catch (error) {
-    console.error('Failed to update subscription:', error);
+    
     throw error;
   }
 };
@@ -377,7 +377,7 @@ export const getTodayUsage = async (userId: string): Promise<UsageTracking | nul
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Failed to load usage:', error);
+      
       return null;
     }
 
@@ -407,7 +407,7 @@ export const getTodayUsage = async (userId: string): Promise<UsageTracking | nul
       createdAt: new Date(data.created_at)
     };
   } catch (error) {
-    console.error('Error loading usage:', error);
+    
     return null;
   }
 };
@@ -434,7 +434,7 @@ export const incrementAiQueryCount = async (userId: string): Promise<void> => {
       }
     }
   } catch (error) {
-    console.error('Failed to increment AI query count:', error);
+    
   }
 };
 
@@ -491,7 +491,7 @@ export const saveFileMetadata = async (
 
     return data.id;
   } catch (error) {
-    console.error('Failed to save file metadata:', error);
+    
     return null;
   }
 };
@@ -531,7 +531,7 @@ export const getProjectFiles = async (
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Failed to get project files:', error);
+    
     return [];
   }
 };
@@ -571,7 +571,7 @@ export const getTaskFiles = async (
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Failed to get task files:', error);
+    
     return [];
   }
 };
@@ -604,7 +604,7 @@ export const deleteFileMetadata = async (
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to delete file metadata:', error);
+    
     return false;
   }
 };
@@ -632,7 +632,7 @@ export const getStorageQuota = async (
 
     return { used, limit };
   } catch (error) {
-    console.error('Failed to get storage quota:', error);
+    
     return null;
   }
 };
@@ -669,7 +669,7 @@ const updateStorageQuota = async (
         .eq('user_id', userId);
     }
   } catch (error) {
-    console.error('Failed to update storage quota:', error);
+    
   }
 };
 
@@ -707,7 +707,7 @@ export const checkStorageQuota = async (
 
     return { allowed: true, message: 'OK' };
   } catch (error) {
-    console.error('Failed to check storage quota:', error);
+    
     return { allowed: true, message: 'OK' };
   }
 };
@@ -729,7 +729,7 @@ export const logFileAccess = async (
         action: action
       });
   } catch (error) {
-    console.error('Failed to log file access:', error);
+    
     // Don't throw - logging failure shouldn't break the app
   }
 };
@@ -766,7 +766,7 @@ export const createTaskDependency = async (
       createdAt: data.created_at
     };
   } catch (error) {
-    console.error('Failed to create task dependency:', error);
+    
     return null;
   }
 };
@@ -792,7 +792,7 @@ export const getTaskDependencies = async (
       createdAt: d.created_at
     }));
   } catch (error) {
-    console.error('Failed to get task dependencies:', error);
+    
     return [];
   }
 };
@@ -818,7 +818,7 @@ export const getDependentTasks = async (
       createdAt: d.created_at
     }));
   } catch (error) {
-    console.error('Failed to get dependent tasks:', error);
+    
     return [];
   }
 };
@@ -840,7 +840,7 @@ export const deleteTaskDependency = async (
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to delete task dependency:', error);
+    
     return false;
   }
 };
@@ -866,7 +866,7 @@ export const deleteAllTaskDependencies = async (
 
     return true;
   } catch (error) {
-    console.error('Failed to delete all task dependencies:', error);
+    
     return false;
   }
 };
@@ -909,7 +909,7 @@ export const createRecurringTaskInstance = async (
       createdAt: data.created_at
     };
   } catch (error) {
-    console.error('Failed to create recurring task instance:', error);
+    
     return null;
   }
 };
@@ -938,7 +938,7 @@ export const getRecurringTaskInstances = async (
       createdAt: d.created_at
     }));
   } catch (error) {
-    console.error('Failed to get recurring task instances:', error);
+    
     return [];
   }
 };
@@ -969,7 +969,7 @@ export const getRecurringTaskInstancesByDateRange = async (
       createdAt: d.created_at
     }));
   } catch (error) {
-    console.error('Failed to get recurring task instances by date range:', error);
+    
     return [];
   }
 };
@@ -1001,7 +1001,7 @@ export const getLatestRecurringTaskInstance = async (
       createdAt: data.created_at
     };
   } catch (error) {
-    console.error('Failed to get latest recurring task instance:', error);
+    
     return null;
   }
 };
@@ -1021,7 +1021,7 @@ export const deleteRecurringTaskInstance = async (
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to delete recurring task instance:', error);
+    
     return false;
   }
 };
@@ -1041,7 +1041,7 @@ export const deleteAllRecurringTaskInstances = async (
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to delete all recurring task instances:', error);
+    
     return false;
   }
 };

@@ -31,7 +31,7 @@ export class TeamViewService {
       if (!data) return this.getDefaultMembers();
       return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to load team members:', error);
+      
       return this.getDefaultMembers();
     }
   }
@@ -52,7 +52,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.MEMBERS_KEY, JSON.stringify(members));
     } catch (error) {
-      console.error('Failed to add member:', error);
+      
     }
 
     return newMember;
@@ -72,7 +72,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.MEMBERS_KEY, JSON.stringify(members));
     } catch (error) {
-      console.error('Failed to update member:', error);
+      
     }
   }
 
@@ -85,7 +85,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.MEMBERS_KEY, JSON.stringify(members));
     } catch (error) {
-      console.error('Failed to remove member:', error);
+      
     }
   }
 
@@ -98,7 +98,7 @@ export class TeamViewService {
       if (!data) return [];
       return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to load team views:', error);
+      
       return [];
     }
   }
@@ -123,7 +123,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.VIEWS_KEY, JSON.stringify(views));
     } catch (error) {
-      console.error('Failed to create view:', error);
+      
     }
 
     return newView;
@@ -143,7 +143,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.VIEWS_KEY, JSON.stringify(views));
     } catch (error) {
-      console.error('Failed to update view:', error);
+      
     }
   }
 
@@ -156,7 +156,7 @@ export class TeamViewService {
     try {
       localStorage.setItem(this.VIEWS_KEY, JSON.stringify(views));
     } catch (error) {
-      console.error('Failed to delete view:', error);
+      
     }
   }
 
@@ -251,7 +251,7 @@ export class TeamViewService {
       localStorage.removeItem(this.MEMBERS_KEY);
       localStorage.removeItem(this.VIEWS_KEY);
     } catch (error) {
-      console.error('Failed to clear team data:', error);
+      
     }
   }
 }

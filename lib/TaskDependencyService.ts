@@ -317,7 +317,7 @@ export class TaskDependencyService {
 
     // If result doesn't contain all tasks, there's a cycle
     if (result.length !== tasks.length) {
-      console.warn('Circular dependency detected in topological sort');
+      
       return tasks; // Return original order
     }
 

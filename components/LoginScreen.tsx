@@ -50,11 +50,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           });
 
         if (profileError) {
-          console.error('Profile creation error:', profileError);
+          
           throw new Error('Failed to create user profile: ' + profileError.message);
         }
 
-        console.log('User profile created successfully!');
+        
 
         // Success - new user needs onboarding
         onLoginSuccess(authData.user.id, authData.user.email!, {
@@ -87,13 +87,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         if (fetchError) throw fetchError;
         if (!userData) throw new Error('User profile not found');
 
-        console.log('Logged in user data:', userData);
+        
 
         // Success - pass full user data
         onLoginSuccess(authData.user.id, authData.user.email!, userData);
       }
     } catch (err) {
-      console.error('Auth error:', err);
+      
       const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
       setError(errorMessage);
     } finally {

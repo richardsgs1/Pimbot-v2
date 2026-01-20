@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Session ID required' });
     }
 
-    console.log('Retrieving Stripe session:', sessionId);
+    
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -32,11 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    console.log('Stripe session retrieved:', session.id);
-    console.log('Metadata:', session.metadata);
+    
+    
 
     const userId = session.metadata.userId;
-    console.log('Updating user:', userId);
+    
 
     // Update USERS table
     const { data, error: updateError } = await supabase
@@ -50,18 +50,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select();
 
     if (updateError) {
-      console.error('Supabase error:', updateError);
+      
       return res.status(500).json({ error: 'Failed to update user', details: updateError });
     }
 
-    console.log('Update successful:', data);
+    
 
     return res.status(200).json({
       success: true,
       subscription: session.subscription,
     });
   } catch (error: any) {
-    console.error('Error:', error);
+    
     return res.status(500).json({ error: error.message });
   }
 }

@@ -44,7 +44,7 @@ export const useCustomTemplates = (supabase: SupabaseClient | null) => {
         setCustomTemplates(templates);
       }
     } catch (error) {
-      console.error('Error loading templates:', error);
+      
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export const useCustomTemplates = (supabase: SupabaseClient | null) => {
       await loadTemplates(); // Reload templates
       return true;
     } catch (error) {
-      console.error('Error saving template:', error);
+      
       return false;
     }
   };
@@ -103,7 +103,7 @@ export const useCustomTemplates = (supabase: SupabaseClient | null) => {
       await loadTemplates(); // Reload templates
       return true;
     } catch (error) {
-      console.error('Error deleting template:', error);
+      
       return false;
     }
   };

@@ -322,7 +322,7 @@ Provide helpful, context-aware advice based on their current portfolio status an
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      
       const errorMessage: Message = {
         role: 'assistant',
         content: 'I apologize, but I\'m having trouble connecting right now. Please try again in a moment.',
