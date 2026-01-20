@@ -45,6 +45,10 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
 
+  // Validation errors
+  const [projectErrors, setProjectErrors] = useState<{ name?: string; description?: string; budget?: string }>({});
+  const [taskErrors, setTaskErrors] = useState<{ name?: string; description?: string; estimatedHours?: string }>({});
+
   // Get filter display name
   const getFilterDisplayName = (): string => {
     switch (activeTileFilter) {
@@ -105,7 +109,68 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
     estimatedHours: 0,
   });
 
+  // Validation functions
+  const validateProject = (): boolean => {
+    const errors: { name?: string; description?: string; budget?: string } = {};
+
+    // Name validation
+    const trimmedName = newProject.name.trim();
+    if (!trimmedName) {
+      errors.name = 'Project name is required';
+    } else if (trimmedName.length < 2) {
+      errors.name = 'Project name must be at least 2 characters';
+    } else if (trimmedName.length > 100) {
+      errors.name = 'Project name must be less than 100 characters';
+    }
+
+    // Description validation (optional but with max length)
+    if (newProject.description.length > 1000) {
+      errors.description = 'Description must be less than 1000 characters';
+    }
+
+    // Budget validation
+    if (newProject.budget < 0) {
+      errors.budget = 'Budget cannot be negative';
+    } else if (newProject.budget > 999999999) {
+      errors.budget = 'Budget exceeds maximum allowed value';
+    }
+
+    setProjectErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateTask = (): boolean => {
+    const errors: { name?: string; description?: string; estimatedHours?: string } = {};
+
+    // Name validation
+    const trimmedName = newTask.name.trim();
+    if (!trimmedName) {
+      errors.name = 'Task name is required';
+    } else if (trimmedName.length < 2) {
+      errors.name = 'Task name must be at least 2 characters';
+    } else if (trimmedName.length > 100) {
+      errors.name = 'Task name must be less than 100 characters';
+    }
+
+    // Description validation (optional but with max length)
+    if (newTask.description.length > 500) {
+      errors.description = 'Description must be less than 500 characters';
+    }
+
+    // Estimated hours validation
+    if (newTask.estimatedHours < 0) {
+      errors.estimatedHours = 'Estimated hours cannot be negative';
+    } else if (newTask.estimatedHours > 10000) {
+      errors.estimatedHours = 'Estimated hours exceeds maximum allowed value';
+    }
+
+    setTaskErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleCreateProject = async () => {
+    if (!validateProject()) return;
+
     setIsSavingProject(true);
     try {
       const now = new Date().toISOString();
@@ -151,6 +216,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
   const handleUpdateProject = () => {
     if (!selectedProject) return;
+    if (!validateProject()) return;
 
     const updatedProject = {
       ...selectedProject,
@@ -179,6 +245,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
   const handleCreateTask = async () => {
     if (!selectedProject) return;
+    if (!validateTask()) return;
 
     setIsSavingTask(true);
     try {
@@ -228,6 +295,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
   const handleUpdateTask = () => {
     if (!selectedProject || !editingTask) return;
+    if (!validateTask()) return;
 
     const updatedTask = {
       ...editingTask,
@@ -305,6 +373,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   };
 
   const handleEditTask = (task: Task) => {
+    setTaskErrors({});
     setEditingTask(task);
     setNewTask({
       name: task.name,
@@ -325,7 +394,8 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
   const handleEditProject = () => {
     if (!selectedProject) return;
-    
+
+    setProjectErrors({});
     setNewProject({
       name: selectedProject.name,
       description: selectedProject.description,
@@ -416,7 +486,22 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               Kanban
             </button>
             <button
-              onClick={() => setIsAddingProject(true)}
+              onClick={() => {
+                setProjectErrors({});
+                setNewProject({
+                  name: '',
+                  description: '',
+                  manager: '',
+                  status: PROJECT_STATUS_VALUES.Planning,
+                  priority: PRIORITY_VALUES.Medium,
+                  startDate: '',
+                  endDate: '',
+                  dueDate: '',
+                  budget: 0,
+                  teamMembers: [],
+                });
+                setIsAddingProject(true);
+              }}
               className="ml-2 px-4 py-1.5 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
             >
               + New Project
@@ -558,7 +643,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-[var(--text-primary)]">Tasks ({selectedProject.tasks.length})</h3>
                   <button
-                    onClick={() => setIsAddingTask(true)}
+                    onClick={() => {
+                      setTaskErrors({});
+                      setNewTask({
+                        name: '',
+                        description: '',
+                        assignees: [],
+                        status: TaskStatusEnum.ToDo,
+                        priority: PRIORITY_VALUES.Medium,
+                        dueDate: '',
+                        estimatedHours: 0,
+                      });
+                      setIsAddingTask(true);
+                    }}
                     className="px-3 py-1.5 bg-[var(--accent-primary)] text-white rounded-lg hover:opacity-80 transition-opacity"
                   >
                     + Add Task
@@ -707,20 +804,32 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               {isAddingProject ? 'New Project' : 'Edit Project'}
             </h3>
             <div className="space-y-4">
-              <FormField label="Project Name" required>
+              <FormField label="Project Name" required error={projectErrors.name}>
                 <input
                   type="text"
                   value={newProject.name}
-                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  onChange={(e) => {
+                    setNewProject({ ...newProject, name: e.target.value });
+                    if (projectErrors.name) setProjectErrors({ ...projectErrors, name: undefined });
+                  }}
+                  maxLength={100}
+                  className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                    projectErrors.name ? 'border-red-500' : 'border-[var(--border-primary)]'
+                  }`}
                   placeholder="Enter project name"
                 />
               </FormField>
-              <FormField label="Description">
+              <FormField label="Description" error={projectErrors.description} hint={`${newProject.description.length}/1000 characters`}>
                 <textarea
                   value={newProject.description}
-                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  onChange={(e) => {
+                    setNewProject({ ...newProject, description: e.target.value });
+                    if (projectErrors.description) setProjectErrors({ ...projectErrors, description: undefined });
+                  }}
+                  maxLength={1000}
+                  className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                    projectErrors.description ? 'border-red-500' : 'border-[var(--border-primary)]'
+                  }`}
                   rows={3}
                   placeholder="Describe your project"
                 />
@@ -779,12 +888,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   />
                 </FormField>
               </div>
-              <FormField label="Budget" hint="Enter the project budget in dollars">
+              <FormField label="Budget" error={projectErrors.budget} hint="Enter the project budget in dollars">
                 <input
                   type="number"
                   value={newProject.budget}
-                  onChange={(e) => setNewProject({ ...newProject, budget: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  onChange={(e) => {
+                    setNewProject({ ...newProject, budget: Number(e.target.value) });
+                    if (projectErrors.budget) setProjectErrors({ ...projectErrors, budget: undefined });
+                  }}
+                  min={0}
+                  max={999999999}
+                  className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                    projectErrors.budget ? 'border-red-500' : 'border-[var(--border-primary)]'
+                  }`}
                   placeholder="0"
                 />
               </FormField>
@@ -907,20 +1023,32 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               {isAddingTask ? 'New Task' : 'Edit Task'}
             </h3>
             <div className="space-y-4">
-              <FormField label="Task Name" required>
+              <FormField label="Task Name" required error={taskErrors.name}>
                 <input
                   type="text"
                   value={newTask.name}
-                  onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  onChange={(e) => {
+                    setNewTask({ ...newTask, name: e.target.value });
+                    if (taskErrors.name) setTaskErrors({ ...taskErrors, name: undefined });
+                  }}
+                  maxLength={100}
+                  className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                    taskErrors.name ? 'border-red-500' : 'border-[var(--border-primary)]'
+                  }`}
                   placeholder="Enter task name"
                 />
               </FormField>
-              <FormField label="Description">
+              <FormField label="Description" error={taskErrors.description} hint={`${newTask.description.length}/500 characters`}>
                 <textarea
                   value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                  onChange={(e) => {
+                    setNewTask({ ...newTask, description: e.target.value });
+                    if (taskErrors.description) setTaskErrors({ ...taskErrors, description: undefined });
+                  }}
+                  maxLength={500}
+                  className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                    taskErrors.description ? 'border-red-500' : 'border-[var(--border-primary)]'
+                  }`}
                   rows={3}
                   placeholder="Describe the task"
                 />
@@ -994,12 +1122,19 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                     className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
                   />
                 </FormField>
-                <FormField label="Estimated Hours" hint="How long will this task take?">
+                <FormField label="Estimated Hours" error={taskErrors.estimatedHours} hint="How long will this task take?">
                   <input
                     type="number"
                     value={newTask.estimatedHours}
-                    onChange={(e) => setNewTask({ ...newTask, estimatedHours: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)]"
+                    onChange={(e) => {
+                      setNewTask({ ...newTask, estimatedHours: Number(e.target.value) });
+                      if (taskErrors.estimatedHours) setTaskErrors({ ...taskErrors, estimatedHours: undefined });
+                    }}
+                    min={0}
+                    max={10000}
+                    className={`w-full px-3 py-2 bg-[var(--bg-secondary)] border rounded-lg text-[var(--text-primary)] ${
+                      taskErrors.estimatedHours ? 'border-red-500' : 'border-[var(--border-primary)]'
+                    }`}
                     placeholder="0"
                   />
                 </FormField>
