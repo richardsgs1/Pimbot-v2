@@ -35,6 +35,9 @@ import { TrialEmailService } from '../lib/TrialEmailService';
 // 📋 TEMPLATE MANAGEMENT
 import TemplateManagement from './TemplateManagement';
 
+// 🎯 FEATURE TOUR
+import FeatureTour, { DEFAULT_TOUR_STEPS } from './FeatureTour';
+
 type View = 'home' | 'projectList' | 'projectDetails' | 'chat' | 'timeline' | 'account' | 'projectManagement' | 'pricing' | 'calendar' | 'templates';
 
 interface DashboardProps {
@@ -74,6 +77,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData, onLogout }) => {
   // 📋 TASK TEMPLATE STATE
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+  // 🎯 FEATURE TOUR STATE
+  const [showFeatureTour, setShowFeatureTour] = useState(() => {
+    // Check if user has completed the tour
+    const tourCompleted = localStorage.getItem(`pimbot_tour_completed_${userData.id}`);
+    return !tourCompleted;
+  });
 
   // ADD THESE TOAST HELPER FUNCTIONS HERE:
   const addToast = (toast: Omit<Toast, 'id'>) => {
@@ -1021,11 +1031,12 @@ useEffect(() => {
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           <li>
-            <button 
-              onClick={() => handleNavClick('home')} 
+            <button
+              onClick={() => handleNavClick('home')}
+              data-tour="nav-home"
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'home' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                currentView === 'home'
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
             >
@@ -1038,11 +1049,12 @@ useEffect(() => {
             </button>
           </li>
           <li>
-            <button 
-              onClick={() => handleNavClick('projectManagement')} 
+            <button
+              onClick={() => handleNavClick('projectManagement')}
+              data-tour="nav-projects"
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'projectManagement' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                currentView === 'projectManagement'
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
             >
@@ -1056,11 +1068,12 @@ useEffect(() => {
           </li>
           
           <li>
-            <button 
-              onClick={() => handleNavClick('calendar')} 
+            <button
+              onClick={() => handleNavClick('calendar')}
+              data-tour="nav-calendar"
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
-                currentView === 'calendar' 
-                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]' 
+                currentView === 'calendar'
+                  ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
                   : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
               }`}
             >
@@ -1076,6 +1089,7 @@ useEffect(() => {
           <li>
             <button
               onClick={() => handleNavClick('chat')}
+              data-tour="nav-chat"
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'chat'
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
@@ -1094,6 +1108,7 @@ useEffect(() => {
           <li>
             <button
               onClick={() => handleNavClick('templates')}
+              data-tour="nav-templates"
               className={`w-full flex items-center p-3 rounded-lg font-semibold transition-colors duration-200 ${
                 currentView === 'templates'
                   ? 'bg-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
@@ -1111,7 +1126,7 @@ useEffect(() => {
         </ul>
 
         <div className="mt-8 pt-4 border-t border-[var(--border-primary)]">
-          <div className="mb-4">
+          <div className="mb-4" data-tour="theme-toggle">
             {!sidebarCollapsed && <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Appearance</h3>}
            {!sidebarCollapsed && <ThemeToggle />}
           </div>
@@ -1172,7 +1187,7 @@ useEffect(() => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-4 sm:px-6 py-4">
+        <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-4 sm:px-6 py-4" data-tour="dashboard">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <button
@@ -1279,6 +1294,25 @@ useEffect(() => {
 
       {/* Toast Notifications */}
       <ToastNotification toasts={toasts} onDismiss={removeToast} />
+
+      {/* Feature Tour for First-Time Users */}
+      {showFeatureTour && (
+        <FeatureTour
+          steps={DEFAULT_TOUR_STEPS}
+          onComplete={() => {
+            localStorage.setItem(`pimbot_tour_completed_${userData.id}`, 'true');
+            setShowFeatureTour(false);
+            addToast({
+              type: 'success',
+              message: 'Tour completed! You\'re all set to start managing your projects.',
+            });
+          }}
+          onSkip={() => {
+            localStorage.setItem(`pimbot_tour_completed_${userData.id}`, 'true');
+            setShowFeatureTour(false);
+          }}
+        />
+      )}
     </div>
   );
 };

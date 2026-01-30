@@ -64,3 +64,23 @@ body {
 .animate-pulse-subtle {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
+
+/* Feature Tour Styles */
+@keyframes tour-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--accent-primary);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.tour-highlight {
+  position: relative;
+  z-index: 9997 !important;
+  border-radius: 8px;
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+  animation: tour-pulse 2s ease-in-out infinite;
+  background-color: var(--bg-secondary);
+}
