@@ -87,7 +87,7 @@ export default async function handler(
 
     // Check environment variables
     const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
-    const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+    const MAILGUN_DOMAIN = 'mg.pimbotai.com';
     const MAILGUN_API_URL = process.env.MAILGUN_API_URL || 'https://api.mailgun.net';
     const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@yourdomain.com';
 
